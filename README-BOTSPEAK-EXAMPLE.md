@@ -47,8 +47,14 @@ TR SK → renders any BT file → human prose on demand · rarely needed · alwa
 
 ## install
 
+skills only (recommended first step):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_ORG/botspeak/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
+```
+
+skills + always-on rule (BT applied automatically to new AI docs):
+```bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash -s -- --with-rule
 ```
 
 installs 3 SKs:
@@ -56,8 +62,15 @@ installs 3 SKs:
 - /capture-botspeak → rambling chat → focused BT doc
 - TR → BT → human prose
 
+--with-rule drops per-IDE rule file into current project:
+  Cursor → .cursor/rules/botspeak.mdc
+  Windsurf → .windsurf/rules/botspeak.md
+  Cline → .clinerules/botspeak.md
+  Copilot → .github/copilot-instructions.md
+  everything else → AGENTS.md
+
+manual: copy rules/botspeak.md to wherever your IDE looks for always-on rules
 opt-in · nothing fires until invoked · no surprises · easy uninstall
-always-on (advanced): [.cursor/rules/botspeak.mdc](.cursor/rules/botspeak.mdc) · [agents/botspeak-translator.md](agents/botspeak-translator.md)
 
 ---
 
@@ -180,23 +193,24 @@ botspeak/
 ├── README.md                      ← human prose · you are here (HP)
 ├── README-BOTSPEAK-EXAMPLE.md     ← this file · same content · BT format
 ├── SPEC.md                        ← full grammar · symbols · aliases · pitfalls
-├── LICENSE                        ← MIT
-├── CHANGELOG.md
-├── CONTRIBUTING.md
+├── LICENSE · CHANGELOG.md · CONTRIBUTING.md
 ├── CLAUDE.md / AGENTS.md          ← bootstrap files (BT format)
-├── .cursor/rules/botspeak.mdc     ← always-on Cursor rule (advanced)
+├── install.sh                     ← one-line installer · --with-rule drops rule files
+├── rules/
+│   ├── botspeak.md                ← generic rule (Windsurf · Cline · Copilot · any IDE)
+│   └── cursor.mdc                 ← Cursor-specific (alwaysApply frontmatter)
+├── .cursor/rules/botspeak.mdc     ← Cursor rule active in this repo (self-hosting)
 ├── skills/
 │   ├── botspeak/SKILL.md          ← compress: doc → BT
 │   ├── capture/SKILL.md           ← capture: chat → BT doc
 │   └── translate/SKILL.md         ← TR: BT → human prose
 ├── agents/botspeak-translator.md  ← bidirectional agent (advanced)
-├── examples/
-│   ├── 01-short-rule/             ←  262 → 154 words (41%)
-│   ├── 02-context-handoff/        ←  640 → 138 words (78%)
-│   ├── 03-memory-page/            ←  612 → 178 words (71%)
-│   ├── 04-philosophy-rule/        ← 1095 → 285 words (74%)
-│   └── 05-aliased-claude-md/      ←  985 → 433 words (56%)
-└── install.sh
+└── examples/
+    ├── 01-short-rule/             ←  262 → 154 words (41%)
+    ├── 02-context-handoff/        ←  640 → 138 words (78%)
+    ├── 03-memory-page/            ←  612 → 178 words (71%)
+    ├── 04-philosophy-rule/        ← 1095 → 285 words (74%)
+    └── 05-aliased-claude-md/      ←  985 → 433 words (56%)
 ```
 
 ---

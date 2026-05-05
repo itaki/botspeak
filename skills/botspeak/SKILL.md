@@ -1,66 +1,72 @@
 ---
 name: botspeak
-description: Compress an AI-facing document into BOTSPEAK — symbols, @defs aliases, phase tags. Use when rewriting rules, skills, CLAUDE.md, AGENTS.md, memory pages, or context handoffs where AI is the primary reader.
-triggers: ["botspeak this", "compress to botspeak", "optimize for AI", "/botspeak", "shrink this for the bot"]
+description: Compress an existing AI-facing document (rule, skill, CLAUDE.md, memory page, handoff) into BOTSPEAK notation. Use when the user says "botspeak this", "compress this rule", "make this shorter for the bot", or invokes /botspeak.
+triggers: ["botspeak this", "compress this", "make this shorter for the bot", "/botspeak", "convert to botspeak", "optimize this for tokens"]
 ---
 
-[ALWAYS] target = docs where AI = primary reader · human = secondary or never
-apply-to: rules · skills · CLAUDE.md · AGENTS.md · wiki/memory pages · context handoffs
+[ALWAYS] role = compressor · input = verbose AI-facing doc · output = semantically identical BOTSPEAK doc
+[ALWAYS] every word the USER reads (classification, questions, summary) = full human prose · zero BOTSPEAK
+!! do not compress: YAML frontmatter · description fields · trigger phrases · code blocks · URLs · file paths
 
-@defs
-  ST = symbol-table (🔴 ✅ ⚠️ → · / ≠ =)
-  PT = phase-tag ([NEW-CHAT] [ALWAYS] [ON-TRIGGER] [REFERENCE] [HANDOFF])
-  AL = @defs alias block
-@end
+# step 1: inventory the doc
+scan for:
+  invariants ("never", "always", "must", "required", "critical")
+  triggers ("when X", "if Y", "after Z")
+  constraints (allowed values, forbidden values, exact numbers)
+  cause chains (A leads to B, B causes C)
+  repeated identifiers (used >=3 times -> alias candidates)
+  phase context (session-start vs always-active vs reference vs handoff)
 
-# core symbol contracts (two dialects -- pick per use)
-ASCII (default, 1 tok each):  ->  =>  &&  ||  !=  =  !!  ok  ~~
-Symbol (human-audited docs):  ->/→  &&/·  ||// !!/🔴 ok/✅ ~~/⚠️
-choose ASCII when doc loaded every session && agent is only reader
-choose Symbol when humans audit regularly && visual landmarks help
+# step 2: build @defs
+for each identifier used >=3 times in the doc:
+  pick mnemonic abbreviation (E for establishment_id · MV for materialized-view · WR for wine-report)
+  add to @defs block at top of output
+  replace every occurrence with the short form
 
-# phase tags (assign one to every content block)
-[NEW-CHAT]    critical at session-start; skip mid-session
-[ALWAYS]      every turn
-[ON-TRIGGER]  only when condition fires
-[REFERENCE]   look-up only; skip during load
-[HANDOFF]     cross-session; new-agent first-turn only
+if doc >10 lines && has clear sections -> use XML macro-structure: <context> <defs> <rules> <reference>
 
-# the killer feature: aliases
-@defs block at top of doc -> bind short forms to repeated identifiers
-  count repeated multi-token terms -> if any term used >=3 times -> make it an alias
-  use mnemonic letters (E for establishment, S for settings) not arbitrary (A, B, C)
-  <=15 aliases per @defs block, keep block in first 200 tokens
-  reliable up to ~2K body tokens, drift starts ~4K
-  long docs (>4K): re-declare @defs at top of each major section, or use <defs> inside <section>
+# step 3: tag every block
+every content block gets a phase tag:
+  [NEW-CHAT]   session-init context; agent may skip once established
+  [ALWAYS]     must fire every turn; no exceptions
+  [ON-TRIGGER] conditional; attach the trigger condition explicitly
+  [REFERENCE]  lookup-only; skip during normal load
+  [HANDOFF]    cross-session context; new agent reads first turn only
 
-# compression order (apply in sequence)
-1. read full doc → identify: invariants · triggers · constraints · allowed · forbidden · repeated terms
-2. count repeated multi-token terms · build @defs block for terms used ≥3×
-3. assign PT to each content block
-4. compress prose → symbol+fragment notation:
-     drop articles · filler verbs · hedging · transitional phrases · throat-clearing
-     keep all behavioral constraints · invariants · cause chains · exact values
-5. for long docs (>10 lines): wrap sections in XML tags
-     <context> <defs> <rules> <reference>
-6. verify: every constraint preserved · nothing invented · no behavioral meaning lost
-7. measure: original token count → compressed token count → % reduction
-8. output compressed doc + summary line
+# step 4: compress prose
+drop:
+  articles (a, the, an)
+  filler ("in order to", "please note that", "it is important to")
+  hedging ("you might want to", "generally speaking", "typically")
+  throat-clearing ("as mentioned above", "to summarize")
+  duplicate restatements (same constraint said 3 ways -> keep the clearest)
 
-# compression patterns (highest savings first)
-prose-paragraph → cause-chain (A → B → C)
-prohibition-list → 🔴 NEVER X · Y · Z (inline with ·)
-allowed-list    → ✅ allowed: X · Y · Z
-state-listing   → state: thing-1 ✅ · thing-2 ⚠️ pending · thing-3 🔴 broken
-nested-bullets  → inline with · or →
+keep byte-for-byte:
+  exact values (version numbers, IDs, limits, timeouts)
+  constraint polarity (!! never vs ok allowed — wrong polarity = bug)
+  cause chains (A -> B; don't collapse)
+  conditional logic (if/then; don't merge into a list)
 
-# frontmatter is sacred (never compress)
-YAML frontmatter (name, description, triggers, globs, alwaysApply, tools, model) is how host tools route
-description stays plain prose with "Use when..." idiom -- compressed description = skill never fires
-BOTSPEAK compresses the markdown BODY only, never the YAML
+# step 5: choose dialect
+ASCII (default — 1 token/symbol guaranteed):
+  ->   leads-to     !!   never/forbidden    ok   allowed
+  &&   AND          ||   OR                ~~   warn/check-first
+  !=   not-equal    =    defined-as
+
+Symbol (only if user asked, or doc will be read by humans regularly):
+  🔴 = !!     ✅ = ok     ⚠️ = ~~     → = ->     · = &&
+
+!! do NOT mix dialects within a single file
+
+# step 6: present + verify (all user-facing content = full prose)
+show the user:
+  1. the BOTSPEAK output
+  2. plain-prose summary: "This document now says: [2-3 sentences]"
+  3. token savings estimate: word count before vs after
+  4. file path to write it (if persisting)
+
+ask: "Does this match what the original said? Run /translate-botspeak to verify."
 
 # the inviolable rule
-[ALWAYS] any content the USER will read (questions, choices, warnings, errors) -> full human prose -> no BOTSPEAK -> in user's language
-
-# reference
-SPEC.md = full grammar, examples/ = before-after pairs across 5 doc types
+[ALWAYS] user reads it -> prose · agent reads it -> BOTSPEAK
+!! if compression changes the meaning or strength of any constraint, revert that constraint to its original form

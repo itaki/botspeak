@@ -75,6 +75,22 @@ open game-prompt/results/flappy-botspeak.html
 
 ---
 
+## Results So Far
+
+**Round-trip iteration 1 (manual, acted as /botspeak):**
+
+| | Words |
+|---|---|
+| `source.md` (original prose) | 1,415 |
+| `source-botspeak-iter1.md` (BOTSPEAK) | 614 |
+| **Reduction** | **57%** |
+
+All exact values preserved verbatim: every hex color, every pixel dimension, every Hz value, every frame count. See `game-prompt/source-botspeak-iter1.md`.
+
+The working game (built from the prose spec): `game-prompt/results/flappy-prose.html` — open it in any browser.
+
+---
+
 ## Contributing Results
 
 If you run these evals, open a PR with your results in `game-prompt/results/` and `round-trip/results/`. Include:

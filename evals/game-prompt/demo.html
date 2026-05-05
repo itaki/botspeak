@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOTSPEAK Eval — Flappy Bird Functional Equivalence Test</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  header h1 span { color: #58a6ff; }
+  header p {
+    color: #8b949e;
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .games {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+
+  .game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .game-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8b949e;
+  }
+  .game-label em {
+    font-style: normal;
+    color: #e6edf3;
+  }
+
+  .frame-container {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #21262d;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .frame-container.focused {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+  }
+
+  .focus-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 17, 23, 0.65);
+    color: #e6edf3;
+    font-size: 0.9rem;
+    font-weight: 500;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.2s;
+    z-index: 10;
+  }
+  .focus-hint span {
+    background: rgba(0,0,0,0.7);
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+  }
+  .frame-container.focused .focus-hint {
+    opacity: 0;
+  }
+
+  iframe {
+    display: block;
+    border: none;
+    width: 240px;
+    height: 320px;
+  }
+
+  /* ── Comparison table ─────────────────────────────────────────── */
+  .comparison {
+    max-width: 720px;
+    margin: 0 auto 48px;
+  }
+  .comparison h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #e6edf3;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+  th {
+    color: #8b949e;
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  td:first-child { color: #8b949e; font-size: 0.85rem; }
+  td.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+  td.good { color: #3fb950; }
+  td a {
+    color: #58a6ff;
+    text-decoration: none;
+  }
+  td a:hover { text-decoration: underline; }
+  tr:last-child td { border-bottom: none; }
+
+  .delta-row td { background: #161b22; }
+
+  /* ── Methodology ──────────────────────────────────────────────── */
+  .methodology {
+    max-width: 720px;
+    margin: 0 auto;
+    color: #8b949e;
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+  .methodology h3 {
+    color: #e6edf3;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+  .methodology p { margin-bottom: 12px; }
+  .methodology code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #161b22;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    color: #e6edf3;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 64px;
+    color: #484f58;
+    font-size: 0.8rem;
+  }
+  footer a { color: #58a6ff; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BOTSPEAK Eval — <span>Functional Equivalence Test</span></h1>
+  <p>
+    The same game, built twice: once from a verbose prose prompt,
+    once from a BOTSPEAK-compressed version of that prompt.<br>
+    Hover over a game to play it. Space to flap.
+  </p>
+</header>
+
+<div class="games">
+  <div class="game-wrapper">
+    <div class="game-label">Built from <em>prose prompt</em></div>
+    <div class="frame-container" id="wrap-prose">
+      <div class="focus-hint"><span>Hover to play · Space to flap</span></div>
+      <iframe id="frame-prose" src="results/flappy-prose-clean.html" title="Flappy Bird — prose build" scrolling="no"></iframe>
+    </div>
+  </div>
+
+  <div class="game-wrapper">
+    <div class="game-label">Built from <em>BOTSPEAK prompt</em></div>
+    <div class="frame-container" id="wrap-botspeak">
+      <div class="focus-hint"><span>Hover to play · Space to flap</span></div>
+      <iframe id="frame-botspeak" src="results/flappy-botspeak.html" title="Flappy Bird — BOTSPEAK build" scrolling="no"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="comparison">
+  <h2>Comparison</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Prose prompt</th>
+        <th>BOTSPEAK prompt</th>
+        <th>Difference</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Input tokens (est.)</td>
+        <td class="num">~2,128</td>
+        <td class="num good">~913</td>
+        <td class="num good">−57%</td>
+      </tr>
+      <tr>
+        <td>Prompt words</td>
+        <td class="num">1,415</td>
+        <td class="num good">614</td>
+        <td class="num good">−57%</td>
+      </tr>
+      <tr>
+        <td>Generated lines of code</td>
+        <td class="num">655</td>
+        <td class="num">540</td>
+        <td class="num">−18%</td>
+      </tr>
+      <tr>
+        <td>Physics: gravity</td>
+        <td>0.5 px/frame²</td>
+        <td>0.5 px/frame²</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Physics: flap velocity</td>
+        <td>−9 px/frame</td>
+        <td>−9 px/frame</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Pipe gap</td>
+        <td>150 px</td>
+        <td>150 px</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Collision forgiveness</td>
+        <td>4 px</td>
+        <td>4 px</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Game states</td>
+        <td>menu / playing / dying / gameover</td>
+        <td>menu / playing / dying / gameover</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Audio</td>
+        <td>Web Audio API (4 sounds)</td>
+        <td>Web Audio API (4 sounds)</td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>localStorage key</td>
+        <td><code>flappyBirdBest</code></td>
+        <td><code>flappyBirdBest</code></td>
+        <td class="good">✓ match</td>
+      </tr>
+      <tr>
+        <td>Source prompt</td>
+        <td><a href="source.md" target="_blank">source.md</a></td>
+        <td><a href="source-botspeak-iter1.md" target="_blank">source-botspeak-iter1.md</a></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Generated code</td>
+        <td><a href="results/flappy-prose-clean.html" target="_blank">flappy-prose-clean.html</a></td>
+        <td><a href="results/flappy-botspeak.html" target="_blank">flappy-botspeak.html</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="methodology">
+  <h3>Methodology</h3>
+  <p>
+    The prose prompt (<code>source.md</code>) was written first: a 1,415-word specification
+    with exact physics values, visual design requirements, game state descriptions,
+    Web Audio synthesis specs, and technical constraints. The specificity is intentional —
+    a vague prompt would let each AI build differently, making comparison meaningless.
+  </p>
+  <p>
+    The BOTSPEAK prompt (<code>source-botspeak-iter1.md</code>) was produced by compressing
+    <code>source.md</code> using the <code>/botspeak</code> skill. Every exact value
+    (hex colors, pixel dimensions, Hz frequencies, frame counts) was preserved verbatim.
+    Articles, filler prose, and redundant restatements were dropped. Repeated identifiers
+    were aliased (<code>CV = canvas</code>, <code>BD = bird</code>, <code>PP = pipes</code>).
+  </p>
+  <p>
+    Both games were built by a fresh AI agent given <em>only</em> the prompt — no existing
+    code, no reference to the other build. The comparison table above shows whether the
+    same constraints were extracted from both formats.
+  </p>
+</div>
+
+<footer>
+  <a href="../../README.md">BOTSPEAK</a> · MIT License ·
+  <a href="https://github.com/itaki/botspeak" target="_blank">github.com/itaki/botspeak</a>
+</footer>
+
+<script>
+  const pairs = [
+    { wrap: document.getElementById('wrap-prose'),    frame: document.getElementById('frame-prose') },
+    { wrap: document.getElementById('wrap-botspeak'), frame: document.getElementById('frame-botspeak') },
+  ];
+
+  function setFocus(active) {
+    pairs.forEach(({ wrap, frame }) => {
+      const isActive = wrap === active.wrap;
+      wrap.classList.toggle('focused', isActive);
+      // Focus the iframe so it captures keyboard events
+      if (isActive) frame.contentWindow?.focus();
+    });
+  }
+
+  pairs.forEach(pair => {
+    // Hover → focus that game immediately (no click required)
+    pair.wrap.addEventListener('mouseenter', () => setFocus(pair));
+    // Click also focuses (belt and suspenders)
+    pair.wrap.addEventListener('click', () => setFocus(pair));
+  });
+
+  // Focus first game on load
+  window.addEventListener('load', () => {
+    setTimeout(() => setFocus(pairs[0]), 100);
+  });
+</script>
+
+</body>
+</html>

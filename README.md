@@ -1,6 +1,8 @@
+
+
 # BOTSPEAK
 
-**A language for bots to talk to bots.** Stop wasting tokens on prose your AI doesn't read.
+**A language for bots to talk to bots.** Stop wasting tokens on prose your AI doesn't need.
 
 [License: MIT](LICENSE)
 

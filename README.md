@@ -99,6 +99,23 @@ That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (in 
 
 ---
 
+## "I Need to Read a BOTSPEAK Document"
+
+You shouldn't have to. That's the point — BOTSPEAK is for your agent, not you.
+
+But if you do need to audit one (reviewing a rule before it goes live, checking what a skill actually says, debugging unexpected agent behavior), there's a skill for that:
+
+```
+"Translate this BOTSPEAK rule into plain English so I can review it:
+[paste the BOTSPEAK file]"
+```
+
+`/translate-botspeak` expands every alias, converts every symbol back to words, and writes the whole thing out as clear human prose. It also flags anything that was ambiguous or potentially lost in compression — so it doubles as a correctness check.
+
+This is the round-trip guarantee: compress with `/botspeak`, verify with `/translate-botspeak`. If the translation matches what you meant, the BOTSPEAK is correct.
+
+---
+
 ## The Three Things That Do the Work
 
 ### 1. Aliases (`@defs`) — the killer feature

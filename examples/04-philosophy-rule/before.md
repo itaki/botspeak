@@ -21,7 +21,7 @@ This is a **DEVELOPMENT PROJECT** to create automated workflows that will onboar
 - ✅ Writing code that will run automatically when future restaurants sign up
 
 **What we ARE NOT doing:**
-- ❌ Actually onboarding the current restaurant (Amano) into production
+- ❌ Actually onboarding the current restaurant (Fred's Italian Bistro) into production
 - ❌ Manually processing their data to "get it done"
 - ❌ Running one-off commands to fix their specific data issues
 - ❌ Treating this data as precious production data
@@ -115,12 +115,12 @@ Before executing ANY command, SQL query, or Edge Function call, ask:
 
 Then WAIT for user response.
 
-## Specific Context: Toast Extractor Workflow
+## Specific Context: Soviet Extractor Workflow
 
 ### The Goal
 
 Build an **onboarding workflow** that:
-1. Fetches CSV files from Toast SFTP
+1. Fetches CSV files from Soviet SFTP
 2. Uploads them to Supabase Storage
 3. Automatically imports them into the database
 4. Monitors progress and handles errors

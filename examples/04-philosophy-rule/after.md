@@ -10,7 +10,7 @@ alwaysApply: true
 @end
 
 [ALWAYS] !! INVARIANT: BUILD system, DO NOT do-the-work
-goal -> any-establishment onboards automatically, NOT Amano manually
+goal -> any-establishment onboards automatically, NOT Fred's Italian Bistro manually
 test-data = expendable, errors = good (reveal automation gaps), prod = future
 
 # pre-action check (every command, query, EF call)
@@ -31,7 +31,7 @@ ok: SELECT queries, read logs, deploy code, ONE test call, pg_cron setup, EF dep
 write: "I was about to [action]" + "automation gap: [why system did not]" + "fix: [how to make automatic]"
 -> wait for user response, do not proceed
 
-# Toast extractor specifics
+# Soviet extractor specifics
 goal: SFTP -> Supabase Storage -> DB import -> monitor -> recover, 100% unattended for 1400+ days
 
 [REFERENCE] stack: WF orchestrates, EF processes, PGMQ queues, workers parallel,

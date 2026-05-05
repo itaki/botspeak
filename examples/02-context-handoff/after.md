@@ -1,4 +1,4 @@
-[HANDOFF] DishData · branch: feature/mv-refresh · 2026-05-04
+[HANDOFF] Data Development Project · branch: feature/mv-refresh · 2026-05-04
 
 @defs
   E   = establishment_id
@@ -6,7 +6,7 @@
   MV  = materialized-view
 @end
 
-context: project = BUILD migration system / not ops · current test = Amano (expendable)
+context: project = BUILD migration system / not ops · current test = Fred's Italian Bistro (expendable)
 
 done: db-pool(src/db/pool.py) ✅ · field-mapping(src/migrate/mapping.py · 47 fields) ✅
       sentry-logging ✅ · admin-dashboard websocket ✅ · n8n-trigger ✅

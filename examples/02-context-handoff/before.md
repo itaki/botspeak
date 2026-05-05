@@ -1,4 +1,4 @@
-# Context Handoff — DishData Project, Session May 4, 2026
+# Context Handoff — Data Development Project, Session May 4, 2026
 
 ## Purpose of This Document
 
@@ -6,7 +6,7 @@ This document is intended to help a new AI agent session pick up where the previ
 
 ## Project Overview
 
-We are working on the DishData project, which is a development project to create automated onboarding workflows for restaurant establishments. It is critical to understand that this is a BUILD project — we are building the system, not actually onboarding any restaurants. The current establishment we are working with for testing purposes is Amano, but we are not trying to complete their onboarding. We are building the automation that will onboard any restaurant in the future.
+We are working on the Data Development Project, which is a development project to create automated onboarding workflows for restaurant establishments. It is critical to understand that this is a BUILD project — we are building the system, not actually onboarding any restaurants. The current establishment we are working with for testing purposes is Fred's Italian Bistro, but we are not trying to complete their onboarding. We are building the automation that will onboard any restaurant in the future.
 
 ## Current Feature Branch
 
@@ -18,7 +18,7 @@ The following items have been implemented and tested:
 
 - Database connection pooling has been implemented and is working correctly. The connection pool configuration is in `src/db/pool.py`.
 - The source-to-destination field mapping is complete. The mapping configuration lives in `src/migrate/mapping.py` and covers all 47 fields that need to be migrated.
-- Error logging with Sentry has been set up and is working. Errors will appear in the DishData Sentry project automatically.
+- Error logging with Sentry has been set up and is working. Errors will appear in the project's Sentry automatically.
 - The admin dashboard now shows migration progress in real-time using a WebSocket connection.
 - The n8n trigger workflow that initiates a migration run has been tested and is working correctly.
 
@@ -46,6 +46,6 @@ After fixing the two bugs above, the following tasks remain:
 
 ## Important Reminders
 
-Please remember that this is a BUILD project. We are building the migration system. We are not trying to actually migrate Amano's data into production. The test data we are working with is entirely expendable and can be destroyed and recreated at any time. This is important because it changes how we think about data safety — in a real production migration, we would be much more careful. Here, errors are useful because they reveal gaps in our automation.
+Please remember that this is a BUILD project. We are building the migration system. We are not trying to actually migrate Fred's Italian Bistro's data into production. The test data we are working with is entirely expendable and can be destroyed and recreated at any time. This is important because it changes how we think about data safety — in a real production migration, we would be much more careful. Here, errors are useful because they reveal gaps in our automation.
 
 Do not work on any features outside the scope of `feature/mv-refresh` in this session. If the user asks you to work on something unrelated, stop and ask them to create a new branch or worktree.

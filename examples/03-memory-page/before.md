@@ -2,7 +2,7 @@
 title: React Stale Closure Pattern
 tags: [react, hooks, debugging, performance]
 updated: 2026-05-04
-source: claude-history-ingest / DishData session 2026-04-12
+source: claude-history-ingest / DabaBase session 2026-04-12
 ---
 
 # React Stale Closure Pattern
@@ -98,4 +98,4 @@ You should suspect a stale closure when:
 
 ## Sources
 
-Extracted from DishData project session 2026-04-12, discussion of dashboard real-time update bug. The bug was a stale closure in a WebSocket event listener.
+Extracted from Data Development Project session 2026-04-12, discussion of dashboard real-time update bug. The bug was a stale closure in a WebSocket event listener.

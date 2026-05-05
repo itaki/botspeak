@@ -2,7 +2,7 @@
 topic: react-stale-closure
 tags: [react, hooks, debugging]
 updated: 2026-05-04
-source: DishData/2026-04-12
+source: Database/2026-04-12
 summary: closure captures old var value · effect/listener sees stale state
 ---
 

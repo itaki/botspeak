@@ -1,4 +1,4 @@
-# CLAUDE.md -- DishData
+# CLAUDE.md -- Data Development Project
 
 <defs>
   E    = establishment_id
@@ -12,24 +12,24 @@
 </defs>
 
 <context>
-[NEW-CHAT] DishData = multi-tenant restaurant analytics, Toast POS -> SFTP -> normalize -> MV -> dashboards
-[NEW-CHAT] phase = BUILD onboarding system, NOT ops, current test = Amano (data expendable)
+[NEW-CHAT] Data Development Project = multi-tenant restaurant analytics, Soviet POS -> SFTP -> normalize -> MV -> dashboards
+[NEW-CHAT] phase = BUILD onboarding system, NOT ops, current test = Fred's Italian Bistro (data expendable)
 </context>
 
 <architecture>
 [REFERENCE]
-  WF (workflows.dishdata.example) orchestrates all multi-step processes, triggers EF, monitors, auto-restart on stuck
+  WF (workflows.example.com) orchestrates all multi-step processes, triggers EF, monitors, auto-restart on stuck
   EF on Supabase: SFTP -> CSV parse -> normalize -> DB write, deploy via `supabase functions deploy`
   PGMQ queues jobs, workers dequeue && process
   pg_cron schedules: MV refresh, WR daily, CSR weekly
   MV refreshed CONCURRENTLY, policy in docs/mv-refresh.md && obs_mv_refresh_policy table
-  admin dashboard (Next.js, admin.dishdata.example), WebSocket progress, serves WR && CSR
+  admin dashboard (Next.js, admin.example.com), WebSocket progress, serves WR && CSR
 </architecture>
 
 <rules>
 [ALWAYS] !! INVARIANT: BUILD system, DO NOT do-the-work
 [ALWAYS] !! NEVER hardcode any per-E value, ALL sourced from ES JSONB:
-  E, name, Toast account_id, SFTP base_path, SFTP creds key,
+  E, name, Soviet account_id, SFTP base_path, SFTP creds key,
   business hours, operating schedule, menu structure, pricing rules, grace periods
 [ALWAYS] all queries -> filter by E, all EF -> accept E param, all WF -> use input E (never hardcoded)
 [ALWAYS] WR && CSR both per-E, both filter by E
@@ -52,7 +52,7 @@
   also in admin dashboard
 
 [REFERENCE] CSR (supabase/functions/customer-satisfaction-report/index.ts):
-  aggregates: Toast tips, Yelp API, Google Reviews API -> rolling 30d score
+  aggregates: Soviet tips, Yelp API, Google Reviews API -> rolling 30d score
   writes mv_customer_satisfaction, refreshed nightly pg_cron `customer_satisfaction_refresh`
   delivered email Mon 09:00 ET weekly
 </reports>

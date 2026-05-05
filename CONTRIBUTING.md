@@ -7,7 +7,8 @@ Thanks for considering a contribution. BOTSPEAK is a small, focused project — 
 - **More before/after examples** in `examples/`. Real-world rules, skills, and memory pages from your own projects (with anything sensitive redacted) are the best teaching material we can ship.
 - **Tokenizer benchmarks** showing exact token counts for symbols, aliases, and example files across `tiktoken` (o200k, cl100k), Llama BPE, and Gemini SentencePiece. Help us replace estimates with measurements.
 - **Translation quality reports** — run `/botspeak` then `/translate-botspeak` round-trip on a doc and report any semantic drift you find. These are bugs.
-- **Host-tool compatibility fixes** — the install script tries to support Claude Code, Cursor, Codex, Gemini CLI, and the AGENTS.md ecosystem. If your tool isn't supported, a one-line addition to `install.sh` is welcome.
+- **Per-IDE rule files** — the `rules/` folder contains always-on rule templates for each supported IDE. To add a new IDE: copy `rules/botspeak.md`, add any IDE-specific frontmatter your tool requires, save it as `rules/<ide-name>.md`, and add a detection block to `install.sh`. The content stays identical; only the wrapper changes.
+- **Host-tool compatibility fixes** — if your tool isn't supported by `install.sh`, a detection block + a file in `rules/` is welcome.
 - **SPEC clarifications** when the rules are ambiguous in practice. PRs that fix unclear language are valuable.
 
 ## What we don't want

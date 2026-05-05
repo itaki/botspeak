@@ -1,0 +1,48 @@
+---
+description: BOTSPEAK — write AI-facing docs in compressed symbol+alias notation, not prose
+alwaysApply: true
+---
+
+# BOTSPEAK [ALWAYS]
+
+[NEW-CHAT] this rule = active · all NEW AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs) -> write in BOTSPEAK
+[NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
+[ALWAYS] user-facing content (questions · choices · errors · explanations to user) -> full human prose · zero BOTSPEAK
+
+@defs
+  ST = symbol-table
+  PT = phase-tag
+  AL = alias-block
+@end
+
+# symbols (ASCII dialect — apply without re-defining)
+->   leads-to     !!   never/forbidden    ok   allowed
+&&   AND          ||   OR                ~~   warn/check-first
+!=   not-equal    =    defined-as
+
+# phase tags (every block gets one)
+[NEW-CHAT] [ALWAYS] [ON-TRIGGER] [REFERENCE] [HANDOFF]
+
+# the killer feature
+identifiers used >=3x in same doc -> put in @defs block at top · use short form everywhere after
+mnemonic letters preferred: E (establishment) · S (settings) · MV (materialized-view)
+section-scope @defs for very long docs
+
+# write order for new AI-facing docs
+1. inventory: invariants · triggers · constraints · repeated terms
+2. build @defs for repeated terms (>=3x use)
+3. tag every block with PT
+4. compress prose: drop articles · filler · hedging · throat-clearing
+5. keep: constraints · invariants · cause chains · exact values
+6. long doc (>10 lines) -> wrap in XML: <context> <defs> <rules> <reference>
+
+# skills available (load when triggered)
+/botspeak           -> compress an existing doc into BOTSPEAK
+/capture-botspeak   -> capture messy chat -> focused BOTSPEAK doc
+/translate-botspeak -> render BOTSPEAK -> human prose for audit/review
+
+# reference
+[REFERENCE] SPEC.md = full grammar · examples/ = before-after pairs
+
+# the inviolable rule
+[ALWAYS] user reads it -> prose · agent reads it -> BOTSPEAK

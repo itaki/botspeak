@@ -37,21 +37,43 @@ Still readable. A `/translate-botspeak` skill renders any BOTSPEAK file into cle
 
 ---
 
-## Install (the skill — the recommended primary)
+## Install
+
+**Skills only (recommended starting point):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-Installs three skills into every AI agent we detect:
+Installs three skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, and anything in `~/.agents`):
 
 - **`/botspeak`** — compress an existing AI-facing document
 - **`/capture-botspeak`** — capture rambling chat input as a focused BOTSPEAK doc
 - **`/translate-botspeak`** — render any BOTSPEAK file → clear human prose
 
-The skill is opt-in: nothing changes until you invoke it. No surprises. Easy to test, easy to uninstall.
+Skills are opt-in: nothing changes until you invoke one. No surprises.
 
-If you want it always-on (BOTSPEAK applied automatically when your agent writes new AI-facing docs), see the [Cursor rule](.cursor/rules/botspeak.mdc) and the [agent definition](agents/botspeak-translator.md). Both are advanced.
+**Skills + always-on rule (BOTSPEAK applied automatically to new AI docs):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash -s -- --with-rule
+```
+
+With `--with-rule`, the installer also drops a rule file into your current project for every IDE it detects:
+
+| IDE | File dropped |
+|---|---|
+| Cursor | `.cursor/rules/botspeak.mdc` |
+| Windsurf | `.windsurf/rules/botspeak.md` |
+| Cline | `.clinerules/botspeak.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Everything else | `AGENTS.md` |
+
+**Manual install (any IDE not listed above):**
+
+Copy [`rules/botspeak.md`](rules/botspeak.md) to wherever your IDE looks for always-on rules. Same content, no magic.
+
+Don't see your IDE? Add it — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -182,21 +204,24 @@ botspeak/
 ├── LICENSE                        ← MIT
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── CLAUDE.md, AGENTS.md           ← bootstrap files (BOTSPEAK)
-├── .cursor/rules/botspeak.mdc      ← always-on Cursor rule (advanced — opt in if you want)
+├── CLAUDE.md, AGENTS.md           ← bootstrap files for AI agents working on this repo
+├── install.sh                     ← one-line installer (--with-rule to also drop rule files)
+├── rules/                         ← always-on rule templates, one per IDE
+│   ├── botspeak.md                ← generic (Windsurf · Cline · Copilot · any IDE)
+│   └── cursor.mdc                 ← Cursor-specific (with alwaysApply frontmatter)
+├── .cursor/rules/botspeak.mdc     ← Cursor rule active in this repo (self-hosting)
 ├── skills/
-│   ├── botspeak/SKILL.md           ← compress: messy doc → BOTSPEAK
+│   ├── botspeak/SKILL.md          ← compress: messy doc → BOTSPEAK
 │   ├── capture/SKILL.md           ← capture: rambling chat → focused BOTSPEAK doc
 │   └── translate/SKILL.md         ← translate: BOTSPEAK → human prose
 ├── agents/
-│   └── botspeak-translator.md      ← bidirectional agent (advanced — for tools that load agents)
-├── examples/                      ← five before/after pairs
-│   ├── 01-short-rule/             ← branch guard:                   262 → 154 (41%)
-│   ├── 02-context-handoff/        ← session handoff:                640 → 138 (78%)
-│   ├── 03-memory-page/            ← Karpathy-style wiki page:       612 → 178 (71%)
-│   ├── 04-philosophy-rule/        ← project manifesto:             1095 → 285 (74%)
-│   └── 05-aliased-claude-md/      ← long doc + ASCII + aliases:     985 → 433 (56%)
-└── install.sh
+│   └── botspeak-translator.md     ← bidirectional agent (for tools that load agent definitions)
+└── examples/                      ← five before/after pairs
+    ├── 01-short-rule/             ← branch guard:                   262 → 154 (41%)
+    ├── 02-context-handoff/        ← session handoff:                640 → 138 (78%)
+    ├── 03-memory-page/            ← Karpathy-style wiki page:       612 → 178 (71%)
+    ├── 04-philosophy-rule/        ← project manifesto:             1095 → 285 (74%)
+    └── 05-aliased-claude-md/      ← long doc + ASCII + aliases:     985 → 433 (56%)
 ```
 
 ---

@@ -3,7 +3,7 @@
 # Runs N compress→translate cycles and logs word count at each step.
 #
 # Usage:
-#   ./run.sh <source.md> [iterations=10]
+#   ./run.sh [source.md=source.md] [iterations=5]
 #
 # Requires: claude CLI (claude.ai/code)
 # Output: round-trip/results/ — one file per half-iteration, word-count CSV
@@ -18,16 +18,10 @@ if ! command -v claude &>/dev/null; then
 fi
 CLAUDE=claude
 
-SOURCE="${1:-}"
-ITERATIONS="${2:-10}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE="${1:-$SCRIPT_DIR/source.md}"
+ITERATIONS="${2:-5}"
 RESULTS_DIR="$SCRIPT_DIR/results"
-
-if [ -z "$SOURCE" ]; then
-  echo "Usage: $0 <source.md> [iterations=10]"
-  echo "Example: $0 ../../evals/game-prompt/source.md 10"
-  exit 1
-fi
 
 [ -f "$SOURCE" ] || { echo "Error: source file not found: $SOURCE"; exit 1; }
 

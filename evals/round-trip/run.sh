@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # BOTSPEAK round-trip fidelity eval
-# Tests whether compress → translate cycles converge or drift.
+# Runs N compress→translate cycles and logs word count at each step.
 #
 # Usage:
-#   ./run.sh <source.md> [iterations]
+#   ./run.sh <source.md> [iterations=10]
 #
-# Requires: claude CLI (claude.ai/code) with /botspeak and /translate-botspeak skills installed.
-# Output: evals/round-trip/results/ — one file per iteration, word-count log.
+# Requires: claude CLI (claude.ai/code)
+# Output: round-trip/results/ — one file per half-iteration, word-count CSV
 
 set -e
 
 SOURCE="${1:-}"
 ITERATIONS="${2:-10}"
-RESULTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/results"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RESULTS_DIR="$SCRIPT_DIR/results"
 
 if [ -z "$SOURCE" ]; then
   echo "Usage: $0 <source.md> [iterations=10]"
@@ -20,10 +21,7 @@ if [ -z "$SOURCE" ]; then
   exit 1
 fi
 
-if [ ! -f "$SOURCE" ]; then
-  echo "Error: source file not found: $SOURCE"
-  exit 1
-fi
+[ -f "$SOURCE" ] || { echo "Error: source file not found: $SOURCE"; exit 1; }
 
 mkdir -p "$RESULTS_DIR"
 
@@ -33,63 +31,82 @@ SOURCE_ABS="$(cd "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")"
 BASENAME="$(basename "$SOURCE" .md)"
 LOG="$RESULTS_DIR/${BASENAME}-word-counts.csv"
 
-echo "iteration,file,words,change_from_prev" > "$LOG"
-echo "0,source,$(word_count "$SOURCE_ABS")," >> "$LOG"
-echo "source: $(word_count "$SOURCE_ABS") words"
+echo "iteration,stage,file,words" > "$LOG"
 
+# Seed: copy source as iter-00-prose
 cp "$SOURCE_ABS" "$RESULTS_DIR/${BASENAME}-iter-00-prose.md"
+SEED_WORDS=$(word_count "$SOURCE_ABS")
+echo "0,prose,${BASENAME}-iter-00-prose.md,${SEED_WORDS}" >> "$LOG"
+echo "source: $SEED_WORDS words → $RESULTS_DIR"
+echo ""
 
-PREV_COUNT=$(word_count "$SOURCE_ABS")
 PREV_FILE="$RESULTS_DIR/${BASENAME}-iter-00-prose.md"
+
+# Inline BOTSPEAK compress instructions (no skill invocation needed)
+COMPRESS_INSTRUCTIONS='You are a BOTSPEAK compressor. BOTSPEAK is a compressed notation for AI-facing documents.
+
+Rules:
+- Build @defs block: identifiers used >=3x get a mnemonic abbreviation (E=establishment_id, MV=materialized-view, etc)
+- Use ASCII operators: -> (leads-to), !! (never/forbidden), ok (allowed), && (AND), || (OR), ~~ (warn), != (not-equal)
+- Add phase tags to every block: [NEW-CHAT] [ALWAYS] [ON-TRIGGER] [REFERENCE] [HANDOFF]
+- Drop: articles, filler, hedging, throat-clearing, duplicate restatements
+- Keep byte-for-byte: exact values (numbers, colors, Hz, px), constraint polarity, cause chains
+- Long docs (>10 lines): wrap sections in XML: <context> <rules> <reference>
+- Never compress YAML frontmatter, code blocks, URLs, or file paths
+
+Compress the following document into BOTSPEAK. Output only the compressed document, no commentary.'
+
+# Inline BOTSPEAK translate instructions
+TRANSLATE_INSTRUCTIONS='You are a BOTSPEAK translator. Expand the following BOTSPEAK document into clear human prose.
+
+Rules:
+- Expand @defs: replace every alias with its full form (E -> establishment_id, etc)
+- Expand operators: -> becomes "leads to", !! becomes "never", ok becomes "allowed", && becomes "and", || becomes "or", ~~ becomes "check first / warn"
+- Expand phase tags: [ALWAYS] -> "In every turn:", [NEW-CHAT] -> "At session start:", [ON-TRIGGER] -> "When triggered:", [REFERENCE] -> "For reference:", [HANDOFF] -> "From the previous session:"
+- Write full sentences with proper grammar
+- Preserve all exact values verbatim (numbers, colors, Hz, px)
+- Do not add interpretation beyond what the BOTSPEAK states
+
+Output only the translated prose document, no commentary.'
 
 for i in $(seq 1 "$ITERATIONS"); do
   ITER=$(printf "%02d" "$i")
   COMPRESSED="$RESULTS_DIR/${BASENAME}-iter-${ITER}-botspeak.md"
   TRANSLATED="$RESULTS_DIR/${BASENAME}-iter-${ITER}-prose.md"
 
-  echo ""
   echo "=== Iteration $i / $ITERATIONS ==="
 
   # Compress: prose → BOTSPEAK
   echo "  compressing..."
-  claude --print "$(cat <<PROMPT
-/botspeak
+  claude --print "$COMPRESS_INSTRUCTIONS
 
-$(cat "$PREV_FILE")
-PROMPT
-)" > "$COMPRESSED"
+---
 
-  C_COUNT=$(word_count "$COMPRESSED")
-  CHANGE=$(( C_COUNT - PREV_COUNT ))
-  echo "  compressed: $C_COUNT words (${CHANGE} from prev)"
-  echo "$i,${BASENAME}-iter-${ITER}-botspeak,$C_COUNT,$CHANGE" >> "$LOG"
-  PREV_COUNT=$C_COUNT
-  PREV_FILE="$COMPRESSED"
+$(cat "$PREV_FILE")" > "$COMPRESSED"
+
+  C_WORDS=$(word_count "$COMPRESSED")
+  echo "$i,botspeak,${BASENAME}-iter-${ITER}-botspeak.md,$C_WORDS" >> "$LOG"
+  echo "  botspeak: $C_WORDS words"
 
   # Translate: BOTSPEAK → prose
   echo "  translating..."
-  claude --print "$(cat <<PROMPT
-/translate-botspeak
+  claude --print "$TRANSLATE_INSTRUCTIONS
 
-$(cat "$COMPRESSED")
-PROMPT
-)" > "$TRANSLATED"
+---
 
-  T_COUNT=$(word_count "$TRANSLATED")
-  CHANGE=$(( T_COUNT - PREV_COUNT ))
-  echo "  translated: $T_COUNT words (${CHANGE} from prev)"
-  echo "$i,${BASENAME}-iter-${ITER}-prose,$T_COUNT,$CHANGE" >> "$LOG"
-  PREV_COUNT=$T_COUNT
+$(cat "$COMPRESSED")" > "$TRANSLATED"
+
+  T_WORDS=$(word_count "$TRANSLATED")
+  echo "$i,prose,${BASENAME}-iter-${ITER}-prose.md,$T_WORDS" >> "$LOG"
+  echo "  prose:    $T_WORDS words"
+  echo ""
+
   PREV_FILE="$TRANSLATED"
 done
 
+echo "=== Complete ==="
+echo "Results: $RESULTS_DIR"
+echo "Log: $LOG"
 echo ""
-echo "=== Done ==="
-echo "Results in: $RESULTS_DIR"
-echo "Word count log: $LOG"
-echo ""
-echo "Quick summary:"
-cat "$LOG"
-echo ""
-echo "Compare first and last:"
-echo "  diff $RESULTS_DIR/${BASENAME}-iter-00-prose.md $RESULTS_DIR/${BASENAME}-iter-$(printf "%02d" "$ITERATIONS")-prose.md | head -40"
+echo "Run the analysis:"
+echo "  python3 $(dirname "$SCRIPT_DIR")/round-trip/analyze.py $LOG $RESULTS_DIR"

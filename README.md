@@ -251,11 +251,11 @@ BOTSPEAK uses XML for **macro-structure** in long docs (`<context>`, `<rules>`, 
 
 Two experiments in [`evals/`](evals/):
 
-**Round-trip fidelity** — compress a document into BOTSPEAK, translate back to prose, repeat 10 times. Does it drift like a telephone game, or converge and stabilize? (Hypothesis: stabilizes after 2-3 iterations.)
+**[Round-trip fidelity](https://itaki.github.io/botspeak/evals/#round-trip)** — compress a document into BOTSPEAK, translate back to prose, repeat 5 times. Does it drift like a telephone game, or converge and stabilize? (Spoiler: converges at iteration 2, 100% similarity after that.)
 
-**The Flappy Bird test** — build a complete Flappy Bird game from the original prose prompt, then build it again from the BOTSPEAK-compressed version. Do both games run? Do the physics match? This answers the skeptic question: *does the AI actually do the same thing with the compressed instructions?*
+**[The Flappy Bird test](https://itaki.github.io/botspeak/evals/game-prompt/demo.html)** — build a complete Flappy Bird game from the original prose prompt, then build it again from the BOTSPEAK-compressed version. Do both games run? Do the physics match? This answers the skeptic question: *does the AI actually do the same thing with the compressed instructions?*
 
-→ **[See all evals](https://itaki.github.io/botspeak/evals/)** — round-trip fidelity results + the Flappy Bird side-by-side demo.
+→ **[See all evals](https://itaki.github.io/botspeak/evals/)** — results, tables, and interactive demos.
 
 See [`evals/README.md`](evals/README.md) for methodology and how to run.
 

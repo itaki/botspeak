@@ -4,13 +4,16 @@
 
 # BOTSPEAK
 
-**A skill and notation system for AI coding agents.** Stop wasting tokens on prose your AI doesn't need.
+**A way for bots to talk to bots.** Your AI doesn't need your prose.
 
 [License: MIT](LICENSE)
 
 ---
+A skill for AI coding agents. Compresses everything your agent reads — rules, skills, memory pages, and especially handoffs. That thousand-line handoff you paste into a new chat? Cut it 70%. Same information, 70% less context burn before you type your first word.
 
-## Before / After
+---
+
+## Before / After 
 
 
 | Document type                                             | Before      | After (BOTSPEAK) | Reduction |
@@ -23,23 +26,17 @@
 | Architecture migration plan (code-heavy)                  | 6,356 words | 3,614 words      | 43%       |
 
 
-Every behavioral constraint, invariant, trigger, and exception preserved. See `[examples/](examples/)` for the full before/after pairs.
+Every behavioral constraint, invariant, trigger, and exception preserved. See [examples/](examples/) for the full before/after pairs.
 
-**Where BOTSPEAK compresses most:** prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy docs. These are 65–78% compressible because the bulk of their content is verbose explanation.
-
-**Where compression ceilings are lower:** documents with large proportions of already-dense content — Mermaid diagrams, SQL migrations, numeric tables, code blocks, file trees. Those artifacts can't be compressed further. A migration plan that's 50% diagrams and SQL will compress ~43%, not 74%.
-
-**BOTSPEAK still adds value in dense docs** even when byte savings are modest: `@defs` aliases enforce consistent identifiers, phase tags tell the AI which sections to skip, and `!!` constraint markers make critical invariants impossible to miss.
-
-**The biggest win: the long** `CLAUDE.md` **example saves ~550 words on every single session.** Read 200 sessions a week — that's 110,000 words of unnecessary input tokens cut. The agent gets the same instructions in less context, with more room left for actual work.
-
-> **"Won't fewer tokens make my agent worse?"** The opposite. A March 2026 paper found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
+**The biggest unlock:** a long `CLAUDE.md` saves ~550 words *per session*. At 200 sessions a week, that's 110,000 words of input tokens cut. Your agent gets the same instructions with more room left for actual work.
 
 ---
 
 ## What This Is, in 30 Seconds
 
-Your AI agent reads your `CLAUDE.md`, `AGENTS.md`, every `.cursor/rules/*.mdc`, every skill file, every memory file — every single session. A human might read those files once. The other 999 times, an LLM is parsing prose written for an audience that isn't there.
+Avoid the rot — speak bot. Every rule, skill file, memory page, and handoff your agent re-reads every session was written in prose for you. Burning tokens before you type your first word.
+
+**More signal, less noise.** BOTSPEAK = less rot.
 
 BOTSPEAK is a writing convention for documents whose primary reader is an AI:
 
@@ -65,7 +62,7 @@ Installs four skills into every AI agent we detect (Claude Code, Cursor, Codex, 
 - `**/botspeak**` — compress an existing AI-facing document
 - `**/capture-botspeak**` — capture rambling chat input as a focused BOTSPEAK doc
 - `**/translate-botspeak**` — render any BOTSPEAK file → clear human prose
-- `**/botspeak-tidy**` — convert your entire skill + rule setup in one pass (backs up first)
+- `**/botspeak-tidy**` — convert your entire skill + rule setup in one pass. Automatically backs up your skills folder right next to the original before touching anything.
 
 Skills are opt-in: nothing changes until you invoke one. No surprises.
 
@@ -309,9 +306,21 @@ You don't need to read BOTSPEAK. Your agent does.
 
 ---
 
+## Notes & Caveats
+
+**Where BOTSPEAK compresses most:** prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy docs. These are 65–78% compressible because the bulk of their content is verbose explanation.
+
+**Where compression ceilings are lower:** documents with large proportions of already-dense content — Mermaid diagrams, SQL migrations, numeric tables, code blocks, file trees. A migration plan that's 50% diagrams and SQL will compress ~43%, not 74%.
+
+**BOTSPEAK still adds value in dense docs** even when byte savings are modest: `@defs` aliases enforce consistent identifiers, phase tags tell the AI which sections to skip, and `!!` constraint markers make critical invariants impossible to miss.
+
+> **"Won't fewer tokens make my agent worse?"** The opposite. A March 2026 paper found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
+
+---
+
 ## License
 
-MIT. Free as in mammoth on the open plain.
+MIT. Free, like your new context window.
 
 ---
 

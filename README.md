@@ -2,23 +2,32 @@
 
 **A language for bots to talk to bots.** Stop wasting tokens on prose your AI doesn't read.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[License: MIT](LICENSE)
 
 ---
 
 ## Before / After
 
-| Document type | Before | After (BOTSPEAK) | Reduction |
-|---|---|---|---|
-| **Long CLAUDE.md** (the file your AI reads every session) | 985 words | 433 words | **56%** |
-| Project philosophy / manifesto rule | 1,095 words | 285 words | **74%** |
-| Context handoff (one session → next) | 640 words | 138 words | **78%** |
-| Wiki / memory page (Karpathy LLM-wiki style) | 612 words | 178 words | **71%** |
-| Short rule (branch guard) | 262 words | 154 words | 41% |
 
-Every behavioral constraint, invariant, trigger, and exception preserved. See [`examples/`](examples/) for the full before/after pairs.
+| Document type                                             | Before      | After (BOTSPEAK) | Reduction |
+| --------------------------------------------------------- | ----------- | ---------------- | --------- |
+| **Long CLAUDE.md** (the file your AI reads every session) | 985 words   | 433 words        | **56%**   |
+| Project philosophy / manifesto rule                       | 1,095 words | 285 words        | **74%**   |
+| Context handoff (one session → next)                      | 640 words   | 138 words        | **78%**   |
+| Wiki / memory page (Karpathy LLM-wiki style)              | 612 words   | 178 words        | **71%**   |
+| Short rule (branch guard)                                 | 262 words   | 154 words        | 41%       |
+| Architecture migration plan (code-heavy)                  | 6,356 words | 3,614 words      | 43%       |
 
-**The biggest win: the long `CLAUDE.md` example saves ~550 words on every single session.** Read 200 sessions a year — that's 110,000 words of unnecessary input tokens cut. The agent gets the same instructions in less context, with more room left for actual work.
+
+Every behavioral constraint, invariant, trigger, and exception preserved. See `[examples/](examples/)` for the full before/after pairs.
+
+**Where BOTSPEAK compresses most:** prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy docs. These are 65–78% compressible because the bulk of their content is verbose explanation.
+
+**Where compression ceilings are lower:** documents with large proportions of already-dense content — Mermaid diagrams, SQL migrations, numeric tables, code blocks, file trees. Those artifacts can't be compressed further. A migration plan that's 50% diagrams and SQL will compress ~43%, not 74%.
+
+**BOTSPEAK still adds value in dense docs** even when byte savings are modest: `@defs` aliases enforce consistent identifiers, phase tags tell the AI which sections to skip, and `!!` constraint markers make critical invariants impossible to miss.
+
+**The biggest win: the long** `CLAUDE.md` **example saves ~550 words on every single session.** Read 200 sessions a week — that's 110,000 words of unnecessary input tokens cut. The agent gets the same instructions in less context, with more room left for actual work.
 
 > **"Won't fewer tokens make my agent worse?"** The opposite. A March 2026 paper found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
 
@@ -47,11 +56,12 @@ Still readable. A `/translate-botspeak` skill renders any BOTSPEAK file into cle
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-Installs three skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, and anything in `~/.agents`):
+Installs four skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, and anything in `~/.agents`):
 
-- **`/botspeak`** — compress an existing AI-facing document
-- **`/capture-botspeak`** — capture rambling chat input as a focused BOTSPEAK doc
-- **`/translate-botspeak`** — render any BOTSPEAK file → clear human prose
+- `**/botspeak**` — compress an existing AI-facing document
+- `**/capture-botspeak**` — capture rambling chat input as a focused BOTSPEAK doc
+- `**/translate-botspeak**` — render any BOTSPEAK file → clear human prose
+- `**/botspeak-tidy**` — convert your entire skill + rule setup in one pass (backs up first)
 
 Skills are opt-in: nothing changes until you invoke one. No surprises.
 
@@ -63,17 +73,19 @@ curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | ba
 
 With `--with-rule`, the installer also drops a rule file into your current project for every IDE it detects:
 
-| IDE | File dropped |
-|---|---|
-| Cursor | `.cursor/rules/botspeak.mdc` |
-| Windsurf | `.windsurf/rules/botspeak.md` |
-| Cline | `.clinerules/botspeak.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Everything else | `AGENTS.md` |
+
+| IDE             | File dropped                      |
+| --------------- | --------------------------------- |
+| Cursor          | `.cursor/rules/botspeak.mdc`      |
+| Windsurf        | `.windsurf/rules/botspeak.md`     |
+| Cline           | `.clinerules/botspeak.md`         |
+| GitHub Copilot  | `.github/copilot-instructions.md` |
+| Everything else | `AGENTS.md`                       |
+
 
 **Manual install (any IDE not listed above):**
 
-Copy [`rules/botspeak.md`](rules/botspeak.md) to wherever your IDE looks for always-on rules. Same content, no magic.
+Copy `[rules/botspeak.md](rules/botspeak.md)` to wherever your IDE looks for always-on rules. Same content, no magic.
 
 Don't see your IDE? Add it — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -98,6 +110,8 @@ Open your agent. Try one of these:
 ```
 
 That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (in the case of `/translate-botspeak`) a confirmation that nothing important was lost in compression.
+
+**Already have a library of skills and rules?** Run `/botspeak-tidy` and it will scan your entire setup, offer to back everything up, and convert each file in one pass.
 
 ---
 
@@ -142,6 +156,7 @@ A correctly tagged 1,500-token rule file lets a mid-session agent process maybe 
 ### 3. Symbols (two dialects)
 
 **ASCII** (recommended default — every symbol is 1 token guaranteed):
+
 ```
 ->   leads to       !!   never / forbidden
 &&   AND            ok   allowed / correct
@@ -150,11 +165,12 @@ A correctly tagged 1,500-token rule file lets a mid-session agent process maybe 
 ```
 
 **Symbol** (when human auditing matters more than max tokens):
+
 ```
 🔴 = !!     ✅ = ok     ⚠️ = ~~     →  = ->     ·  = &&
 ```
 
-Honest tradeoff: emojis cost 3-4 tokens each but pay for themselves in attention salience. ASCII operators are 1 token each — guaranteed by every modern BPE tokenizer because the code corpus saturated those merges. See [`SPEC.md`](SPEC.md) for the full table.
+Honest tradeoff: emojis cost 3-4 tokens each but pay for themselves in attention salience. ASCII operators are 1 token each — guaranteed by every modern BPE tokenizer because the code corpus saturated those merges. See `[SPEC.md](SPEC.md)` for the full table.
 
 ---
 
@@ -162,9 +178,6 @@ Honest tradeoff: emojis cost 3-4 tokens each but pay for themselves in attention
 
 **Q: Doesn't the AI need prose to understand the rules?**
 A: No. LLMs are trained on enormous amounts of structured text — code, JSON, XML, YAML, math notation. They parse symbol contracts at least as well as prose, often better. The "lost in the middle" problem is *worse* for prose than for structured symbols. You can prove this on your own files: BOTSPEAK a rule, then ask your agent to summarize what it says. The summary will match the original prose version.
-
-**Q: What if I write bad BOTSPEAK?**
-A: Run `/translate-botspeak` on it. The output is your audit. If the translation matches what you meant, the BOTSPEAK is correct. If not, fix it. The skill is your safety net.
 
 **Q: What if a new agent on my team can't read it?**
 A: Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BOTSPEAK without preamble. The notation is intuitive enough that even older models infer it. If you're worried, include `SPEC.md` in your project; the agent reads it once and you're set.
@@ -181,20 +194,25 @@ A: Delete the skill files in your agent's skill directory. No traces left, no mi
 **Q: Should I rewrite all my existing rules right now?**
 A: No. Start with the file your agent reads most often (usually `CLAUDE.md` or your largest always-on rule). Compress that one. Measure the savings. Decide if you want to do more.
 
+**Q: I used my IDE's skill-creation tool and it wrote plain prose. Now what?**
+A: Expected. IDE tools (Cursor's `create-skill`, `create-rule`, etc.) don't know about BOTSPEAK — they template prose. Just run `/botspeak` on the file it created. Or use `/botspeak-tidy` to sweep your whole setup at once. The `--with-rule` installer drops an always-on rule that nudges the AI to write BOTSPEAK natively going forward, but prose output from IDE templates will still slip through occasionally.
+
 ---
 
 ## Compared to Other Tools
 
-| | BOTSPEAK | Caveman | CRUX-Compress | llm-min.txt |
-|---|---|---|---|---|
-| **Compresses** | AI-facing docs (input) | AI output to humans | AI rules (input) | API/library docs |
-| **Approach** | Writing convention | Output style | Compressor tool + DSL | Compressor tool |
-| **Aliases** | ✅ `@defs` | — | — | — |
-| **Phase tags** | ✅ | — | — | — |
-| **Round-trip translate** | ✅ `/translate-botspeak` | n/a (output is final) | — | — |
-| **Frontmatter-safe** | ✅ (compresses body only) | n/a | partial | n/a |
-| **Multi-tool support** | ✅ Claude/Cursor/Codex/Gemini/+25 | ✅ 30+ agents | Claude/Cursor | Generic |
-| **Stars (May 2026)** | new | 53.9k | ~3 | ~700 |
+
+|                          | BOTSPEAK                         | Caveman               | CRUX-Compress         | llm-min.txt      |
+| ------------------------ | -------------------------------- | --------------------- | --------------------- | ---------------- |
+| **Compresses**           | AI-facing docs (input)           | AI output to humans   | AI rules (input)      | API/library docs |
+| **Approach**             | Writing convention               | Output style          | Compressor tool + DSL | Compressor tool  |
+| **Aliases**              | ✅ `@defs`                        | —                     | —                     | —                |
+| **Phase tags**           | ✅                                | —                     | —                     | —                |
+| **Round-trip translate** | ✅ `/translate-botspeak`          | n/a (output is final) | —                     | —                |
+| **Frontmatter-safe**     | ✅ (compresses body only)         | n/a                   | partial               | n/a              |
+| **Multi-tool support**   | ✅ Claude/Cursor/Codex/Gemini/+25 | ✅ 30+ agents          | Claude/Cursor         | Generic          |
+| **Stars (May 2026)**     | new                              | 53.9k                 | ~3                    | ~700             |
+
 
 BOTSPEAK is the only convention (not tool) for AI-facing document compression with a verified round-trip. We expect it to coexist with Caveman, not compete.
 
@@ -218,15 +236,17 @@ botspeak/
 ├── skills/
 │   ├── botspeak/SKILL.md          ← compress: messy doc → BOTSPEAK
 │   ├── capture/SKILL.md           ← capture: rambling chat → focused BOTSPEAK doc
-│   └── translate/SKILL.md         ← translate: BOTSPEAK → human prose
+│   ├── translate/SKILL.md         ← translate: BOTSPEAK → human prose
+│   └── botspeak-tidy/SKILL.md     ← tidy: bulk-convert all skills + rules (backs up first)
 ├── agents/
 │   └── botspeak-translator.md     ← bidirectional agent (for tools that load agent definitions)
-└── examples/                      ← five before/after pairs
+└── examples/                      ← six before/after pairs
     ├── 01-short-rule/             ← branch guard:                   262 → 154 (41%)
     ├── 02-context-handoff/        ← session handoff:                640 → 138 (78%)
     ├── 03-memory-page/            ← Karpathy-style wiki page:       612 → 178 (71%)
     ├── 04-philosophy-rule/        ← project manifesto:             1095 → 285 (74%)
-    └── 05-aliased-claude-md/      ← long doc + ASCII + aliases:     985 → 433 (56%)
+    ├── 05-aliased-claude-md/      ← long doc + ASCII + aliases:     985 → 433 (56%)
+    └── 06-backend-migration/      ← arch migration plan (code-heavy): 6356 → 3614 (43%)
 ```
 
 ---
@@ -235,7 +255,7 @@ botspeak/
 
 Andrej Karpathy's [LLM wiki pattern](https://github.com/Ar9av/obsidian-wiki) is the right idea: compile knowledge once into interconnected markdown pages instead of re-asking the AI the same questions. But those pages are still written in prose. The primary reader of those pages is another AI call, not you.
 
-A BOTSPEAK wiki page carries the same semantic content at 60-75% of the token cost. Your wiki grows; your query cost doesn't. See [`examples/03-memory-page/`](examples/03-memory-page/) for what a wiki page looks like in BOTSPEAK — including the `summary:` frontmatter that makes index-only queries cheap.
+A BOTSPEAK wiki page carries the same semantic content at 60-75% of the token cost. Your wiki grows; your query cost doesn't. See `[examples/03-memory-page/](examples/03-memory-page/)` for what a wiki page looks like in BOTSPEAK — including the `summary:` frontmatter that makes index-only queries cheap.
 
 ---
 
@@ -243,13 +263,13 @@ A BOTSPEAK wiki page carries the same semantic content at 60-75% of the token co
 
 Claude was trained on enormous quantities of structured text including HTML and XML. [Anthropic's prompt engineering docs](https://docs.claude.com/en/docs/use-xml-tags) recommend XML tags for documents over a few hundred tokens. Internal benchmarks show XML structural boundaries deliver +20-40% accuracy on multi-step reasoning, +30-50% retry consistency, and better long-context retrieval.
 
-BOTSPEAK uses XML for **macro-structure** in long docs (`<context>`, `<rules>`, `<reference>`, `<defs>`) and BOTSPEAK notation for **content** inside those tags. The combination outperforms markdown headings + prose for Claude. See [`examples/05-aliased-claude-md/after.md`](examples/05-aliased-claude-md/after.md) for the canonical example.
+BOTSPEAK uses XML for **macro-structure** in long docs (`<context>`, `<rules>`, `<reference>`, `<defs>`) and BOTSPEAK notation for **content** inside those tags. The combination outperforms markdown headings + prose for Claude. See `[examples/05-aliased-claude-md/after.md](examples/05-aliased-claude-md/after.md)` for the canonical example.
 
 ---
 
 ## Evals
 
-Two experiments in [`evals/`](evals/):
+Two experiments in `[evals/](evals/)`:
 
 **[Round-trip fidelity](https://itaki.github.io/botspeak/evals/#round-trip)** — compress a document into BOTSPEAK, translate back to prose, repeat 5 times. Does it drift like a telephone game, or converge and stabilize? (Spoiler: converges at iteration 2, 100% similarity after that.)
 
@@ -257,7 +277,7 @@ Two experiments in [`evals/`](evals/):
 
 → **[See all evals](https://itaki.github.io/botspeak/evals/)** — results, tables, and interactive demos.
 
-See [`evals/README.md`](evals/README.md) for methodology and how to run.
+See `[evals/README.md](evals/README.md)` for methodology and how to run.
 
 ---
 
@@ -265,15 +285,17 @@ See [`evals/README.md`](evals/README.md) for methodology and how to run.
 
 The README you're reading is in human prose. Intentionally. It's for you.
 
-**Want to see this exact file written as BOTSPEAK?** → [`README-BOTSPEAK-EXAMPLE.md`](README-BOTSPEAK-EXAMPLE.md)
+**Want to see this exact file written as BOTSPEAK?** → `[README-BOTSPEAK-EXAMPLE.md](README-BOTSPEAK-EXAMPLE.md)`
 
 That file is the same document — same sections, same information — compressed into BOTSPEAK notation. Token comparison:
 
-| File | Est. tokens* |
-|---|---|
-| `README.md` (this file, human prose) | ~3,077 |
-| `README-BOTSPEAK-EXAMPLE.md` (BOTSPEAK) | ~2,055 |
-| **Savings** | **~1,022 tokens (~33%)** |
+
+| File                                    | Est. tokens*               |
+| --------------------------------------- | -------------------------- |
+| `README.md` (this file, human prose)    | ~3,077                     |
+| `README-BOTSPEAK-EXAMPLE.md` (BOTSPEAK) | ~2,055                     |
+| **Savings**                             | ~~**1,022 tokens (~~33%)** |
+
 
 *Estimated as characters ÷ 4, a standard approximation for mixed technical/prose content with a BPE tokenizer (tiktoken o200k / cl100k). Note: this README is an outlier — it already contains embedded BOTSPEAK examples and is deliberately lean. A real `CLAUDE.md` with repeated identifiers typically compresses 56–78% (see the Before/After table at the top).
 

@@ -5,8 +5,8 @@ alwaysApply: true
 
 # BOTSPEAK [ALWAYS]
 
-[NEW-CHAT] this rule = active · all NEW AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs) -> write in BOTSPEAK
-[NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
+[ALWAYS] writing any AI-facing file (rule · skill · CLAUDE.md · AGENTS.md · memory · handoff) -> use BOTSPEAK · ACTIVE FOR ALL AI-DOC WRITES · no explicit invocation needed · persists entire session
+[NEW-CHAT] EXISTING docs -> only refactor when user explicitly asks
 [ALWAYS] user-facing content (questions · choices · errors · explanations to user) -> full human prose · zero BOTSPEAK
 
 @defs

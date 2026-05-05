@@ -255,7 +255,7 @@ Two experiments in [`evals/`](evals/):
 
 **The Flappy Bird test** — build a complete Flappy Bird game from the original prose prompt, then build it again from the BOTSPEAK-compressed version. Do both games run? Do the physics match? This answers the skeptic question: *does the AI actually do the same thing with the compressed instructions?*
 
-→ **[Play both games side by side](evals/game-prompt/demo.html)** — token counts, line counts, and a physics checklist included.
+→ **[Play both games side by side](https://itaki.github.io/botspeak/evals/game-prompt/demo.html)** — token counts, line counts, and a physics checklist included.
 
 See [`evals/README.md`](evals/README.md) for methodology and how to run.
 

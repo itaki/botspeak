@@ -54,7 +54,7 @@ ASCII (default — 1 token/symbol guaranteed):
   !=   not-equal    =    defined-as
 
 Symbol (only if user asked, or doc will be read by humans regularly):
-  🔴 = !!     ✅ = ok     ⚠️ = ~~     → = ->     · = &&
+  see SPEC.md symbol table — emojis/unicode cost 3-15 tokens each; ASCII is always cheaper
 
 !! do NOT mix dialects within a single file
 

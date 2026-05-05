@@ -20,6 +20,8 @@ Every behavioral constraint, invariant, trigger, and exception preserved. See [`
 
 **The biggest win: the long `CLAUDE.md` example saves ~550 words on every single session.** Read 200 sessions a year — that's 110,000 words of unnecessary input tokens cut. The agent gets the same instructions in less context, with more room left for actual work.
 
+> **"Won't fewer tokens make my agent worse?"** The opposite. A March 2026 paper found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
+
 ---
 
 ## What This Is, in 30 Seconds
@@ -101,18 +103,7 @@ That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (in 
 
 ## "I Need to Read a BOTSPEAK Document"
 
-You shouldn't have to. That's the point — BOTSPEAK is for your agent, not you.
-
-But if you do need to audit one (reviewing a rule before it goes live, checking what a skill actually says, debugging unexpected agent behavior), there's a skill for that:
-
-```
-"Translate this BOTSPEAK rule into plain English so I can review it:
-[paste the BOTSPEAK file]"
-```
-
-`/translate-botspeak` expands every alias, converts every symbol back to words, and writes the whole thing out as clear human prose. It also flags anything that was ambiguous or potentially lost in compression — so it doubles as a correctness check.
-
-This is the round-trip guarantee: compress with `/botspeak`, verify with `/translate-botspeak`. If the translation matches what you meant, the BOTSPEAK is correct.
+There's a skill for that: `/translate-botspeak`. Paste any BOTSPEAK file and it renders clear human prose — all aliases expanded, all symbols converted to words. Run it any time you want to audit a rule or verify nothing drifted in compression.
 
 ---
 
@@ -183,9 +174,6 @@ A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compre
 
 **Q: Why not just use CRUX-Compress / llm-min.txt / Compresr?**
 A: Those are tools that compress existing prose with a custom DSL. BOTSPEAK is a *writing convention* — write in it natively, no compressor agent required. We also ship a round-trip translate skill (CRUX doesn't have a reliable expander), so you can always read your own files. Comparison table below.
-
-**Q: Will this make my agent worse?**
-A: A March 2026 paper ("Brevity Constraints Reverse Performance Hierarchies in Language Models") found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
 
 **Q: How do I uninstall?**
 A: Delete the skill files in your agent's skill directory. No traces left, no migrations needed. The skill is opt-in and stateless.

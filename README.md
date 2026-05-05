@@ -247,6 +247,18 @@ BOTSPEAK uses XML for **macro-structure** in long docs (`<context>`, `<rules>`, 
 
 ---
 
+## Evals
+
+Two experiments in [`evals/`](evals/):
+
+**Round-trip fidelity** — compress a document into BOTSPEAK, translate back to prose, repeat 10 times. Does it drift like a telephone game, or converge and stabilize? (Hypothesis: stabilizes after 2-3 iterations.)
+
+**The Flappy Bird test** — build a complete Flappy Bird game from the original prose prompt, then build it again from the BOTSPEAK-compressed version. Do both games run? Do the physics match? This answers the skeptic question: *does the AI actually do the same thing with the compressed instructions?*
+
+See [`evals/README.md`](evals/README.md) for methodology and how to run.
+
+---
+
 ## Note to Humans Reading This
 
 The README you're reading is in human prose. Intentionally. It's for you.

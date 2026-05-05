@@ -10,6 +10,14 @@
 
 set -e
 
+# Requires claude CLI to be available in your shell.
+# Run this from a terminal where `claude` is already authenticated and working.
+if ! command -v claude &>/dev/null; then
+  echo "Error: claude CLI not found. Run this from a terminal where 'claude' works."
+  exit 1
+fi
+CLAUDE=claude
+
 SOURCE="${1:-}"
 ITERATIONS="${2:-10}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -78,7 +86,7 @@ for i in $(seq 1 "$ITERATIONS"); do
 
   # Compress: prose → BOTSPEAK
   echo "  compressing..."
-  claude --print "$COMPRESS_INSTRUCTIONS
+  claude -p "$COMPRESS_INSTRUCTIONS
 
 ---
 
@@ -90,7 +98,7 @@ $(cat "$PREV_FILE")" > "$COMPRESSED"
 
   # Translate: BOTSPEAK → prose
   echo "  translating..."
-  claude --print "$TRANSLATE_INSTRUCTIONS
+  claude -p "$TRANSLATE_INSTRUCTIONS
 
 ---
 
@@ -109,4 +117,4 @@ echo "Results: $RESULTS_DIR"
 echo "Log: $LOG"
 echo ""
 echo "Run the analysis:"
-echo "  python3 $(dirname "$SCRIPT_DIR")/round-trip/analyze.py $LOG $RESULTS_DIR"
+echo "  python3 $SCRIPT_DIR/analyze.py $LOG $RESULTS_DIR"

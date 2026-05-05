@@ -1,8 +1,10 @@
-
+<p align="center">
+  <img src="images/botspeak.jpg" alt="BOTSPEAK" width="300">
+</p>
 
 # BOTSPEAK
 
-**A language for bots to talk to bots.** Stop wasting tokens on prose your AI doesn't need.
+**A skill and notation system for AI coding agents.** Stop wasting tokens on prose your AI doesn't need.
 
 [License: MIT](LICENSE)
 

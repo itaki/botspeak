@@ -1,0 +1,6 @@
+{
+  "name": "botspeak",
+  "description": "Compress AI-facing docs (rules, skills, memory pages, handoffs) into BOTSPEAK notation — a token-efficient format using symbols, @defs aliases, and phase tags. Includes skills to compress, capture, and translate BOTSPEAK.",
+  "version": "1.0.0",
+  "contextFileName": "GEMINI.md"
+}

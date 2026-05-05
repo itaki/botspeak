@@ -1,0 +1,12 @@
+iteration,stage,file,words
+0,prose,source-iter-00-prose.md,289
+1,botspeak,source-iter-01-botspeak.md,186
+1,prose,source-iter-01-prose.md,274
+2,botspeak,source-iter-02-botspeak.md,184
+2,prose,source-iter-02-prose.md,274
+3,botspeak,source-iter-03-botspeak.md,184
+3,prose,source-iter-03-prose.md,274
+4,botspeak,source-iter-04-botspeak.md,184
+4,prose,source-iter-04-prose.md,274
+5,botspeak,source-iter-05-botspeak.md,184
+5,prose,source-iter-05-prose.md,274

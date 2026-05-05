@@ -112,15 +112,24 @@ def main():
         print("-" * 70)
         prev = None
         stable_at = None
-        STABLE_THRESHOLD = 20  # words
+        STABLE_THRESHOLD = 5  # words — tight threshold for true convergence
         for r in bs_rows:
             w = int(r["words"])
             delta = abs(w - prev) if prev is not None else None
-            stable = "YES" if (delta is not None and delta <= STABLE_THRESHOLD) else ("—" if delta is None else "")
-            if stable == "YES" and stable_at is None:
-                stable_at = int(r["iteration"])
-            print(f"{r['iteration']:<6} {w:>15}  {('+'+str(delta) if delta else '—'):>8}  {stable:>8}")
-        if stable_at:
+            if delta is None:
+                stable = "—"
+                delta_str = "—"
+            elif delta <= STABLE_THRESHOLD:
+                stable = "YES"
+                delta_str = f"±{delta}"
+                if stable_at is None:
+                    stable_at = int(r["iteration"])
+            else:
+                stable = ""
+                delta_str = f"−{delta}"
+            print(f"{r['iteration']:<6} {w:>15}  {delta_str:>8}  {stable:>8}")
+            prev = w
+        if stable_at is not None:
             print(f"\n→ Converges at iteration {stable_at} (Δ ≤ {STABLE_THRESHOLD} words)")
         else:
             print(f"\n→ Did not converge within {len(bs_rows)} iterations")

@@ -62,13 +62,22 @@
     color: #e6edf3;
   }
 
+  /*
+   * The games render on a 480×640 canvas. We display them at 75% scale
+   * (360×480 visible) by loading the iframe at full native size and
+   * shrinking it with transform: scale(). overflow:hidden on the container
+   * clips the scaled iframe to exactly the display dimensions.
+   */
   .frame-container {
     position: relative;
+    width: 360px;      /* 480 × 0.75 */
+    height: 480px;     /* 640 × 0.75 */
     border-radius: 8px;
     overflow: hidden;
     border: 2px solid #21262d;
     transition: border-color 0.15s, box-shadow 0.15s;
     cursor: pointer;
+    flex-shrink: 0;
   }
   .frame-container.focused {
     border-color: #58a6ff;
@@ -103,8 +112,11 @@
   iframe {
     display: block;
     border: none;
-    width: 240px;
-    height: 320px;
+    width: 480px;   /* native canvas width */
+    height: 640px;  /* native canvas height */
+    transform: scale(0.75);
+    transform-origin: top left;
+    pointer-events: auto;
   }
 
   /* ── Comparison table ─────────────────────────────────────────── */

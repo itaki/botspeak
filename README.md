@@ -182,7 +182,6 @@ botspeak/
 ├── LICENSE                        ← MIT
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── MARKETING-TODO.md              ← things to do to grow adoption
 ├── CLAUDE.md, AGENTS.md           ← bootstrap files (BOTSPEAK)
 ├── .cursor/rules/botspeak.mdc      ← always-on Cursor rule (advanced — opt in if you want)
 ├── skills/
@@ -221,6 +220,18 @@ BOTSPEAK uses XML for **macro-structure** in long docs (`<context>`, `<rules>`, 
 ## Note to Humans Reading This
 
 The README you're reading is in human prose. Intentionally. It's for you.
+
+**Want to see this exact file written as BOTSPEAK?** → [`README-BOTSPEAK-EXAMPLE.md`](README-BOTSPEAK-EXAMPLE.md)
+
+That file is the same document — same sections, same information — compressed into BOTSPEAK notation. Token comparison:
+
+| File | Est. tokens* |
+|---|---|
+| `README.md` (this file, human prose) | ~3,077 |
+| `README-BOTSPEAK-EXAMPLE.md` (BOTSPEAK) | ~2,055 |
+| **Savings** | **~1,022 tokens (~33%)** |
+
+*Estimated as characters ÷ 4, a standard approximation for mixed technical/prose content with a BPE tokenizer (tiktoken o200k / cl100k). Note: this README is an outlier — it already contains embedded BOTSPEAK examples and is deliberately lean. A real `CLAUDE.md` with repeated identifiers typically compresses 56–78% (see the Before/After table at the top).
 
 The `SPEC.md`, all three `SKILL.md` files, the `.cursor/rules/botspeak.mdc`, the agent definition, and every `after.md` in `examples/` is in BOTSPEAK. Run `/translate-botspeak` on any of them whenever you want to audit one in plain English.
 

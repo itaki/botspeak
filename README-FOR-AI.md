@@ -16,9 +16,11 @@
 
 tagline: "A way for bots to talk to bots. More context, less prose."
 BT = writing convention for AI-facing docs · primary reader = AI agent
-primary mode: every new rule, skill, memory, handoff -> BT automatically (AR installed)
+4 mechanisms: symbol contracts · @defs aliases · phase tags · XML structure
+primary mode: every new rule, skill, memory, handoff -> BT automatically (AR installed) · no prompting required
 secondary mode: compress existing prose docs on demand (file || directory)
 target savings: up to 70% context burn reduction
+round-trip: `TR` renders any BT file -> human prose on demand
 
 ---
 
@@ -33,17 +35,17 @@ target savings: up to 70% context burn reduction
 | short rule | 410 | 248 | 40% |
 | arch migration plan (code-heavy) | 12,002 | 7,328 | 39% |
 
-[REFERENCE] `examples/` -> full before/after pairs
+[REFERENCE] `examples/` -> full before/after pairs for each doc type
 
-whole-repo effect: apply BT across `CLAUDE.md`, rules, skills, memory, handoffs -> total AI context drops 50-70%
-example: repo burning 30K tokens before first word -> 10K with BT
+whole-repo effect: BT across `CLAUDE.md`, rules, skills, memory, handoffs -> total AI context -50–70%
+example: repo burning 30K tokens before first word -> 10K with BT applied
 
 ---
 
 ## why compression improves quality
 
-[REFERENCE] [2025 paper](https://arxiv.org/abs/2604.00025v1): constraining LLMs to brief responses improved accuracy +26 percentage points on certain benchmarks
-[ALWAYS] less noise in context window -> better attention on what matters · compressed structured instructions > verbose prose
+[REFERENCE] [2025 paper](https://arxiv.org/abs/2604.00025v1): constraining LLMs to brief responses -> +26 percentage points accuracy on benchmarks
+[ALWAYS] less noise in context -> better attention on signal · compressed structured instructions > verbose prose
 [ALWAYS] agent likely gets *better*, not worse
 
 ---
@@ -52,7 +54,7 @@ example: repo burning 30K tokens before first word -> 10K with BT
 
 ### 1. aliases (`@defs`) — primary token sink fix
 
-repeated identifiers = #1 token sink (`establishment_id` 47x = 4-8 tokens each, every session)
+repeated identifiers = #1 token sink · `establishment_id` 47x = 4-8 tokens each, every session
 
 ```
 @defs
@@ -133,7 +135,7 @@ opt-in: nothing changes until invoked · AR = always-on (step 2)
 ### step 2: install AR (manual, by design)
 
 makes every new AI-facing doc -> BT by default (no prompting required)
-manual by design: IDE rule systems vary; !! never auto-touch what user has already written
+manual by design: IDE rule systems vary · !! never auto-touch what user already wrote
 
 | IDE | action |
 |---|---|
@@ -156,7 +158,7 @@ manual by design: IDE rule systems vary; !! never auto-touch what user has alrea
    ```
    BS -bu @CLAUDE.md
    ```
-   `-bu` -> datestamped backup (`CLAUDE.bu.YYYYMMDD.md`) + compress in place + token-savings summary
+   `-bu` -> datestamped backup (`CLAUDE.bu.YYYYMMDD.md`) + replace in place + token-savings summary
 
 2. sanity check (optional):
    ```
@@ -187,7 +189,7 @@ add `-c` to render in chat instead of file
 ## FAQ
 
 Q: AI needs prose to understand rules?
-A: No. LLMs trained on code/JSON/XML/math — structured text = native language. "lost in the middle" problem worse for prose than symbols.
+A: No. LLMs trained on code/JSON/XML/math — structured text = native language. "lost in the middle" worse for prose than symbols.
 
 Q: IDE skill tool wrote plain prose?
 A: expected (IDE tools don't know BT). run `BS` on file or directory. AR = automatic going forward.
@@ -208,10 +210,10 @@ Q: new agent on team can't read it?
 A: every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BT without preamble. drop `SPEC.md` into project for belt-and-suspenders.
 
 Q: vs Caveman?
-A: different problems. Caveman = compresses AI output to humans. BT = compresses AI input docs for AI readers. install both: they compose perfectly.
+A: different problems. Caveman = compresses AI output to humans. BT = shapes what AI writes for other AI readers. install both: they compose perfectly.
 
 Q: vs CRUX-Compress / llm-min.txt / Compresr?
-A: those = compressor tools (process prose with custom DSL). BT = writing convention: write natively, no compressor required. `TR` = always readable back.
+A: those = compressor tools (process prose + custom DSL). BT = writing convention: write natively, no compressor required. `TR` = always readable back.
 
 Q: uninstall?
 A:
@@ -243,7 +245,7 @@ removes skills from all detected agents · !! AR not auto-removed (manual; unins
 
 ```text
 botspeak/
-├── README.md                            ← human view (you are here for human readers)
+├── README.md                            ← human view
 ├── README-FOR-AI.md                     ← this file (AI view)
 ├── SPEC.md                              ← language spec: symbols, aliases, grammar, pitfalls
 ├── LICENSE                              ← MIT
@@ -298,7 +300,7 @@ BT = compressed upgrade path: same operational meaning, fewer tokens per retriev
 - !! batch jobs -> cheap model (Haiku / GPT-4o-mini)
 - timing: Haiku ~2 min / 50 KB (~12.5K tokens) · 200 KB ≈ 8 min · thinking models (Sonnet, Opus) = 3-5x slower
 - `.gitignore`: add `*.bst.md` && `*.bu.*.md` (disposable artifacts; read them, toss them)
-- `BS` replaces files in place · add `-bu` for datestamped backup (`filename.bu.YYYYMMDD.md`) before compressing · directory mode always offers backup before bulk convert
+- `BS` replaces files in place · add `-bu` for datestamped backup (`filename.bu.YYYYMMDD.md`) · directory mode always offers backup before bulk convert
 
 ---
 

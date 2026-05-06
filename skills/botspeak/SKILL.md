@@ -94,6 +94,9 @@ step D5: summary
 
 # ─── single-file compression flow ───
 
+!! if user specifies a target file (e.g. "compress X into Y" || "replace Y with compressed X"):
+  read SOURCE only · !! never read TARGET · TARGET is overwritten · prior content is irrelevant
+
 # step 1: inventory the doc
 scan for:
   invariants ("never", "always", "must", "required", "critical")

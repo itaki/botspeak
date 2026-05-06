@@ -8,9 +8,8 @@
 repo = BT spec + skills + rule + agent · for AI coding agents
 
 skills (recommended primary):
-  /botspeak           -> HP doc -> BT (compress)
-  /capture-botspeak   -> messy chat -> focused BT doc (capture)
-  /translate-botspeak -> BT doc -> HP (audit, round-trip safety)
+  /botspeak           -> HP doc (file or directory) -> BT (compress)
+  /botspeak-translate -> BT doc -> HP (audit, round-trip safety)
 
 [REFERENCE] SPEC.md · examples/ · agents/botspeak-translator.md
 

@@ -1,13 +1,15 @@
 ---
-description: BOTSPEAK — write AI-facing docs in compressed symbol+alias notation, not prose
+description: BOTSPEAK — write AI-facing docs in compressed symbol+alias notation, never in chat
 alwaysApply: true
 ---
 
 # BOTSPEAK [ALWAYS]
 
-[NEW-CHAT] this rule = active · all NEW AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs) -> write in BOTSPEAK
+[ALWAYS] BOTSPEAK only in docs written for AI (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs)
+[ALWAYS] chat replies to USER = always full human prose · zero BOTSPEAK
+[NEW-CHAT] this rule = active · all NEW AI-facing docs -> write in BOTSPEAK
 [NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
-[ALWAYS] user-facing content (questions · choices · errors · explanations to user) -> full human prose · zero BOTSPEAK
+[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file") -> render the doc in human prose · skip BOTSPEAK for this output
 
 @defs
   ST = symbol-table
@@ -37,9 +39,8 @@ section-scope @defs for very long docs
 6. long doc (>10 lines) -> wrap in XML: <context> <defs> <rules> <reference>
 
 # skills available (load when triggered)
-/botspeak           -> compress an existing doc into BOTSPEAK
-/capture-botspeak   -> capture messy chat -> focused BOTSPEAK doc
-/translate-botspeak -> render BOTSPEAK -> human prose for audit/review
+/botspeak           -> compress an existing doc (file or directory) into BOTSPEAK
+/botspeak-translate -> render BOTSPEAK -> human prose for audit/review
 
 # reference
 [REFERENCE] SPEC.md = full grammar · examples/ = before-after pairs

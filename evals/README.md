@@ -15,7 +15,7 @@ Two experiments that test whether BOTSPEAK actually works.
 **Run it:**
 
 ```bash
-# requires claude CLI with /botspeak and /translate-botspeak skills installed
+# requires claude CLI with /botspeak and /botspeak-translate skills installed
 ./round-trip/run.sh game-prompt/source.md 10
 ```
 

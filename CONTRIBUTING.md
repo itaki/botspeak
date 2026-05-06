@@ -6,8 +6,8 @@ Thanks for considering a contribution. BOTSPEAK is a small, focused project — 
 
 - **More before/after examples** in `examples/`. Real-world rules, skills, and memory pages from your own projects (with anything sensitive redacted) are the best teaching material we can ship.
 - **Tokenizer benchmarks** showing exact token counts for symbols, aliases, and example files across `tiktoken` (o200k, cl100k), Llama BPE, and Gemini SentencePiece. Help us replace estimates with measurements.
-- **Translation quality reports** — run `/botspeak` then `/translate-botspeak` round-trip on a doc and report any semantic drift you find. These are bugs.
-- **Per-IDE rule files** — the `rules/` folder contains always-on rule templates for each supported IDE. To add a new IDE: copy `rules/botspeak.md`, add any IDE-specific frontmatter your tool requires, save it as `rules/<ide-name>.md`, and add a detection block to `install.sh`. The content stays identical; only the wrapper changes.
+- **Translation quality reports** — run `/botspeak` then `/botspeak-translate` round-trip on a doc and report any semantic drift you find. These are bugs.
+- **Per-IDE install instructions** — the `rules/` folder contains the canonical always-on rule in two formats: `botspeak-always-on.md` (universal markdown) and `botspeak-always-on.mdc` (Cursor, with frontmatter). To add support for a new IDE: open a PR that adds a row to the install table in `README.md` describing where the user should drop the rule file. If your IDE needs a different frontmatter wrapper, propose a new format file in `rules/` with that wrapper.
 - **Host-tool compatibility fixes** — if your tool isn't supported by `install.sh`, a detection block + a file in `rules/` is welcome.
 - **SPEC clarifications** when the rules are ambiguous in practice. PRs that fix unclear language are valuable.
 

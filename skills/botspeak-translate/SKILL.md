@@ -1,7 +1,7 @@
 ---
-name: translate-botspeak
+name: botspeak-translate
 description: Translate a BOTSPEAK document into clear human prose with all @defs aliases expanded. Use when a human needs to audit or review a BOTSPEAK file (rules, skills, CLAUDE.md, memory pages, handoffs).
-triggers: ["translate botspeak", "explain this botspeak", "/translate-botspeak", "what does this rule say in english"]
+triggers: ["translate botspeak", "explain this botspeak", "/botspeak-translate", "what does this rule say in english"]
 ---
 
 [ALWAYS] output = user's language · full sentences · professional tone · zero BOTSPEAK in output

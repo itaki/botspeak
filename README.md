@@ -45,48 +45,38 @@ BOTSPEAK is a writing convention for documents whose primary reader is an AI:
 - **Phase tags** (`[NEW-CHAT]` `[ALWAYS]` `[REFERENCE]`) so agents skip context that doesn't apply to the current session phase
 - **XML structure** for long docs because Claude parses XML semantic boundaries more reliably than markdown headings
 
-Still readable. A `/translate-botspeak` skill renders any BOTSPEAK file into clear human prose on demand — you'll rarely need it, but it's there.
+Still readable. A `/botspeak-translate` skill renders any BOTSPEAK file into clear human prose on demand — you'll rarely need it, but it's there.
 
 ---
 
 ## Install
 
-**Skills only (recommended starting point):**
+### Step 1 — Install the skills (always safe)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-Installs four skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, and anything in `~/.agents`):
+Drops two skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, anything in `~/.agents`):
 
-- `**/botspeak**` — compress an existing AI-facing document
-- `**/capture-botspeak**` — capture rambling chat input as a focused BOTSPEAK doc
-- `**/translate-botspeak**` — render any BOTSPEAK file → clear human prose
-- `**/botspeak-tidy**` — convert your entire skill + rule setup in one pass. Automatically backs up your skills folder right next to the original before touching anything.
+- `/botspeak` — compress a single file or an entire directory of AI-facing docs
+- `/botspeak-translate` — render any BOTSPEAK file back to clear human prose for audit
 
-Skills are opt-in: nothing changes until you invoke one. No surprises.
+Skills are opt-in: nothing changes until you invoke one.
 
-**Skills + always-on rule (BOTSPEAK applied automatically to new AI docs):**
+### Step 2 — Install the always-on rule (manual, by design)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash -s -- --with-rule
-```
+The rule is what tells your AI to write BOTSPEAK *every time* — without you asking. Every IDE handles rules differently and the wrong move would clobber instructions you wrote yourself, so we don't auto-install rules globally. Pick the path for your tool:
 
-With `--with-rule`, the installer also drops a rule file into your current project for every IDE it detects:
-
-
-| IDE             | File dropped                      |
-| --------------- | --------------------------------- |
-| Cursor          | `.cursor/rules/botspeak.mdc`      |
-| Windsurf        | `.windsurf/rules/botspeak.md`     |
-| Cline           | `.clinerules/botspeak.md`         |
-| GitHub Copilot  | `.github/copilot-instructions.md` |
-| Everything else | `AGENTS.md`                       |
-
-
-**Manual install (any IDE not listed above):**
-
-Copy `[rules/botspeak.md](rules/botspeak.md)` to wherever your IDE looks for always-on rules. Same content, no magic.
+| IDE             | What to do                                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cursor**      | Copy [`rules/botspeak-always-on.mdc`](rules/botspeak-always-on.mdc) into `.cursor/rules/botspeak-always-on.mdc` in your project root. (For globally-active rules, paste the contents into Cursor Settings → Rules → User Rules.) |
+| **Claude Code** | Append the contents of [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) to your project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).                |
+| **Windsurf**    | Copy [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) to `.windsurf/rules/botspeak-always-on.md` in your project root.        |
+| **Cline**       | Copy [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) to `.clinerules/botspeak-always-on.md` in your project root.            |
+| **Copilot**     | Append [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) to `.github/copilot-instructions.md`.                                 |
+| **Codex / generic** | Copy [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) into `AGENTS.md` in your project root.                              |
+| **Anything else** | Paste [`rules/botspeak-always-on.md`](rules/botspeak-always-on.md) wherever your harness keeps always-on instructions.                  |
 
 Don't see your IDE? Add it — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -101,24 +91,24 @@ Open your agent. Try one of these:
 ```
 
 ```
-"Capture this as a context handoff for tomorrow's session:
-[paste your messy chat conversation]"
+"Save what we just talked about as a handoff doc for tomorrow."
 ```
+*(With the always-on rule installed, the agent writes the handoff in BOTSPEAK automatically — no special skill needed.)*
 
 ```
 "Translate this BOTSPEAK rule into plain English so I can review it:
 [paste the BOTSPEAK file]"
 ```
 
-That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (in the case of `/translate-botspeak`) a confirmation that nothing important was lost in compression.
+That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (when running `/botspeak-translate`) a confirmation that nothing important was lost in compression.
 
-**Already have a library of skills and rules?** Run `/botspeak-tidy` and it will scan your entire setup, offer to back everything up, and convert each file in one pass.
+**Already have a folder of prose skills you want converted?** Pass the directory to `/botspeak` (e.g. `/botspeak ~/.cursor/skills/`). The skill scans it, shows you total token estimates, asks whether to back up first, and converts the files one by one.
 
 ---
 
 ## "I Need to Read a BOTSPEAK Document"
 
-There's a skill for that: `/translate-botspeak`. Paste any BOTSPEAK file and it renders clear human prose — all aliases expanded, all symbols converted to words. Run it any time you want to audit a rule or verify nothing drifted in compression.
+There's a skill for that: `/botspeak-translate`. Paste any BOTSPEAK file and it renders clear human prose — all aliases expanded, all symbols converted to words. Run it any time you want to audit a rule or verify nothing drifted in compression.
 
 ---
 
@@ -196,7 +186,7 @@ A: Delete the skill files in your agent's skill directory. No traces left, no mi
 A: No. Start with the file your agent reads most often (usually `CLAUDE.md` or your largest always-on rule). Compress that one. Measure the savings. Decide if you want to do more.
 
 **Q: I used my IDE's skill-creation tool and it wrote plain prose. Now what?**
-A: Expected. IDE tools (Cursor's `create-skill`, `create-rule`, etc.) don't know about BOTSPEAK — they template prose. Just run `/botspeak` on the file it created. Or use `/botspeak-tidy` to sweep your whole setup at once. The `--with-rule` installer drops an always-on rule that nudges the AI to write BOTSPEAK natively going forward, but prose output from IDE templates will still slip through occasionally.
+A: Expected. IDE tools (Cursor's `create-skill`, `create-rule`, etc.) don't know about BOTSPEAK — they template prose. Just run `/botspeak` on the file it created (or pass the whole directory: `/botspeak ~/.cursor/skills/`). With the always-on rule installed, anything *new* the AI writes for itself comes out in BOTSPEAK; only files generated by IDE templates need the manual sweep.
 
 ---
 
@@ -209,7 +199,7 @@ A: Expected. IDE tools (Cursor's `create-skill`, `create-rule`, etc.) don't know
 | **Approach**             | Writing convention               | Output style          | Compressor tool + DSL | Compressor tool  |
 | **Aliases**              | ✅ `@defs`                        | —                     | —                     | —                |
 | **Phase tags**           | ✅                                | —                     | —                     | —                |
-| **Round-trip translate** | ✅ `/translate-botspeak`          | n/a (output is final) | —                     | —                |
+| **Round-trip translate** | ✅ `/botspeak-translate`          | n/a (output is final) | —                     | —                |
 | **Frontmatter-safe**     | ✅ (compresses body only)         | n/a                   | partial               | n/a              |
 | **Multi-tool support**   | ✅ Claude/Cursor/Codex/Gemini/+25 | ✅ 30+ agents          | Claude/Cursor         | Generic          |
 | **Stars (May 2026)**     | new                              | 53.9k                 | ~3                    | ~700             |
@@ -223,31 +213,29 @@ BOTSPEAK is the only convention (not tool) for AI-facing document compression wi
 
 ```
 botspeak/
-├── README.md                      ← you are here
-├── SPEC.md                        ← language spec: symbols, aliases, grammar, pitfalls
-├── LICENSE                        ← MIT
+├── README.md                            ← you are here
+├── SPEC.md                              ← language spec: symbols, aliases, grammar, pitfalls
+├── LICENSE                              ← MIT
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── CLAUDE.md, AGENTS.md           ← bootstrap files for AI agents working on this repo
-├── install.sh                     ← one-line installer (--with-rule to also drop rule files)
-├── rules/                         ← always-on rule templates, one per IDE
-│   ├── botspeak.md                ← generic (Windsurf · Cline · Copilot · any IDE)
-│   └── cursor.mdc                 ← Cursor-specific (with alwaysApply frontmatter)
-├── .cursor/rules/botspeak.mdc     ← Cursor rule active in this repo (self-hosting)
+├── CLAUDE.md, AGENTS.md, GEMINI.md      ← bootstrap files for AI agents working on this repo
+├── install.sh                           ← one-line installer (skills only — rules install manually)
+├── rules/                               ← always-on rule templates (manual install, see README)
+│   ├── botspeak-always-on.md            ← universal markdown (Claude · Windsurf · Cline · Copilot · etc.)
+│   └── botspeak-always-on.mdc           ← Cursor format (with alwaysApply frontmatter)
+├── .cursor/rules/botspeak.mdc           ← Cursor rule active in this repo (self-hosting)
 ├── skills/
-│   ├── botspeak/SKILL.md          ← compress: messy doc → BOTSPEAK
-│   ├── capture/SKILL.md           ← capture: rambling chat → focused BOTSPEAK doc
-│   ├── translate/SKILL.md         ← translate: BOTSPEAK → human prose
-│   └── botspeak-tidy/SKILL.md     ← tidy: bulk-convert all skills + rules (backs up first)
+│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK
+│   └── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → human prose
 ├── agents/
-│   └── botspeak-translator.md     ← bidirectional agent (for tools that load agent definitions)
-└── examples/                      ← six before/after pairs
-    ├── 01-short-rule/             ← branch guard:                   262 → 154 (41%)
-    ├── 02-context-handoff/        ← session handoff:                640 → 138 (78%)
-    ├── 03-memory-page/            ← Karpathy-style wiki page:       612 → 178 (71%)
-    ├── 04-philosophy-rule/        ← project manifesto:             1095 → 285 (74%)
-    ├── 05-aliased-claude-md/      ← long doc + ASCII + aliases:     985 → 433 (56%)
-    └── 06-backend-migration/      ← arch migration plan (code-heavy): 6356 → 3614 (43%)
+│   └── botspeak-translator.md           ← bidirectional agent (for tools that load agent definitions)
+└── examples/                            ← six before/after pairs
+    ├── 01-short-rule/                   ← branch guard:                   262 → 154 (41%)
+    ├── 02-context-handoff/              ← session handoff:                640 → 138 (78%)
+    ├── 03-memory-page/                  ← Karpathy-style wiki page:       612 → 178 (71%)
+    ├── 04-philosophy-rule/              ← project manifesto:             1095 → 285 (74%)
+    ├── 05-aliased-claude-md/            ← long doc + ASCII + aliases:     985 → 433 (56%)
+    └── 06-backend-migration/            ← arch migration plan (code-heavy): 6356 → 3614 (43%)
 ```
 
 ---
@@ -300,7 +288,7 @@ That file is the same document — same sections, same information — compresse
 
 *Estimated as characters ÷ 4, a standard approximation for mixed technical/prose content with a BPE tokenizer (tiktoken o200k / cl100k). Note: this README is an outlier — it already contains embedded BOTSPEAK examples and is deliberately lean. A real `CLAUDE.md` with repeated identifiers typically compresses 56–78% (see the Before/After table at the top).
 
-The `SPEC.md`, all three `SKILL.md` files, the `.cursor/rules/botspeak.mdc`, the agent definition, and every `after.md` in `examples/` is in BOTSPEAK. Run `/translate-botspeak` on any of them whenever you want to audit one in plain English.
+The `SPEC.md`, both `SKILL.md` files, the `.cursor/rules/botspeak.mdc`, the agent definition, and every `after.md` in `examples/` is in BOTSPEAK. Run `/botspeak-translate` on any of them whenever you want to audit one in plain English.
 
 You don't need to read BOTSPEAK. Your agent does.
 
@@ -315,6 +303,12 @@ You don't need to read BOTSPEAK. Your agent does.
 **BOTSPEAK still adds value in dense docs** even when byte savings are modest: `@defs` aliases enforce consistent identifiers, phase tags tell the AI which sections to skip, and `!!` constraint markers make critical invariants impossible to miss.
 
 > **"Won't fewer tokens make my agent worse?"** The opposite. A March 2026 paper found that constraining LLMs to brief responses *improved* accuracy by 26 percentage points on certain benchmarks. Less context noise = better attention. Your agent will likely get *better*, not worse.
+
+**Skip BOTSPEAK on a single doc.** Just ask in plain English: *"write this one in prose"* or *"don't botspeak this file."* The rule has a built-in trigger that hands that document back in human prose without disabling the rule for everything else.
+
+**Use a cheap model for batch jobs.** When you point `/botspeak` at a directory, switch your model to Haiku, GPT-4o-mini, or similar before running. Compression is a mechanical task — thinking models add cost without adding quality.
+
+**Timing expectations.** Measured on Haiku in May 2026: ~2 minutes per 50 KB of plain text. A 200 KB skills folder is ~8 minutes. Thinking models (Sonnet, Opus) run 3-5x slower for the same job.
 
 ---
 

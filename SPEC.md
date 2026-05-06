@@ -350,7 +350,7 @@ BOTSPEAK compresses the **markdown body**, not the YAML.
 ### Common mistakes when writing BOTSPEAK
 
 **1. Inventing meaning the original didn't have**
-The compressor's job is preservation, not improvement. If the prose says "consider doing X", BOTSPEAK should say `consider X`, not `must X`. Run `/translate-botspeak` after compressing to verify nothing strengthened or weakened.
+The compressor's job is preservation, not improvement. If the prose says "consider doing X", BOTSPEAK should say `consider X`, not `must X`. Run `/botspeak-translate` after compressing to verify nothing strengthened or weakened.
 
 **2. Compressing the YAML frontmatter**
 Frontmatter is routing metadata. `description: Use when...` must stay as plain prose with the "Use when" idiom or your skill won't fire. BOTSPEAK applies to the markdown body only.
@@ -375,7 +375,7 @@ Anything the user reads from the agent (questions, error messages, status update
 
 ### How to debug a BOTSPEAK file that "isn't working"
 
-1. **Run `/translate-botspeak` on it.** Compare the output to what you intended. Drift means the BOTSPEAK is wrong, not the agent.
+1. **Run `/botspeak-translate` on it.** Compare the output to what you intended. Drift means the BOTSPEAK is wrong, not the agent.
 2. **Check `@defs` proximity.** If the file is long and aliases are at the top, move them or duplicate them per section.
 3. **Check phase-tag accuracy.** A `[REFERENCE]` block the agent needs every turn won't fire. A `[ALWAYS]` block that's actually situational wastes tokens.
 4. **Check description prose.** If your skill isn't triggering, the description is too terse. Add "Use when..." with concrete invocation examples.

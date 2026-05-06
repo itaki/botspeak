@@ -1,12 +1,67 @@
 ---
 name: botspeak
-description: Compress an existing AI-facing document (rule, skill, CLAUDE.md, memory page, handoff) into BOTSPEAK notation. Use when the user says "botspeak this", "compress this rule", "make this shorter for the bot", or invokes /botspeak.
+description: Compress an existing AI-facing document (rule, skill, CLAUDE.md, memory page, handoff) — or an entire directory of them — into BOTSPEAK notation. Use when the user says "botspeak this", "compress this rule", "make this shorter for the bot", or invokes /botspeak.
 triggers: ["botspeak this", "compress this", "make this shorter for the bot", "/botspeak", "convert to botspeak", "optimize this for tokens"]
 ---
 
-[ALWAYS] role = compressor · input = verbose AI-facing doc · output = semantically identical BOTSPEAK doc
+[ALWAYS] role = compressor · input = verbose AI-facing doc (file || directory) · output = semantically identical BOTSPEAK doc(s)
 [ALWAYS] every word the USER reads (classification, questions, summary) = full human prose · zero BOTSPEAK
 !! do not compress: YAML frontmatter · description fields · trigger phrases · code blocks · URLs · file paths
+
+# pre-flight check (any input)
+[ALWAYS] before compressing: estimate tokens (chars / 4)
+  < 25K tokens -> proceed silently
+  >= 25K tokens -> note USER: "this is a large file (~Xk tokens). recommend cheap model (Haiku · GPT-4o-mini)."
+  >= 50K tokens -> warn USER: "this file is ~Xk tokens. est ~Y min on Haiku. proceed? · cancel"
+
+# token math (reference — for any size estimation)
+plain UTF-8 English:
+  1 KB ≈ 256 tokens (chars / 4 rule)
+  50 KB ≈ 12.5K tokens
+  100 KB ≈ 25K tokens
+  400 KB ≈ 100K tokens
+
+# measured timing (Haiku, May 2026)
+  ~2 min per 50 KB · scales roughly linearly
+  -> 100 KB ≈ 4 min · 200 KB ≈ 8 min · 400 KB ≈ 16 min
+  Opus / Sonnet thinking models: 3-5x slower
+
+# directory mode
+[ON-TRIGGER] input = directory != file
+
+step D1: scan
+  enumerate .md && .mdc files in dir
+  per file: name · size (KB) · est tokens (chars / 4)
+  flags: > 5K tok = "significant" · > 10K tok = "alert" · > 25K tok = "enormous"
+  totals: file count · total KB · total est input tokens
+
+step D2: report + offer choice
+  show numbered file table with token counts && flags
+  show totals
+  note: "for batches > 25K tokens, switch to cheap model (Haiku · GPT-4o-mini) before running"
+  ask USER:
+    1. backup all && translate (recommended)
+    2. translate · no backup
+    3. cancel
+
+  for specific files: instruct USER to pass them via IDE @ syntax instead of directory
+
+step D3: backup if chosen
+  copy <dir> -> <dir>_backup_<YYYYMMDD>/
+  !! abort if BKP fails
+
+step D4: convert
+  per file in dir:
+    apply single-file flow below (steps 1-6)
+    log: [i/N] · before/after token est · savings %
+
+step D5: summary
+  converted · skipped · errors
+  total tokens before -> total tokens after
+  est tokens saved per future session (the real value prop)
+  BKP path
+
+# ─── single-file flow (also reused inside directory mode) ───
 
 # step 1: inventory the doc
 scan for:
@@ -65,7 +120,7 @@ show the user:
   3. token savings estimate: word count before vs after
   4. file path to write it (if persisting)
 
-ask: "Does this match what the original said? Run /translate-botspeak to verify."
+ask: "Does this match what the original said? Run /botspeak-translate to verify."
 
 # the inviolable rule
 [ALWAYS] user reads it -> prose · agent reads it -> BOTSPEAK

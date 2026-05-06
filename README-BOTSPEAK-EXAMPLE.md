@@ -5,7 +5,7 @@
 @defs
   BT = BOTSPEAK
   PT = phase-tag
-  TR = /translate-botspeak
+  TR = /botspeak-translate
   SK = skill
 @end
 
@@ -47,30 +47,25 @@ TR SK → renders any BT file → human prose on demand · rarely needed · alwa
 
 ## install
 
-skills only (recommended first step):
+step 1: install SKs (always safe):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-skills + always-on rule (BT applied automatically to new AI docs):
-```bash
-curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash -s -- --with-rule
-```
-
-installs 3 SKs:
-- /botspeak → compress existing AI-facing doc → BT
-- /capture-botspeak → rambling chat → focused BT doc
+drops 2 SKs into all detected agents:
+- /botspeak → compress file or directory → BT
 - TR → BT → human prose
 
---with-rule drops per-IDE rule file into current project:
-  Cursor → .cursor/rules/botspeak.mdc
-  Windsurf → .windsurf/rules/botspeak.md
-  Cline → .clinerules/botspeak.md
-  Copilot → .github/copilot-instructions.md
-  everything else → AGENTS.md
+step 2: install always-on rule (manual · by design):
+rules differ per IDE · auto-install would clobber existing config
+- Cursor → copy rules/botspeak-always-on.mdc → .cursor/rules/botspeak-always-on.mdc (project-local)
+- Claude Code → append rules/botspeak-always-on.md → CLAUDE.md (project) || ~/.claude/CLAUDE.md (global)
+- Windsurf → copy rules/botspeak-always-on.md → .windsurf/rules/botspeak-always-on.md
+- Cline → copy rules/botspeak-always-on.md → .clinerules/botspeak-always-on.md
+- Copilot → append rules/botspeak-always-on.md → .github/copilot-instructions.md
+- Codex/generic → copy rules/botspeak-always-on.md → AGENTS.md
 
-manual: copy rules/botspeak.md to wherever your IDE looks for always-on rules
-opt-in · nothing fires until invoked · no surprises · easy uninstall
+opt-in · SKs only fire when invoked · rule manually installed only where wanted
 
 ---
 
@@ -80,8 +75,9 @@ opt-in · nothing fires until invoked · no surprises · easy uninstall
 "Compress my CLAUDE.md into BOTSPEAK."
 ```
 ```
-"Capture this as a context handoff for tomorrow's session: [paste chat]"
+"Save what we just talked about as a handoff for tomorrow."
 ```
+(rule installed → agent writes BT handoff automatically · no SK invocation needed)
 ```
 "Translate this BOTSPEAK rule into plain English so I can review it: [paste file]"
 ```
@@ -195,7 +191,7 @@ botspeak/
 ├── SPEC.md                        ← full grammar · symbols · aliases · pitfalls
 ├── LICENSE · CHANGELOG.md · CONTRIBUTING.md
 ├── CLAUDE.md / AGENTS.md          ← bootstrap files (BT format)
-├── install.sh                     ← one-line installer · --with-rule drops rule files
+├── install.sh                     ← one-line installer (skills only · rules install manually)
 ├── rules/
 │   ├── botspeak.md                ← generic rule (Windsurf · Cline · Copilot · any IDE)
 │   └── cursor.mdc                 ← Cursor-specific (alwaysApply frontmatter)

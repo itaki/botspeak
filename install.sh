@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # BOTSPEAK installer
 # installs skills into all detected agents
-# use --with-rule to also drop an always-on rule file into the current project
+# rules are install-by-hand; see README.md for per-IDE paths
 
 set -e
 
@@ -18,15 +18,6 @@ if [ -n "$_src" ] && [ -f "$_src" ]; then
     REPO_DIR="$_d"
   fi
 fi
-
-RULES_DIR="${REPO_DIR:+$REPO_DIR/rules}"
-
-WITH_RULE=0
-for arg in "$@"; do
-  case "$arg" in
-    --with-rule|--all) WITH_RULE=1 ;;
-  esac
-done
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -72,9 +63,8 @@ install_skills_for() {
   local label="$1"
   local target_dir="$2"
   local installed=0
-  install_skill "$target_dir" "botspeak"           "skills/botspeak/SKILL.md"  && installed=1
-  install_skill "$target_dir" "capture-botspeak"   "skills/capture/SKILL.md"   && installed=1
-  install_skill "$target_dir" "translate-botspeak" "skills/translate/SKILL.md" && installed=1
+  install_skill "$target_dir" "botspeak"           "skills/botspeak/SKILL.md"           && installed=1
+  install_skill "$target_dir" "botspeak-translate" "skills/botspeak-translate/SKILL.md" && installed=1
   if [ $installed -eq 0 ]; then
     skip "$label"
   fi
@@ -82,8 +72,8 @@ install_skills_for() {
 
 cat <<'BANNER'
 ┌─────────────────────────────────────────┐
-│   BOTSPEAK — bots talking to bots        │
-│   installing skills · rule · agent      │
+│   BOTSPEAK — bots talking to bots       │
+│   installing skills                     │
 └─────────────────────────────────────────┘
 BANNER
 
@@ -114,69 +104,6 @@ else
 fi
 install_skills_for "Generic (~/.agents)" "$HOME/.agents/skills"
 
-fetch_rule_file() {
-  local dest="$1"
-  local repo_rel="$2"
-  if [ -n "$REPO_DIR" ] && [ -f "$REPO_DIR/$repo_rel" ]; then
-    cp "$REPO_DIR/$repo_rel" "$dest"
-  else
-    curl -fsSL "$RAW_BASE/$repo_rel" -o "$dest"
-  fi
-}
-
-if [ $WITH_RULE -eq 1 ]; then
-  header "Always-on rule (project-local)"
-
-  if [ -n "$REPO_DIR" ] && [ "$PWD" = "$REPO_DIR" ]; then
-    skip "skipping rule install in BOTSPEAK repo itself"
-  else
-    # Cursor
-    if [ -d ".cursor" ] || [ -d "$HOME/.cursor" ]; then
-      mkdir -p "$PWD/.cursor/rules"
-      fetch_rule_file "$PWD/.cursor/rules/botspeak.mdc" "rules/cursor.mdc"
-      ok "Cursor → .cursor/rules/botspeak.mdc"
-    fi
-
-    # Windsurf
-    if [ -d ".windsurf" ] || [ -d "$HOME/.windsurf" ]; then
-      mkdir -p "$PWD/.windsurf/rules"
-      fetch_rule_file "$PWD/.windsurf/rules/botspeak.md" "rules/botspeak.md"
-      ok "Windsurf → .windsurf/rules/botspeak.md"
-    fi
-
-    # Cline
-    if [ -d ".cline" ] || [ -d "$HOME/.cline" ]; then
-      mkdir -p "$PWD/.clinerules"
-      fetch_rule_file "$PWD/.clinerules/botspeak.md" "rules/botspeak.md"
-      ok "Cline → .clinerules/botspeak.md"
-    fi
-
-    # GitHub Copilot (append if instructions file exists, create if not)
-    if [ -d ".github" ]; then
-      mkdir -p "$PWD/.github"
-      if [ -f "$PWD/.github/copilot-instructions.md" ]; then
-        echo "" >> "$PWD/.github/copilot-instructions.md"
-        curl -fsSL "$RAW_BASE/rules/botspeak.md" >> "$PWD/.github/copilot-instructions.md"
-        ok "Copilot → appended to .github/copilot-instructions.md"
-      else
-        fetch_rule_file "$PWD/.github/copilot-instructions.md" "rules/botspeak.md"
-        ok "Copilot → .github/copilot-instructions.md"
-      fi
-    fi
-
-    # AGENTS.md (universal fallback — Codex, generic agents)
-    if [ ! -f "$PWD/AGENTS.md" ]; then
-      fetch_rule_file "$PWD/AGENTS.md" "rules/botspeak.md"
-      ok "Generic → AGENTS.md"
-    else
-      skip "AGENTS.md already exists (not overwriting)"
-    fi
-
-    echo ""
-    echo "  No IDE detected? Copy rules/botspeak.md to your IDE's rules folder manually."
-  fi
-fi
-
 header "Agent definition"
 if [ -n "$REPO_DIR" ]; then
   ok "available at: $REPO_DIR/agents/botspeak-translator.md"
@@ -190,18 +117,17 @@ cat <<'DONE'
 done.
 
 triggers:
-  /botspeak           - compress an existing AI-facing doc into BOTSPEAK
-  /capture-botspeak   - capture messy chat input as a focused BOTSPEAK doc
-  /translate-botspeak - render BOTSPEAK back to human prose (audit safety net)
+  /botspeak           - compress an existing AI-facing doc (file or directory)
+  /botspeak-translate - render BOTSPEAK back to human prose (audit safety net)
 
 or just say:
   "botspeak this"
-  "capture this as a handoff"
   "translate this for me"
 
-flags:
-  --with-rule   also drop an always-on rule file into the current project
-  --all         same as --with-rule
+always-on rule (manual install — recommended):
+  See README.md "Install" section for per-IDE rule paths.
+  TL;DR: copy rules/botspeak-always-on.md (or .mdc for Cursor) into your IDE's
+  rules folder so every new AI-facing doc gets written in BOTSPEAK by default.
 
 reference: SPEC.md, examples/, README.md
 

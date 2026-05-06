@@ -1,8 +1,9 @@
 # BOTSPEAK [ALWAYS]
 
-When writing NEW AI-facing documents (rules, skills, CLAUDE.md, AGENTS.md, memory pages,
-context handoffs), write in BOTSPEAK notation. Existing docs: only refactor when user asks.
-User-facing content (questions, choices, errors, explanations to user) -> full human prose, zero BOTSPEAK.
+[ALWAYS] BOTSPEAK only in docs written for AI (rules · skills · CLAUDE.md · AGENTS.md · memory pages · handoffs)
+[ALWAYS] chat replies to USER = always full human prose · zero BOTSPEAK
+[NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
+[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file") -> render the doc in human prose · skip BOTSPEAK for this output
 
 @defs
   ST = symbol-table
@@ -45,9 +46,8 @@ Use mnemonic letters: E (establishment), S (settings), MV (materialized-view).
 ## Skills
 
 ```
-/botspeak           -> compress an existing doc into BOTSPEAK
-/capture-botspeak   -> capture messy chat -> focused BOTSPEAK doc
-/translate-botspeak -> render BOTSPEAK -> human prose for audit/review
+/botspeak           -> compress an existing doc (file or directory) into BOTSPEAK
+/botspeak-translate -> render BOTSPEAK -> human prose for audit/review
 ```
 
 [REFERENCE] SPEC.md = full grammar · examples/ = before-after pairs

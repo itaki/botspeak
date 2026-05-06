@@ -1,19 +1,18 @@
-<p align="center">
-  <img src="images/botspeak.jpg" alt="BOTSPEAK" width="300">
-</p>
-
 # BOTSPEAK
 
 **A way for bots to talk to bots.** More context, less prose.
 
-Human view: you are here.  
-Bot view: [README-FOR-AI.md](README-FOR-AI.md)
-
-[License: MIT](LICENSE)
+Human view: you are here  ·  Bot view: [README-FOR-AI.md](README-FOR-AI.md)  ·  [MIT](LICENSE)
 
 ---
 
-A skill for AI coding agents. Primary mode: make every new AI-facing doc your agent writes come out in BOTSPEAK by default (rules, skills, memory pages, handoffs). Secondary mode: back-compress your existing prose docs when needed. That thousand-line handoff you paste into a new chat? Up to 70% less context burn. Same information, less burn before you type your first word.
+A skill for AI coding agents.
+
+**Primary mode** — Every new rule, skill, memory page, and handoff your agent writes comes out in BOTSPEAK automatically. No prompting. No reformatting. Just compressed, structured docs by default.
+
+**Secondary mode** — Compress your existing prose docs on demand. One file or an entire directory.
+
+*Same information. Up to 70% less context burn.*
 
 ---
 
@@ -30,7 +29,7 @@ A skill for AI coding agents. Primary mode: make every new AI-facing doc your ag
 | Architecture migration plan (code-heavy)              | 12,002               | 7,328               | 39%       | [examples/06-backend-migration/](examples/06-backend-migration/) |
 
 
-**The biggest unlock:** this long `CLAUDE.md` example drops from ~8,055 tokens to ~4,863 tokens (40%). That's ~3,192 tokens saved every session on just one file.
+**The real unlock isn't one file — it's the whole repo.** Apply BOTSPEAK across your `CLAUDE.md`, rules, skills, memory pages, handoffs, and philosophy docs and your total AI-facing context drops 50–70%. A repo that burned 30,000 tokens before you typed your first word might cost 10,000. That's the difference between starting a session sharp and starting it already underwater.
 
 ---
 
@@ -49,17 +48,21 @@ A skill for AI coding agents. Primary mode: make every new AI-facing doc your ag
 
 **Still readable?** `/botspeak-translate` renders any BOTSPEAK file into clear human prose on demand.
 
-**Won't fewer tokens make my agent worse?**
+---
 
-> [A paper](https://arxiv.org/abs/2604.00025v1) found that constraining LLMs to brief responses improved accuracy by 26 percentage points on certain benchmarks.
+## Won't Fewer Tokens Make My Agent Worse?
 
-**Less context noise = better attention.** Your agent will likely get *better*, not worse.
+No. The opposite.
+
+> [A 2025 paper](https://arxiv.org/abs/2604.00025v1) found that constraining LLMs to brief responses improved accuracy by **26 percentage points** on certain benchmarks.
+
+Less noise in the context window means better attention on what matters. Compressed, structured instructions outperform verbose prose because attention is finite. Your agent will likely get *better*, not worse.
 
 ---
 
 ## Install
 
-### Step 1 — Install the skills (always safe)
+### Step 1 — Install the skills
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
@@ -67,15 +70,14 @@ curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | ba
 
 Drops two skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, anything in `~/.agents`):
 
-- `/botspeak` — compress a single file or an entire directory of AI-facing docs
-- `/botspeak-translate` — render any BOTSPEAK file back to clear human prose for audit
+- `/botspeak` — compress a file or directory into BOTSPEAK. File ref: replaces in place. Pasted text: creates a new file. Flags: `-bu` backup first · `-c` output to chat.
+- `/botspeak-translate` — render BOTSPEAK → human prose. Creates `[filename].bst.md` next to the original. Flag: `-c` to render in chat instead.
 
-Skills are opt-in: nothing changes until you invoke one.  
-If you want BOTSPEAK generated automatically for new AI-facing docs, install the always-on rule in Step 2.
+Opt-in. Nothing changes until you invoke one. Want it on all the time? Step 2.
 
 ### Step 2 — Install the always-on rule (manual, by design)
 
-The rule is what tells your AI to write BOTSPEAK *every time it writes a document for another AI to read* — without you asking. Every IDE handles rules differently and the wrong move would clobber instructions you wrote yourself, so we don't auto-install rules globally. Pick the path for your tool:
+Makes every new AI-facing doc come out in BOTSPEAK by default — no prompting needed. Manual by design: IDE rule systems vary and we won't touch what you've already written.
 
 
 | IDE                 | What to do                                                                                                                                                                                                                     |
@@ -95,32 +97,46 @@ Don't see your IDE? Add it — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## First 60 Seconds After Install
 
-Open your agent. Try one of these:
+Open your agent and follow these four steps in order.
+
+**1. Compress your most-read file.**
 
 ```
-"Compress my CLAUDE.md into BOTSPEAK."
+/botspeak -bu @CLAUDE.md
 ```
+
+`-bu` saves a datestamped backup (`CLAUDE.bu.20260506.md`) before touching anything. The original is replaced in place with the BOTSPEAK version. You'll see a token-savings summary and a two-sentence description of what the file now says.
+
+**2. Read it back in plain English (optional sanity check).**
+
+```
+/botspeak-translate @CLAUDE.md
+```
+
+Creates `CLAUDE.bst.md` next to the original — all aliases expanded, all symbols decoded. Open it, verify nothing drifted, delete it. Add `-c` to get the translation in chat instead of a file.
+
+**3. Let BOTSPEAK write your next doc automatically.**  
+*(requires the [always-on rule](#step-2--install-the-always-on-rule-manual-by-design) from Step 2)*
 
 ```
 "Save what we just talked about as a handoff doc for tomorrow."
 ```
 
-*(With the always-on rule installed, the agent writes the handoff in BOTSPEAK automatically — no special skill needed.)*
+The agent writes the handoff in BOTSPEAK without being asked — correct notation, phase tags, aliases, everything. This is the main event: every new rule, skill, memory page, and handoff comes out compressed by default.
+
+**4. Compress a whole folder at once.**
 
 ```
-"Translate this BOTSPEAK rule into plain English so I can review it:
-[paste the BOTSPEAK file]"
+/botspeak ~/.cursor/skills/
 ```
 
-That's it. You'll see a clean BOTSPEAK output, a token-savings summary, and (when running `/botspeak-translate`) a confirmation that nothing important was lost in compression.
-
-**Already have a folder of prose skills you want converted?** Pass the directory to `/botspeak` (e.g. `/botspeak ~/.cursor/skills/`). The skill scans it, shows you total token estimates, asks whether to back up first, and converts the files one by one.
+The skill scans every `.md` and `.mdc` file, shows a token-count table with flags for large files, asks whether to back up first, then converts the whole directory and prints before/after totals. **Use a cheap model (Haiku, GPT-4o-mini) for big batches.**
 
 ---
 
 ## "I Need to Read a BOTSPEAK Document"
 
-There's a skill for that: `/botspeak-translate`. Paste any BOTSPEAK file and it renders clear human prose — all aliases expanded, all symbols converted to words. Run it any time you want to audit a rule or verify nothing drifted in compression.
+`/botspeak-translate @file` — creates `file.bst.md` next to the original, all aliases expanded, all symbols decoded. Read it, delete it. Add `-c` to render in chat instead.
 
 ---
 
@@ -128,7 +144,7 @@ There's a skill for that: `/botspeak-translate`. Paste any BOTSPEAK file and it 
 
 ### 1. Aliases (`@defs`) — the killer feature
 
-Repeated identifiers are the largest single source of token waste in real `CLAUDE.md` files. `establishment_id` appears 47 times. `materialized_view_refresh_concurrently` appears 23 times. Each one costs you 4-8 tokens, every session, forever.
+Repeated identifiers are the #1 token sink. `establishment_id` 47 times. `materialized_view_refresh_concurrently` 23 times. Each one costs 4–8 tokens, every session, forever.
 
 ```
 @defs
@@ -154,7 +170,7 @@ This block alone, used in a 2,000-token file, saves 400+ tokens. Every session.
 [HANDOFF]     cross-session context; new agent reads first turn only
 ```
 
-A correctly tagged 1,500-token rule file lets a mid-session agent process maybe 600 tokens of it. The rest is context the agent already has, lookup material it doesn't need yet, or first-turn orientation.
+A correctly tagged 1,500-token file loads ~600 tokens mid-session. The rest is already-established context, deferred lookups, or first-turn orientation the agent doesn't need again.
 
 ### 3. Symbols
 
@@ -167,11 +183,11 @@ A correctly tagged 1,500-token rule file lets a mid-session agent process maybe 
 !=   not-equal      =    defined-as
 ```
 
-ASCII operators are 1 token each — guaranteed by every modern BPE tokenizer because the code corpus saturated those merges. See [SPEC.md](SPEC.md) for the full table.
+ASCII operators are 1 token each — guaranteed by every modern BPE tokenizer. See [SPEC.md](SPEC.md) for the full table.
 
 ### 4. XML Structure (for long docs)
 
-For long AI-facing docs, XML blocks usually outperform markdown headings for model reliability.
+XML blocks outperform markdown headings for model reliability in long files.
 
 ```
 <context>
@@ -190,43 +206,47 @@ For long AI-facing docs, XML blocks usually outperform markdown headings for mod
 </context>
 ```
 
-- **Claude uses it:** Anthropic explicitly recommends XML tags for structured prompts.
-- **ChatGPT uses it:** GPT models reliably follow explicit XML/HTML-style boundaries.
-- **Gemini uses it:** Gemini also handles tagged structure better than loose prose sections.
-- **Why it works:** blocks like `<context>`, `<defs>`, `<rules>`, `<reference>` reduce ambiguity and improve retrieval in long files.
+All three major model families (Claude, GPT, Gemini) parse named XML blocks more reliably than loose markdown headings. `<context>`, `<defs>`, `<rules>`, `<reference>` — unambiguous boundaries, better retrieval.
 
 ---
 
 ## "Wait, won't this break things?" — FAQ
 
-**Q: Doesn't the AI need prose to understand the rules?**
-A: No. LLMs are trained on enormous amounts of structured text — code, JSON, XML, YAML, math notation. They parse symbol contracts at least as well as prose, often better. The "lost in the middle" problem is *worse* for prose than for structured symbols. You can prove this on your own files: BOTSPEAK a rule, then ask your agent to summarize what it says. The summary will match the original prose version.
+**Q: Doesn't the AI need prose to understand the rules?**  
+A: No. LLMs are trained on code, JSON, XML, YAML, and math notation — structured text is their native language. The "lost in the middle" problem is *worse* for prose than for symbols. Try it yourself: BOTSPEAK a rule, then ask your agent to summarize it. The summary will match.
 
-**Q: I used my IDE's skill-creation tool and it wrote plain prose. Now what?**  
-A: Expected. IDE tools (Cursor's `create-skill`, `create-rule`, etc.) don't know about BOTSPEAK — they template prose. Just run `/botspeak` on the file it created (or pass the whole directory: `/botspeak ~/.cursor/skills/`). With the always-on rule installed, anything *new* the AI writes for itself comes out in BOTSPEAK; only files generated by IDE templates need the manual sweep.
+**Q: My IDE's skill tool wrote plain prose. Now what?**  
+A: Expected — IDE tools don't know about BOTSPEAK. Run `/botspeak` on the file (or a whole directory: `/botspeak ~/.cursor/skills/`). With the always-on rule installed, anything the AI writes *for itself* comes out in BOTSPEAK from then on.
 
 **Q: Should I rewrite all my existing rules right now?**  
-A: No. Start with the file your agent reads most often (usually `CLAUDE.md` or your largest always-on rule). Compress that one. Measure the savings. Decide if you want to do more. Please contribute if you have ideas!
+A: No. Start with whatever your agent reads most — usually `CLAUDE.md` or your largest always-on rule. Compress that one, measure the savings, go from there.
 
-**Q: What if I want to skip BOTSPEAK for just this document?**  
-A: Ask in plain English: *"write this one in prose"* or *"don't botspeak this file."*
+**Q: How do I output to chat instead of a file?**  
+A: Use `-c` or `--chat`. Works on both `/botspeak` and `/botspeak-translate`.
 
-**Q: What if I want this on all the time?**  
-A: Install the always-on rule in [Step 2](#step-2--install-the-always-on-rule-manual-by-design).
+**Q: What if I want BOTSPEAK on all the time?**  
+A: Install the always-on rule — [Step 2](#step-2--install-the-always-on-rule-manual-by-design).
 
-**Q: What if a new agent on my team can't read it?**
-A: Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BOTSPEAK without preamble. The notation is intuitive enough that even older models infer it. If you're worried, include `SPEC.md` in your project; the agent reads it once and you're set.
+**Q: What if I want to skip BOTSPEAK for just one document?**  
+A: Say so: *"write this in prose"*, *"no botspeak"*, or just `-bs`.
 
-**Q: Why not just use Caveman?**
-A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compresses what the AI *outputs to humans* (chat replies, PR comments, commit messages). BOTSPEAK shapes what the AI *writes for other AI readers* (rules, skills, memory, handoffs), and can also compress older prose docs. They compose — install both and you get the full token-efficiency stack.
+**Q: What if a new agent on my team can't read it?**  
+A: Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BOTSPEAK without preamble. If you're worried, drop `SPEC.md` into your project — the agent reads it once and you're set.
 
-**Q: Why not just use CRUX-Compress / llm-min.txt / Compresr?**
-A: Those are tools that compress existing prose with a custom DSL. BOTSPEAK is a *writing convention* — write in it natively, no compressor agent required. We also ship a round-trip translate skill (CRUX doesn't have a reliable expander), so you can always read your own files. Comparison table below.
+**Q: What about Caveman?**  
+A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compresses what the AI *outputs to humans*. BOTSPEAK shapes what the AI *writes for other AI readers*. Install both — they compose perfectly.
 
-**Q: How do I uninstall?**
-A: Delete the skill files in your agent's skill directory. No traces left, no migrations needed. The skill is opt-in and stateless.
+**Q: Why not CRUX-Compress / llm-min.txt / Compresr?**  
+A: Those are compressor *tools* — they process existing prose with a custom DSL. BOTSPEAK is a *writing convention*: write in it natively, no compressor required. We also ship a round-trip translate skill so you can always read your own files back.
 
+**Q: How do I uninstall?**  
+A: Run the uninstaller:
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/uninstall.sh | bash
+```
+
+Skills are removed from all detected agents automatically. *The always-on rule is not auto-removed* (it lives inside your IDE's rule system); the uninstaller tells you exactly where to look.
 
 ---
 
@@ -245,7 +265,7 @@ A: Delete the skill files in your agent's skill directory. No traces left, no mi
 | **Stars (May 2026)**     | new                              | 53.9k                 | ~3                    | ~700             |
 
 
-BOTSPEAK is the only convention (not tool) for AI-facing document generation+compression with a verified round-trip. We expect it to coexist with Caveman, not compete.
+BOTSPEAK is the only convention (not tool) for AI-facing document writing and compression with a verified round-trip. We expect it to coexist with Caveman, not compete.
 
 ---
 
@@ -260,13 +280,14 @@ botspeak/
 ├── CONTRIBUTING.md
 ├── CLAUDE.md, AGENTS.md, GEMINI.md      ← bootstrap files for AI agents working on this repo
 ├── install.sh                           ← one-line installer (skills only — rules install manually)
+├── uninstall.sh                         ← removes skills from all detected agents
 ├── rules/                               ← always-on rule templates (manual install, see README)
 │   ├── botspeak-always-on.md            ← universal markdown (Claude · Windsurf · Cline · Copilot · etc.)
 │   └── botspeak-always-on.mdc           ← Cursor format (with alwaysApply frontmatter)
 ├── .cursor/rules/botspeak.mdc           ← Cursor rule active in this repo (self-hosting)
 ├── skills/
-│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK
-│   └── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → human prose
+│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK (replaces in place; -bu to backup first; -c for chat)
+│   └── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → [filename].bst.md (-c for chat)
 ├── agents/
 │   └── botspeak-translator.md           ← bidirectional agent (for tools that load agent definitions)
 └── examples/                            ← six before/after pairs
@@ -306,11 +327,12 @@ See [evals/README.md](evals/README.md) for methodology and how to run.
 
 ## Notes & Caveats
 
-- **Where BOTSPEAK compresses most:** prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy docs (often 65–78%).
-- **Where compression ceilings are lower:** already-dense docs — Mermaid, SQL, numeric tables, code blocks, file trees. A code-heavy migration plan can land around ~43%.
-- **BOTSPEAK still helps dense docs:** `@defs` aliases, phase tags, and explicit `!!` constraints make behavior clearer even when byte savings are lower.
-- **Cheap models are great!** Especially for batch jobs. Directory compression is a mechanical summarization task; Haiku-class models are usually the best value.
-- **Timing expectations:** measured on Haiku (May 2026) at ~2 minutes per 50 KB (~12.5k tokens). Rule of thumb: 200 KB (~50k tokens) is ~8 minutes. Thinking models (Sonnet, Opus) are typically 3–5x slower.
+- **BOTSPEAK shines** on prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy manifestos. Expect 65–78% compression. This is its home turf.
+- **BOTSPEAK slouches** on already-dense content — Mermaid, SQL, numeric tables, code blocks, file trees. Code-heavy docs land around ~43%. Still worth it: `@defs` aliases and phase tags sharpen behavior even when byte savings are modest.
+- **Go cheap on batch jobs.** Directory compression is mechanical; Haiku-class models nail it at a fraction of the cost.
+- **Timing:** Haiku clocks at ~~2 min / 50 KB (~~12.5K tokens). Rule of thumb: 200 KB ≈ 8 min. Thinking models (Sonnet, Opus) run 3–5× slower.
+- `**.gitignore`: add `*.bst.md` and `*.bu.*.md`** to keep translated files and backups out of your repo. They're disposable artifacts — read them, toss them.
+- `**/botspeak` replaces files in place.** Add `-bu` to keep a datestamped backup (`filename.bu.YYYYMMDD.md`) before compressing. Directory mode always offers the backup option before bulk conversion.
 
 ---
 

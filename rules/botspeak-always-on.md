@@ -3,7 +3,7 @@
 [ALWAYS] BOTSPEAK only in docs written for AI (rules · skills · CLAUDE.md · AGENTS.md · memory pages · handoffs)
 [ALWAYS] chat replies to USER = always full human prose · zero BOTSPEAK
 [NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
-[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file") -> render the doc in human prose · skip BOTSPEAK for this output
+[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file" || "no botspeak" || "-bs") -> render the doc in human prose · skip BOTSPEAK for this output
 
 @defs
   ST = symbol-table

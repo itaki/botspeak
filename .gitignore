@@ -5,3 +5,5 @@ __pycache__/
 .env
 MARKETING-TODO.md
 /images-working/
+*.bu.*.md
+*.bst.md

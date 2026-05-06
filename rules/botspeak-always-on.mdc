@@ -9,7 +9,7 @@ alwaysApply: true
 [ALWAYS] chat replies to USER = always full human prose · zero BOTSPEAK
 [NEW-CHAT] this rule = active · all NEW AI-facing docs -> write in BOTSPEAK
 [NEW-CHAT] EXISTING docs in repo -> only refactor when user explicitly asks
-[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file") -> render the doc in human prose · skip BOTSPEAK for this output
+[ON-TRIGGER] user requests prose doc ("write this in prose" || "make this readable" || "don't botspeak this file" || "no botspeak" || "-bs") -> render the doc in human prose · skip BOTSPEAK for this output
 
 @defs
   ST = symbol-table

@@ -131,7 +131,7 @@ BT compresses AI input docs read by AI.
 ```text
 botspeak/
 ├── README.md
-├── README-BOTSPEAK-EXAMPLE.md
+├── README-FOR-AI.md
 ├── SPEC.md
 ├── install.sh
 ├── rules/

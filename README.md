@@ -1,15 +1,19 @@
+<p align="center">
+  <img src="images/botspeak.jpg" alt="BOTSPEAK" width="300">
+</p>
+
 # BOTSPEAK
 
 **A way for bots to talk to bots.** More context, less prose.
 
 Human view: you are here.  
-Bot view: [README-BOTSPEAK-EXAMPLE.md](README-BOTSPEAK-EXAMPLE.md)
+Bot view: [README-FOR-AI.md](README-FOR-AI.md)
 
 [License: MIT](LICENSE)
 
 ---
 
-A skill for AI coding agents. Compresses everything your agent reads — rules, skills, memory pages, and especially handoffs. That thousand-line handoff you paste into a new chat? Up to 70% less context burn. Same information, less burn before you type your first word.
+A skill for AI coding agents. Primary mode: make every new AI-facing doc your agent writes come out in BOTSPEAK by default (rules, skills, memory pages, handoffs). Secondary mode: back-compress your existing prose docs when needed. That thousand-line handoff you paste into a new chat? Up to 70% less context burn. Same information, less burn before you type your first word.
 
 ---
 
@@ -66,11 +70,12 @@ Drops two skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemi
 - `/botspeak` — compress a single file or an entire directory of AI-facing docs
 - `/botspeak-translate` — render any BOTSPEAK file back to clear human prose for audit
 
-Skills are opt-in: nothing changes until you invoke one.
+Skills are opt-in: nothing changes until you invoke one.  
+If you want BOTSPEAK generated automatically for new AI-facing docs, install the always-on rule in Step 2.
 
 ### Step 2 — Install the always-on rule (manual, by design)
 
-The rule is what tells your AI to write BOTSPEAK *every time it writes a document to be read by AI* — without you asking. Every IDE handles rules differently and the wrong move would clobber instructions you wrote yourself, so we don't auto-install rules globally. Pick the path for your tool:
+The rule is what tells your AI to write BOTSPEAK *every time it writes a document for another AI to read* — without you asking. Every IDE handles rules differently and the wrong move would clobber instructions you wrote yourself, so we don't auto-install rules globally. Pick the path for your tool:
 
 
 | IDE                 | What to do                                                                                                                                                                                                                     |
@@ -213,7 +218,7 @@ A: Install the always-on rule in [Step 2](#step-2--install-the-always-on-rule-ma
 A: Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BOTSPEAK without preamble. The notation is intuitive enough that even older models infer it. If you're worried, include `SPEC.md` in your project; the agent reads it once and you're set.
 
 **Q: Why not just use Caveman?**
-A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compresses what the AI *outputs to humans* (chat replies, PR comments, commit messages). BOTSPEAK compresses what the AI *reads from itself* (rules, skills, memory). They compose — install both and you get the full token-efficiency stack.
+A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compresses what the AI *outputs to humans* (chat replies, PR comments, commit messages). BOTSPEAK shapes what the AI *writes for other AI readers* (rules, skills, memory, handoffs), and can also compress older prose docs. They compose — install both and you get the full token-efficiency stack.
 
 **Q: Why not just use CRUX-Compress / llm-min.txt / Compresr?**
 A: Those are tools that compress existing prose with a custom DSL. BOTSPEAK is a *writing convention* — write in it natively, no compressor agent required. We also ship a round-trip translate skill (CRUX doesn't have a reliable expander), so you can always read your own files. Comparison table below.
@@ -240,7 +245,7 @@ A: Delete the skill files in your agent's skill directory. No traces left, no mi
 | **Stars (May 2026)**     | new                              | 53.9k                 | ~3                    | ~700             |
 
 
-BOTSPEAK is the only convention (not tool) for AI-facing document compression with a verified round-trip. We expect it to coexist with Caveman, not compete.
+BOTSPEAK is the only convention (not tool) for AI-facing document generation+compression with a verified round-trip. We expect it to coexist with Caveman, not compete.
 
 ---
 

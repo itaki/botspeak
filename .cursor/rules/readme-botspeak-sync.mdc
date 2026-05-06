@@ -1,0 +1,24 @@
+---
+description: Keep README and README-BOTSPEAK-EXAMPLE in sync on commit/push
+alwaysApply: true
+---
+
+# README Sync Rule [ALWAYS]
+
+[ALWAYS] user-visible chat output -> prose only
+[ALWAYS] this rule applies only to README sync workflow
+
+[ON-TRIGGER] user requests commit || push || publish || release
+[ON-TRIGGER] && README.md changed in working tree || staged changes
+-> ensure README-BOTSPEAK-EXAMPLE.md regenerated from current README.md before commit
+
+[ON-TRIGGER] README.md changed && README-BOTSPEAK-EXAMPLE.md unchanged
+-> STOP && warn: "README and README-BOTSPEAK-EXAMPLE are out of sync"
+-> regenerate README-BOTSPEAK-EXAMPLE.md
+-> continue commit/push only after both files updated
+
+[REFERENCE] sync check:
+  git status --short
+  confirm README.md and README-BOTSPEAK-EXAMPLE.md move together when README content changed
+
+[ALWAYS] if README.md unchanged -> no sync action required

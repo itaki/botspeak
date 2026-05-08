@@ -2,6 +2,8 @@
 
 **A way for bots to talk to bots.** More context, less prose.
 
+![Two bots chatting in BOTSPEAK](images/two-bots-chatting.png)
+
 Human view: you are here  ·  Bot view: [README-FOR-AI.md](README-FOR-AI.md)  ·  [MIT](LICENSE)
 
 ---

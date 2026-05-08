@@ -1,22 +1,42 @@
 ---
-description: One checkout = one branch · git before code · worktrees for parallel work
+description: One branch per focus; confirm git before coding; use worktrees for parallel features
 alwaysApply: true
 ---
 
-# branch/worktree guard
+@defs
+  br = git branch
+  wt = git worktree
+@end
 
-[NEW-CHAT] run: `git branch --show-current` + `git status -sb` → state: "On <branch>"
-[ALWAYS] invariant: one-working-tree = one-active-branch · cross-feature mixing → lost work + broken review
+# Branch and Worktree Guard
 
-request ≠ branch-feature → scope-split → 🔴 STOP · zero edits until user picks:
-  A same-branch/PR (only if it fits — say how, then proceed)
-  B new-branch-here (user switches; proceed only there)
-  C parallel → `git worktree add` (sibling path · 2nd Cursor window · shared repo + .cursor rules · not full clone)
-     ref: https://git-scm.com/docs/git-worktree
+## Why
 
-user replies without picking → 🔴 stop again · require A/B/C
+[ALWAYS] parallel-chats on unrelated-features in one working-tree = mixed commits · lost work · confused review
+[ALWAYS] one checkout = one active br
 
-[ON-TRIGGER] red flags = same stop + A/B/C:
-  topic-jump (wine report while branch = DB/MV/n8n) · "quick unrelated fix" · multi unrelated deliverables in one thread
+## Before Implement or Edit
 
-🔴 never: silent cross-feature on one branch · assume chat-title = HEAD
+[ALWAYS]
+  1. run: `git br --show-current` && `git status -sb` (workspace root)
+  2. state br-name once in plain language (e.g. "On `feature/mv-refresh`")
+
+## When User Request = Different Feature
+
+[ALWAYS] treat as SCOPE-SEPARATION (not "one more task on side")
+
+[ALWAYS] STOP · !! no edits until user chooses:
+
+  A — same br · same PR: only if work truly belongs · restate how · proceed
+  B — new br (this folder): user creates/switches · proceed that br only
+  C — parallel work: recommend `git wt add` (sibling folder · second Cursor window)
+      same repo + .cursor rules · no second clone · link: https://git-scm.com/docs/git-worktree
+
+[ALWAYS] !! wait for user selection · force if they just prompt-again
+
+## Red Flags (always trigger stop + options)
+
+[ALWAYS] trigger when:
+  user jumps another area (wine-report while br=DB/MV/n8n)
+  "quick fix on something else"
+  multiple unrelated deliverables without one br-name covering all

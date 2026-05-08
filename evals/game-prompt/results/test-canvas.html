@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <canvas id="gameCanvas" width="480" height="640" style="border: 1px solid black;"></canvas>
+    <script>
+        console.log("Script started");
+        const canvas = document.getElementById('gameCanvas');
+        console.log("Canvas:", canvas);
+        const ctx = canvas.getContext('2d');
+        console.log("Context:", ctx);
+        
+        ctx.fillStyle = '#0f3460';
+        ctx.fillRect(0, 0, 480, 640);
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.fillText("Canvas works!", 100, 50);
+        
+        console.log("Test complete");
+    </script>
+</body>
+</html>

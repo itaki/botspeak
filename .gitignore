@@ -7,3 +7,5 @@ MARKETING-TODO.md
 /images-working/
 *.bu.*.md
 *.bst.md
+_archive/
+*.bst.md

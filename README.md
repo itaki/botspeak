@@ -12,24 +12,24 @@ A skill for AI coding agents.
 
 **Secondary mode** — Compress your existing prose docs on demand. One file or an entire directory.
 
-*Same information. Up to 70% less context burn.*
+*Same information. Up to 50% less context burn.*
 
 ---
 
 ## Before / After
 
 
-| Document type                                         | Before (est. tokens) | After (est. tokens) | Reduction | Example folder                                                   |
-| ----------------------------------------------------- | -------------------- | ------------------- | --------- | ---------------------------------------------------------------- |
-| Long CLAUDE.md (the file your AI reads every session) | 8,055                | 4,863               | **40%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Project philosophy / manifesto rule                   | 1,732                | 430                 | **75%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Context handoff (one session → next)                  | 1,017                | 247                 | **76%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003                | 278                 | **72%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Short rule (branch guard)                             | 410                  | 248                 | 40%       | [examples/01-short-rule/](examples/01-short-rule/)               |
-| Architecture migration plan (code-heavy)              | 12,002               | 7,328               | 39%       | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Document type                                         | Before (tokens) | After (tokens) | Reduction | Example folder                                                   |
+| ----------------------------------------------------- | --------------- | -------------- | --------- | ---------------------------------------------------------------- |
+| Architecture migration plan (code-heavy)              | 12,063          | 6,529          | **46%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Project philosophy / manifesto rule                   | 1,748           | 1,005          | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
+| Context handoff (one session → next)                  | 1,019           | 625            | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Long CLAUDE.md (the file your AI reads every session) | 8,083           | 5,324          | **34%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Wiki / memory page (Karpathy LLM-wiki style)          | 1,004           | 758            | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Short rule (branch guard)                             | 412             | 338            | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
 
 
-**The real unlock isn't one file — it's the whole repo.** Apply BOTSPEAK across your `CLAUDE.md`, rules, skills, memory pages, handoffs, and philosophy docs and your total AI-facing context drops 50–70%. A repo that burned 30,000 tokens before you typed your first word might cost 10,000. That's the difference between starting a session sharp and starting it already underwater.
+**The real unlock is each individual file.** A single well-compressed strategic doc (architecture plan, philosophy rule, or handoff) saves 4,000–6,000 tokens per session. Apply BOTSPEAK across your `CLAUDE.md`, rules, skills, memory pages, handoffs, and philosophy docs—each one compresses 18–46%, adding up fast. A repo that burned 30,000 tokens before you typed your first word might cost 20,000. That's the difference between starting a session clear and starting it already underwater.
 
 ---
 
@@ -136,7 +136,9 @@ The skill scans every `.md` and `.mdc` file, shows a token-count table with flag
 
 ## "I Need to Read a BOTSPEAK Document"
 
-`/botspeak-translate @file` — creates `file.bst.md` next to the original, all aliases expanded, all symbols decoded. Read it, delete it. Add `-c` to render in chat instead.
+`/botspeak-translate @file` — creates `file.bst.md` next to the original. The translation is intentionally exhaustive: every abbreviation spelled out, every symbol expanded to full phrase, every constraint stated explicitly. This makes it more verbose than the original BOTSPEAK—that's by design. The extra words prove that nothing was lost in the compression; it just got restructured. Read it to verify what the BOTSPEAK actually says.
+
+**You don't strictly need the skill.** Any modern AI can read a BOTSPEAK file and render it back to prose if you just ask — the format is built on patterns LLMs already understand. The skill exists so the AI knows exactly *how* the compression was done, which gives you a faithful one-to-one decompression instead of a paraphrase, with zero effort on your part. Skip it when good-enough is fine; use it when fidelity matters.
 
 ---
 
@@ -291,12 +293,12 @@ botspeak/
 ├── agents/
 │   └── botspeak-translator.md           ← bidirectional agent (for tools that load agent definitions)
 └── examples/                            ← six before/after pairs
-    ├── 01-short-rule/                   ← branch guard:                    410 →   248 (40%)
-    ├── 02-context-handoff/              ← session handoff:               1,017 →   247 (76%)
-    ├── 03-memory-page/                  ← Karpathy-style wiki page:      1,003 →   278 (72%)
-    ├── 04-philosophy-rule/              ← project manifesto:             1,732 →   430 (75%)
-    ├── 05-aliased-claude-md/            ← long CLAUDE.md example:        8,055 → 4,863 (40%)
-    └── 06-backend-migration/            ← arch migration plan (code-heavy): 12,002 → 7,328 (39%)
+    ├── 01-short-rule/                   ← branch guard:                    412 →   338 (18%)
+    ├── 02-context-handoff/              ← session handoff:               1,019 →   625 (39%)
+    ├── 03-memory-page/                  ← Karpathy-style wiki page:      1,004 →   758 (25%)
+    ├── 04-philosophy-rule/              ← project manifesto:             1,748 → 1,005 (42%)
+    ├── 05-aliased-claude-md/            ← long CLAUDE.md example:        8,083 → 5,324 (34%)
+    └── 06-backend-migration/            ← arch migration plan (code-heavy): 12,063 → 6,529 (46%)
 ```
 
 ---

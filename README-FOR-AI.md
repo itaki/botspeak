@@ -19,26 +19,27 @@ BT = writing convention for AI-facing docs · primary reader = AI agent
 4 mechanisms: symbol contracts · @defs aliases · phase tags · XML structure
 primary mode: every new rule, skill, memory, handoff -> BT automatically (AR installed) · no prompting required
 secondary mode: compress existing prose docs on demand (file || directory)
-target savings: up to 70% context burn reduction
+target savings: up to 50% context burn reduction
 round-trip: `TR` renders any BT file -> human prose on demand
 
 ---
 
 ## measured compression
 
-| doc type | before (est. tokens) | after (est. tokens) | reduction |
+| doc type | before (tokens) | after (tokens) | reduction |
 | --- | ---: | ---: | ---: |
-| long `CLAUDE.md` | 8,055 | 4,863 | 40% |
-| philosophy rule | 1,732 | 430 | 75% |
-| context handoff | 1,017 | 247 | 76% |
-| memory/wiki page | 1,003 | 278 | 72% |
-| short rule | 410 | 248 | 40% |
-| arch migration plan (code-heavy) | 12,002 | 7,328 | 39% |
+| arch migration plan (code-heavy) | 12,063 | 6,529 | 46% |
+| philosophy rule | 1,748 | 1,005 | 42% |
+| context handoff | 1,019 | 625 | 39% |
+| long `CLAUDE.md` | 8,083 | 5,324 | 34% |
+| memory/wiki page | 1,004 | 758 | 25% |
+| short rule | 412 | 338 | 18% |
 
 [REFERENCE] `examples/` -> full before/after pairs for each doc type
 
-whole-repo effect: BT across `CLAUDE.md`, rules, skills, memory, handoffs -> total AI context -50–70%
-example: repo burning 30K tokens before first word -> 10K with BT applied
+real unlock: each individual file · single compressed strategic doc saves 4K–6K tokens/session
+whole-repo effect: BT across `CLAUDE.md`, rules, skills, memory, handoffs -> each file 18–46%, adds up fast
+example: repo burning 30K tokens before first word -> ~20K with BT applied
 
 ---
 
@@ -181,7 +182,8 @@ manual by design: IDE rule systems vary · !! never auto-touch what user already
 
 ## reading a BOTSPEAK doc
 
-`TR @file` -> creates `file.bst.md` (all aliases expanded, all symbols decoded) · read it · delete it
+`TR @file` -> creates `file.bst.md` · translation intentionally exhaustive: every alias expanded, every symbol decoded, every constraint stated explicitly · more verbose than BT by design (extra words = proof nothing was lost)
+no skill required: any modern LLM can render BT -> prose on request · skill = faithful one-to-one decompression vs paraphrase · skip when good-enough is fine · use when fidelity matters
 add `-c` to render in chat instead of file
 
 ---
@@ -264,12 +266,12 @@ botspeak/
 ├── agents/
 │   └── botspeak-translator.md           ← bidirectional agent (for agent-definition harnesses)
 └── examples/
-    ├── 01-short-rule/                   ← branch guard:          410 →   248 (40%)
-    ├── 02-context-handoff/              ← session handoff:     1,017 →   247 (76%)
-    ├── 03-memory-page/                  ← wiki page:           1,003 →   278 (72%)
-    ├── 04-philosophy-rule/              ← manifesto:           1,732 →   430 (75%)
-    ├── 05-aliased-claude-md/            ← long CLAUDE.md:      8,055 → 4,863 (40%)
-    └── 06-backend-migration/            ← arch migration plan: 12,002 → 7,328 (39%)
+    ├── 01-short-rule/                   ← branch guard:            412 →   338 (18%)
+    ├── 02-context-handoff/              ← session handoff:       1,019 →   625 (39%)
+    ├── 03-memory-page/                  ← wiki page:             1,004 →   758 (25%)
+    ├── 04-philosophy-rule/              ← manifesto:             1,748 → 1,005 (42%)
+    ├── 05-aliased-claude-md/            ← long CLAUDE.md:        8,083 → 5,324 (34%)
+    └── 06-backend-migration/            ← arch migration plan:  12,063 → 6,529 (46%)
 ```
 
 ---

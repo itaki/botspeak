@@ -20,3 +20,13 @@ rule:  rules/botspeak-always-on.md · rules/botspeak-always-on.mdc (manual insta
 
 [ALWAYS] writing new BT docs → follow SPEC · @defs for repeated terms · phase tags · verify constraints preserved
 [ALWAYS] user-visible content (questions · choices · errors) → full HP · zero BT · in user's language
+
+## dev guidelines (when building/hardening BT itself)
+
+[ALWAYS] no overfitting · when adding rules to SPEC · skills · or examples:
+  ok: general rules naming grammar / structure / behavior (e.g. "RHS of `=` must be a value, not a description")
+  !!: case-specific rules naming domain concepts from one eval (e.g. "PP_spawn_interval needs the `_interval` suffix")
+  test: if a rule names a specific concept from one eval -> generalize · keep concrete examples in the catalog · keep rules abstract
+  rationale: skill/spec must stay concise · we want generalized solutions for failure classes · NOT a catalog of every failure that ever happened
+[ALWAYS] one new failure -> ask "what class of failure does this represent?" -> harden against the class
+[ALWAYS] when in doubt about scope, prefer SHORTER · more general · over LONGER · more specific

@@ -1,15 +1,13 @@
+<!-- BOTSPEAK v0.2.0 · compressed by claude-sonnet-4-6 · 2026-05-07 -->
 # Flappy Bird — One-Shot HTML Spec
 
 @defs
-  BT      = BOTSPEAK
-  BG      = background
-  FPS     = frames per second
-  DOM     = Document Object Model
-  LS      = localStorage
-  API     = application programming interface
-  MS      = milliseconds
-  PX      = pixels
-  HZ      = Hertz
+  BG  = background
+  FPS = frames per second
+  LS  = localStorage
+  MS  = milliseconds
+  PX  = pixels
+  HZ  = Hertz
 @end
 
 Single HTML file · no deps · file:// protocol · no server needed.
@@ -20,7 +18,7 @@ Single HTML file · no deps · file:// protocol · no server needed.
 - BG gradient: #0f3460 (top) -> #16213e (bottom)
 - Clouds: white ellipses @ 1/4 pipe speed · semi-transparent
 - Ground: 40 PX green (#2d5a27) + yellow stripe (#8fbc45) @ pipe speed
-- Resize: maintain 480×640 aspect · apply CSS `scale()` · no canvas res change
+- Resize: maintain 480×640 aspect · CSS `scale()` · no canvas res change
 
 ## Bird
 
@@ -33,22 +31,22 @@ Single HTML file · no deps · file:// protocol · no server needed.
 
 - Pairs: top->down + bottom->up · 150 PX gap
 - Gap position: random 20%-75% height
-- 60 PX wide · dark green body (#2d6a4f) + light stripe (#40916c, 8 PX left edge)
+- 60 PX wide · dark green body (#2d6a4f) + light stripe (#40916c · 8 PX left edge)
 - Cap: 70 PX wide × 20 PX tall · same color scheme
 - Movement: left @ 3 PX/frame
 
 ## Score & UI
 
-- Current: centered @ top (40 PX down) · large white 48px bold sans-serif · semi-transparent dark BG
+- Current: centered @ top (40 PX down) · 48px bold sans-serif white · semi-transparent dark BG
 - Best: top-right @ 20px
-- Collision: 4-pixel forgiveness margin
+- Collision: 4 PX forgiveness margin
 
 ## Physics
 
-- Gravity: 0.5 PX/frame² downward acceleration
+- Gravity: 0.5 PX/frame² downward
 - Flap: velocity := -9 PX/frame (upward)
 - Terminal velocity: cap ↓ @ 12 PX/frame
-- Pipe spawn: every 90 frames · first @ +120 frames after "playing" starts
+- pipe_spawn_interval = 90 FR · pipe_spawn_first = 120 FR (after playing starts)
 - !! only flap when state="playing"
 
 ## States
@@ -57,9 +55,9 @@ Single HTML file · no deps · file:// protocol · no server needed.
 
 **menu:**
   - BG + ground + clouds scrolling
-  - bird: sine bobbing (amp 8 PX · period 60 frames) · center canvas
+  - bird: sine bobbing (amp=8 PX · period=60 FR) · center canvas
   - "FLAPPY BIRD" @ 40% height · white bold
-  - "Press SPACE or tap" · pulsing opacity (0.4-1.0 · 60 frame period)
+  - "Press SPACE or tap" · pulsing opacity (0.4-1.0 · period=60 FR)
 
 **playing:**
   - score++ when bird.x passes right edge of pipe
@@ -69,7 +67,7 @@ Single HTML file · no deps · file:// protocol · no server needed.
   - trigger: collision detected
   - bird: stop horiz movement · gravity continues
   - play "hit" sound
-  - emit particles (20× · r 3-6 PX · warm colors · random direction/speed 2-6 PX/frame · gravity · fade 40 frames)
+  - particles: 20× · r 3-6 PX · warm colors · random direction/speed 2-6 PX/frame · gravity · fade_duration=40 FR
   - transition -> gameover after particles done && bird grounded/off-screen
 
 **gameover:**
@@ -80,26 +78,24 @@ Single HTML file · no deps · file:// protocol · no server needed.
 
 ## Audio (Web Audio API · synthesized · no files)
 
-- Flap: 520 HZ sine · 80 MS · fade to silence · on flap
-- Point: two-tone chirp · 660 HZ (50 MS) + 880 HZ (50 MS) · on pipe pass
-- Hit: white noise burst · 150 MS · fade to silence · on collision
-- Die: 400 HZ -> 200 HZ sweep · 300 MS · +100 MS after hit
+- flap:  520 HZ sine · 80 MS · fade -> silence · on flap
+- point: 660 HZ (50 MS) + 880 HZ (50 MS) chirp · on pipe pass
+- hit:   white noise burst · 150 MS · fade -> silence · on collision
+- die:   400 HZ -> 200 HZ sweep · 300 MS · +100 MS after hit
 
 Context lazy-init on first user interaction (autoplay policy).
 
 ## Input
 
-- Keyboard: spacebar -> flap
-- Touch: tap canvas -> flap
-- Mouse: left-click canvas -> flap
+- spacebar || tap canvas || left-click canvas -> flap
 - !! all simultaneous · prevent default on canvas touch only (not page)
 
 ## Implementation
 
 - `'use strict'`
 - Sections: constants · state · audio · drawing · physics · input · game loop
-- Loop: `requestAnimationFrame` + frame counter (integer) · not wall-clock
-- LS key: `flappyBirdBest` · read on load · update on new record
+- Loop: `requestAnimationFrame` + frame counter (int) · not wall-clock
+- LS key: `'flappyBirdBest'` · read on load · update on new record
 - File: `.html` only
   !! no `<script src>` · no `<link rel>` · no `fetch` · no `import`
   !! file:// protocol compatible

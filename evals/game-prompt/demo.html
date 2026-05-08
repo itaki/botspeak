@@ -210,7 +210,7 @@
     <div class="game-label">Built from <em>prose prompt</em></div>
     <div class="frame-container" id="wrap-prose">
       <div class="focus-hint"><span>Hover to play · Space to flap</span></div>
-      <iframe id="frame-prose" src="results/flappy-prose-clean.html" title="Flappy Bird — prose build" scrolling="no"></iframe>
+      <iframe id="frame-prose" src="results/flappy-prose.html" title="Flappy Bird — prose build" scrolling="no"></iframe>
     </div>
   </div>
 
@@ -237,21 +237,27 @@
     <tbody>
       <tr>
         <td>Input tokens (est.)</td>
-        <td class="num">~2,128</td>
-        <td class="num good">~913</td>
-        <td class="num good">−57%</td>
+        <td class="num">~3,540</td>
+        <td class="num good">~1,348</td>
+        <td class="num good">−62%</td>
       </tr>
       <tr>
         <td>Prompt words</td>
         <td class="num">1,415</td>
-        <td class="num good">614</td>
-        <td class="num good">−57%</td>
+        <td class="num good">537</td>
+        <td class="num good">−62%</td>
       </tr>
       <tr>
         <td>Generated lines of code</td>
-        <td class="num">655</td>
-        <td class="num">540</td>
-        <td class="num">−18%</td>
+        <td class="num">534</td>
+        <td class="num good">458</td>
+        <td class="num good">−14%</td>
+      </tr>
+      <tr>
+        <td>Generated file size</td>
+        <td class="num">20 KB</td>
+        <td class="num good">15 KB</td>
+        <td class="num good">−25%</td>
       </tr>
       <tr>
         <td>Physics: gravity</td>
@@ -298,12 +304,12 @@
       <tr>
         <td>Source prompt</td>
         <td><a href="source.md" target="_blank">source.md</a></td>
-        <td><a href="source-botspeak-iter1.md" target="_blank">source-botspeak-iter1.md</a></td>
+        <td><a href="source-botspeak-v2.md" target="_blank">source-botspeak-v2.md</a></td>
         <td></td>
       </tr>
       <tr>
         <td>Generated code</td>
-        <td><a href="results/flappy-prose-clean.html" target="_blank">flappy-prose-clean.html</a></td>
+        <td><a href="results/flappy-prose.html" target="_blank">flappy-prose.html</a></td>
         <td><a href="results/flappy-botspeak.html" target="_blank">flappy-botspeak.html</a></td>
         <td></td>
       </tr>
@@ -320,11 +326,11 @@
     a vague prompt would let each AI build differently, making comparison meaningless.
   </p>
   <p>
-    The BOTSPEAK prompt (<code>source-botspeak-iter1.md</code>) was produced by compressing
-    <code>source.md</code> using the <code>/botspeak</code> skill. Every exact value
+    The BOTSPEAK prompt (<code>source-botspeak-v2.md</code>) was produced by compressing
+    <code>source.md</code> using the updated <code>/botspeak</code> skill. Every exact value
     (hex colors, pixel dimensions, Hz frequencies, frame counts) was preserved verbatim.
-    Articles, filler prose, and redundant restatements were dropped. Repeated identifiers
-    were aliased (<code>CV = canvas</code>, <code>BD = bird</code>, <code>PP = pipes</code>).
+    The v2 version achieves 62% compression — 12% better than the manual iter1 version.
+    Repeated identifiers were aliased (<code>CV = canvas</code>, <code>BD = bird</code>, <code>PP = pipes</code>).
   </p>
   <p>
     Both games were built by a fresh AI agent given <em>only</em> the prompt — no existing

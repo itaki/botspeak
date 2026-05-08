@@ -1,43 +1,123 @@
 ---
-description: Build the system. Never do the work.
+description: Development philosophy for building automated production workflows
 alwaysApply: true
 ---
 
 @defs
-  ME  = migration-engine
-  EF  = Edge Function
-  WF  = n8n workflow
+  proj = onboarding system development project (NOT actual restaurant onboarding)
+  dta = expendable test data (can destroy + recreate repeatedly)
+  dev = development phase (building automation · not production work)
+  WIP = work-in-progress (multiple manual runs)
 @end
 
-[ALWAYS] !! INVARIANT: BUILD system, DO NOT do-the-work
-goal -> any-establishment onboards automatically, NOT Fred's Italian Bistro manually
-test-data = expendable, errors = good (reveal automation gaps), prod = future
+default-phase: [ALWAYS]
 
-# pre-action check (every command, query, EF call)
-"Am I building the system OR doing the work the system should do?"
-  manual data-process || stuck-state-fix || repeated-manual-trigger -> !! STOP, build automation instead
-  exception: ONE test call to verify a fix = ok, multiple = !! doing-the-work
+# Development Workflow Philosophy
 
-# allowed manual actions (debug + setup only)
-ok: SELECT queries, read logs, deploy code, ONE test call, pg_cron setup, EF deploy
+## !! PROJECT GOAL
 
-# forbidden manual actions
-!! call orchestrators to queue jobs (WF should)
-!! call workers to process data (pg_cron || orchestrator should)
-!! purge queues + re-run (fix the cause of duplicates)
-!! multiple sequential manual triggers "to see if it works now"
+[ALWAYS]
+  !! WE ARE BUILDING THE ONBOARDING SYSTEM · NOT ONBOARDING RESTAURANTS
+  proj = automated workflows that will onboard establishments in future
+  current-restaurant (Fred's Italian Bistro) = test-vehicle only
+  dta = only to test onboarding automation
+  
+  can (and should):
+    destroy dta + recreate repeatedly
+    treat errors as automation-bugs (valuable)
+  
+  !! cannot:
+    manually process 1400+ days data
+    "finish" Fred's onboarding in production
+    treat dta as precious production data
 
-# when caught about to do something manual
-write: "I was about to [action]" + "automation gap: [why system did not]" + "fix: [how to make automatic]"
--> wait for user response, do not proceed
+## Core Principle
 
-# Soviet extractor specifics
-goal: SFTP -> Supabase Storage -> DB import -> monitor -> recover, 100% unattended for 1400+ days
+[ALWAYS] !! NEVER manually fix things
+  [ALWAYS] identify WHY automation failed
+  [ALWAYS] fix workflow so it handles issue automatically
+  [ALWAYS] ensure workflow runs unattended for onboarding
+  [ALWAYS] build monitoring + self-healing into system
 
-[REFERENCE] stack: WF orchestrates, EF processes, PGMQ queues, workers parallel,
-                   pg_cron schedules, WF detects stuck -> restarts orchestrator
+## STOP Checklist (before ANY action)
 
-# decision lens (every action evaluated against)
-"Will this work for ANY establishment onboarding?"
-"Can it run unattended at 2am?"
-"Does it make system more robust?"
+[ALWAYS] ask before executing command · SQL query · EF call:
+
+  1. manually processing data? -> !! STOP
+    if: calling orchestrators · workers · processing pending-jobs
+    ask: "how should system process this automatically?"
+
+  2. manually fixing stuck-state? -> !! STOP
+    if: resetting status · purging queue · triggering process
+    ask: "why didn't automation detect + fix this?"
+
+  3. running to test if something works? -> !! STOP
+    one-test ok · multiple calls || sequence -> build automated system
+    ask: "what automated system should do this?"
+
+  4. will repeat tomorrow/next-week/next-establishment? -> !! STOP
+    if: yes -> needs automation · not manual run
+    ask: "what system should handle this automatically?"
+
+allowed-manual (debug/investigation only):
+  ok: SELECT queries · reading logs · deploying code · one test-call · creating pg_cron jobs
+
+forbidden-manual:
+  !! calling orchestrators (n8n or system should do)
+  !! calling workers (pg_cron or ORC should do)
+  !! purging queues + re-running (fix why duplicates occurred)
+  !! multiple sequential manual triggers
+
+## When Caught About to Act Manually
+
+[ALWAYS] STOP + write:
+  1. "I was about to [manual-action]"
+  2. "The automation-gap is: [why system didn't do this]"
+  3. "The fix needed is: [how to make system do this]"
+  4. "Should I proceed? (Y/N)"
+  
+  then WAIT for user response
+
+## Soviet Extractor Workflow Context
+
+goal: build onboarding that:
+  1. fetches CSV from Soviet SFTP
+  2. uploads to SPA Storage
+  3. auto-imports into database
+  4. monitors progress · handles errors
+  5. !! runs completely unattended for new establishments
+
+"onboarding" meaning: when new restaurant signs up
+  -> workflow processes 1400+ historical-days
+  -> runs without manual intervention
+  -> detects + recovers from errors automatically
+  -> notifies when complete (or if true manual-intervention needed)
+
+current-phase (dev):
+  n8n = orchestrates entire process
+  SPA EF = heavy processing
+  PGMQ = job queues
+  workers = parallel processing
+  status-checker = monitors progress
+  n8n = detects stuck + restarts ORC
+
+## Manual Intervention Appropriate Only
+
+[ALWAYS] manual ok:
+  1. deploying code (migrations · EF)
+  2. testing specific components (verify fix)
+  3. investigating root-causes (query DB · understand failure)
+  4. one-time setup (pg_cron · initial config)
+
+!! not for:
+  processing pending-data (workers should do)
+  restarting stuck-processes (auto-restart)
+  fixing data-issues that recur (prevent root-cause)
+
+## Remember
+
+[ALWAYS]
+  goal = automation · not manual-intervention
+  evaluate every decision: "will this work for onboarding new restaurant?"
+  can this run unattended?
+  does this make system more robust?

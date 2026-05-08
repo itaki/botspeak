@@ -1,589 +1,580 @@
-# Backend Migration: Replace n8n with `data_acquisition_and_processing`
+# Backend Migration: n8n → `data_acquisition_and_processing`
 
 @defs
-  N8N = n8n Cloud orchestration platform (being replaced)
-  EF = Supabase Edge Function
-  CRN = pg_cron Postgres job scheduler
-  PQ = PGMQ queue + worker pattern
-  SB = Supabase (compute, storage, database)
-  VRL = Vercel serverless cron + functions
-  EST = establishment (per-tenant entity)
-  DPS = data_processing_status table (existing; tracks per-phase completion)
-  HC = Healthchecks.io (independent heartbeat monitor)
-  SFTP = SSH file transfer (only constraint: needs non-SB compute due to no TCP/SSH from EF)
+  HP = human prose
+  BT = BOTSPEAK
+  DAP = data_acquisition_and_processing workflow
+  N8N = n8n Cloud (orchestration platform)
+  SPA = Supabase
+  VRL = Vercel
+  PG = Postgres
+  EF = Edge Function
+  ORC = orchestrator
+  WKR = worker
+  SFTP = Soviet SFTP sync
+  HC = Healthchecks.io
+  PP = pipeline_runs table
+  DPS = data_processing_status (existing, per-phase ledger)
+  DAG = directed acyclic graph
 @end
 
----
-
-[NEW-CHAT] **Status**: Draft v1 — pending review
-[NEW-CHAT] **Branch**: `feat/replace-n8n` | **Author**: Architecture | **Last updated**: 2026-04-21
-[NEW-CHAT] **Target folder**: `backend/workflows/data_acquisition_and_processing/` (new)
-[NEW-CHAT] **Decommission**: `backend/workflows/menu_registry_and_backfill/` (end of migration)
-
----
-
-## 1. Executive Summary
-
-[NEW-CHAT] Replacing N8N orchestration with: CRN daily trigger → EF master_orchestrator → CRN advance loop (every 1 min) → existing SB EF/PQ workers (phases 02–20 already off N8N) + VRL SFTP worker (only non-SB piece).
-
-[NEW-CHAT] Migration is ~90% glue replacement, not algorithm. Heavy lifting already in SB EF/RPC/PQ. N8N = fancy UI for calling EF; replacing with CRN + state machine.
-
-[NEW-CHAT] Build alongside running system in new folder, decommission cleanly at end. Build w/ zero production impact.
-
----
-
-## 2. The Trigger Event & Why Silent Failure Is Architectural
-
-[ON-TRIGGER] ~2026-04-13: N8N "Establishment Orchestrator" failed at first node ("Filter Nightly Sync" Code node — trivial JS) with `Task request timed out after 60 seconds` from N8N Cloud TaskRunner subprocess. **Pipeline silently produced zero data for entire week.** Weekly report meeting (2026-04-21) surfaced failure.
-
-[NEW-CHAT] **The failure path** (architectural problem):
-```
-N8N Code node fails to start
-  ↓
-nothing downstream runs
-  ↓
-nothing reaches "send error email" node (also in N8N)
-  ↓
-no alert
-```
-
-!! System depends on itself to report its own failure. **Critical invariant: need independent heartbeat outside pipeline it monitors.** → HC (external service).
-
-[NEW-CHAT] **Why move off N8N anyway** (even after code-node bug fixed in 2.17.3):
-
-1. One operator maintains all; visual editor ↔ Claude/Cursor = friction; code-first = diff/review/AI-editable
-2. N8N Cloud: compounding reliability (TaskRunner beta, MCP gaps, frequent breaking releases)
-3. About to onboard new EST; better to migrate _before_ multiple tenants depend on current system
-4. N8N's actual job: cron trigger → sequence phases → poll "done" → email. Very small surface. ~few hundred lines in CRN + state machine.
-5. Dashboard we want = genuinely useful anyway (system health, multi-tenant view)
-
-[NEW-CHAT] **What stays in N8N during migration**: nothing. Full replacement on new branch, shadow-mode parity validation, cutover. N8N stays running in prod until cutover day, then archived.
-
----
-
-## 3. Current State: Hybrid n8n + Supabase
-
-[REFERENCE] **Existing pipeline layers**:
-
-- Cron: N8N Schedule Trigger (daily 2am EST)
-- Orchestration: N8N Establishment Orchestrator + Data Ingest workflows
-- SFTP: N8N SFTP nodes → Supabase Storage
-- Heavy lifting: EF orchestrators + PQ workers + CRN (phases 02–20 already off N8N)
-- Database: Postgres (sales_data, registries, etc.)
-- Alerting: N8N Email node (broken during failure)
-
-[REFERENCE] **Phases already off N8N** (EF + PQ + CRN pattern, proven in prod for months):
-- 02: import_csv_to_database
-- 06: backfill_menu_group_ids
-- 09: backfill_wine_ids
-- 10: backfill_menu_item_ids
-- 11: daily_loss_items
-- 12: sales_data_aggregated
-- 13: order_rounds
-
-Pattern: [Day-Based Worker Pipeline](../../backend/workflows/menu_registry_and_backfill/DAY_BASED_WORKER_PIPELINE.md) — resumable, observable, fault-tolerant, production-proven.
-
-[REFERENCE] **Small N8N surface**:
-
-| Responsibility | Old (N8N) | New |
-|---|---|---|
-| Daily 2am EST trigger | N8N Schedule Trigger | CRN job |
-| Per-EST fan-out | "Filter Nightly Sync" Code node | Master orchestrator EF (SQL query) |
-| Phase sequencing | "Data Ingest & Table Building" nodes | `pipeline_runs` state machine, advanced by CRN |
-| Polling "done" | N8N loop + httpRequest | `pipeline_runs` advance loop (CRN every 1 min) |
-| SFTP → SB Storage | N8N SFTP nodes | VRL cron + serverless SFTP worker |
-| Failure email | N8N Email node | HC + dashboard alerts |
-
-[REFERENCE] **Existing system docs** (read in this order):
-
-1. DAILY_AND_ONBOARDING_OVERVIEW.md (hybrid orchestration, daily vs onboarding, error handling)
-2. PIPELINE_DIAGRAMS.md (6 Mermaid diagrams: full pipeline, registry/dedupe, companions, settings→phase routing, PQ orchestrator pattern, lineage)
-3. DAY_BASED_WORKER_PIPELINE.md (PQ + CRN + EF pattern; **preserved in new system**)
-4. README_MENU_REGISTRY_AND_BACKFILL.md (index of 21 phases)
-
----
-
-## 4. Target Architecture
-
-[NEW-CHAT] **Components**:
-
-- CRN daily trigger (02:00 ET) → master_orchestrator EF
-- CRN advance loop (every 1 min) → poll phase orchestrators, advance `pipeline_runs` state machine
-- `pipeline_runs` table: one row per (EST_id, run_date, mode); tracks current phase, status, timestamps, error
-- VRL SFTP worker (01:00, 02:00, parallel during onboarding): idempotent, chunked (default 100 files ~100s per invocation)
-- HC: independent heartbeat ping after each successful run (4-hour grace window → alert if no ping by 06:00 ET)
-- Existing EF orchestrators (phases 02–20): unchanged
-- Existing PQ workers: unchanged
-- Admin dashboard: `/admin/pipeline` (live status, drill-down, retry button)
-
-[NEW-CHAT] **Daily run sequence**:
-
-1. CRN fires → master_orchestrator
-2. Master queries EST WHERE nightly_sync=true → INSERT `pipeline_runs` row (per EST) with status='pending', current_phase='01_sftp'
-3. Master POST to VRL SFTP worker (per EST)
-4. SFTP worker uploads missing CSVs → returns { synced: N, pending: 0 }
-5. Master UPDATE `pipeline_runs`: current_phase='02_import_csv', status='running'
-6. CRN advance loop (every 1 min): SELECT `pipeline_runs` WHERE status='running' → check phase status → if complete, invoke next phase; if failed, UPDATE status='failed'
-7. When all phases done: UPDATE status='completed' → POST HC ping
-
-[NEW-CHAT] **Why this design**:
-
-- No long-running processes. Everything returns within seconds; advancement = polling. Same as existing PQ pipeline.
-- Recovery automatic. Stuck `running` row past expected window picked up by next advance loop. Failed phase retried without rerunning earlier phases.
-- HC heartbeat independent. Can't be silenced by pipeline failure.
-- Per-EST isolation. One EST failure ≠ block others.
-- Multi-tenant from day one. Queries EST list; respects `processing_config.nightly_sync`.
-
-[NEW-CHAT] **Heavy-phase performance** (preserved unchanged):
-
-Phases like backfill_menu_item_id (millions of rows) use internal fan-out: phase orchestrator fires CRN chunk job (~60 days) → PQ jobs per day → workers process concurrently → phase "done" when count matches.
-
-New master orchestrator doesn't care _how_ phase completes; calls orchestrator, polls status checker. Heavy phases continue internal fan-out; light phases run inline.
-
-Polling interval (1 min CRN advance) must be _faster_ than heavy-phase completion granularity. Current polling fine. If chunks shrink <1 min, increase advance-loop frequency.
-
-[NEW-CHAT] **New components inventory**:
-
-| Component | Lives in | Replaces |
-|---|---|---|
-| CRN daily trigger | `shared/database/migrations/<date>_pipeline_cron.sql` | N8N Schedule Trigger |
-| master_orchestrator EF | `supabase/functions/master_orchestrator/` | N8N Establishment Orchestrator + Data Ingest |
-| `pipeline_runs` table | `shared/database/migrations/<date>_pipeline_runs.sql` | N8N execution history |
-| CRN advance loop | same migration | N8N's "wait + poll" nodes |
-| SFTP worker | `frontend/app/api/cron/sftp-sync/route.ts` (VRL) | N8N SFTP nodes + Soviet Sync |
-| vercel.json cron entry | `frontend/vercel.json` | N8N Schedule Trigger for SFTP |
-| HC check | external service | (net new) |
-| Admin dashboard | `frontend/app/admin/pipeline/` | Manual N8N UI inspection |
-
----
-
-## 5. SFTP Decision
-
-[NEW-CHAT] **Constraint**: SB Edge Functions = Deno-on-Cloudflare runtimes; no outbound TCP/SSH. SFTP needs non-SB compute.
-
-[NEW-CHAT] **Options evaluated**:
-
-| Option | Cost | Pros | Cons | Verdict |
-|---|---|---|---|---|
-| A. VRL cron + serverless EF | $0 added (Pro) | Same project as frontend; cron to 1 min; 800s duration (Pro Fluid Compute); Node + ssh2-sftp-client native | Onboarding (1400+ days) needs chunking; ~1s cold start | **PRIMARY** |
-| B. Small VPS (Fly/Railway/Hetzner) | $5/mo | No timeout; persistent SSH; always-on for HC | One more thing to monitor; CI/CD overhead | Backup |
-| C–G. DreamHost / MFT-as-service / GitHub Actions / Lambda / Cloudflare | – | – | Overkill, spotty, unfit, drift, unsupported | Skip |
-
-[NEW-CHAT] **Recommended: VRL cron + chunked SFTP worker**.
-
-Endpoint: `POST /api/cron/sftp-sync`
-
-Inputs: `{ establishment_id, mode: "daily" | "onboarding", max_files?: 100 }`
-
-Behavior:
-1. Read EST SFTP config from `establishment_settings` (no hardcoding)
-2. List remote SFTP for date range: daily mode = yesterday + 3-day catch-up; onboarding = data_start_date → today
-3. Compare vs `data_processing_status` for missing files
-4. Process up to max_files per invocation (default 100 → ~100s)
-5. For each: download → SB Storage → INSERT `data_processing_status` with phase_01_status='completed'
-6. Return `{ synced: N, pending: M, has_more: bool }`
-
-Daily mode: VRL fires 02:00 ET per EST. Master also calls as part of pipeline_run start. Both idempotent.
-
-Onboarding mode: Master calls in loop w/ `mode=onboarding, max_files=100`. Each handles ~100 files in ~100s → `has_more`. For 2800 files: ~28 invocations over ~50 min (well within VRL precision).
-
-Why it fits: chunked-worker model as existing PQ pipeline. SFTP worker = "phase 01 worker" on VRL.
-
-[NEW-CHAT] **SFTP-specific risks & mitigations**:
-
-| Risk | Impact | Likelihood | Mitigation |
-|---|---|---|---|
-| Soviet SFTP IP allowlisting | High | Low | ✓ Verified (operator, 2026-04-21): SSH key auth, no IP restriction. Proceed. |
-| Long onboarding hammers Soviet | Medium | Low | Rate-limit VRL concurrency (~1 invocation per 30 sec) |
-| VRL cold start | Medium | Low | ~1s, negligible for daily, fine for onboarding |
-| VRL + SB outage same day | High | Very Low | HC independent; alert within hours |
-
-> **Future**: Soviet API access (when granted) replaces entire SFTP path with HTTPS calls, zero non-SB compute. Build SFTP service modular so swap is clean.
-
----
-
-## 6. Component Mapping & Phase Naming
-
-[NEW-CHAT] **Phase mapping** (old → new):
-
-| Old (N8N) | New |
-|---|---|
-| Schedule Trigger (N8N, daily 2am) | CRN job + VRL cron (belt-and-suspenders) |
-| Establishment Orchestrator | master_orchestrator EF |
-| Filter Nightly Sync Code node | SQL WHERE in master_orchestrator |
-| Soviet Sync workflow (SFTP) | `frontend/app/api/cron/sftp-sync` (VRL) |
-| Data Ingest & Table Building workflow | `pipeline_runs` state machine + advance loop |
-| Per-phase httpRequest nodes | Master orchestrator HTTP calls |
-| Per-phase status check loops | Advance loop (CRN every 1 min) reads phase status |
-| Failure Email node | HC alert + dashboard alert + Resend |
-
-[NEW-CHAT] **Phase naming & ordering scheme**.
-
-Existing folder layout (`00_`, `01_`, ..., `05B_`, `06_`) mixed sort hints + execution-order contract. Hit `05B` because needed to insert between `05` and `06` (BASIC line-number problem).
-
-Modern fix (dbt, Dagster, Airflow): separate concerns.
-
-**Folder naming**: kebab-case w/ leading number for filesystem sort only. Numbers spaced in 10s (no rename to insert). Never referenced by number from code.
-
-**Manifest**: `pipeline.yml` at workflow root = source of truth for execution order. Phases referenced by stable string IDs.
-
-**Folder layout** for `backend/workflows/data_acquisition_and_processing/`:
-
-```
-00-establishment-orchestrator/        # block 0  — entry / dispatch
-10-data-sync/                         # block 10 — ingestion (VRL SFTP)
-12-data-import/                       #
-20-setup-and-validation/              # block 20 — prep
-30-menu-group-registry/               # block 30 — registries
-32-mark-exceptions/
-34-classify-menu-groups/
-36-backfill-menu-group-ids/
-40-wine-registry/                     # block 40 — wine
-42-backfill-wine-ids/
-50-menu-item-registry/                # block 50 — menu items
-52-backfill-menu-item-ids/
-60-daily-loss-items/                  # block 60 — derived data
-62-sales-data-aggregated/
-64-order-rounds/
-66-availability-history/
-68-daily-establishment-summary/
-70-classify-job-titles/               # block 70 — employee
-90-heartbeat-and-alerting/            # block 90 — ops
-92-admin-dashboard/
-```
-
-**Manifest** `pipeline.yml`:
-
-```yaml
-version: 1
-name: data_acquisition_and_processing
-phases:
-  - id: establishment_orchestrator
-    dir: 00-establishment-orchestrator
-    type: orchestrator
-    next: data_sync
-  - id: data_sync
-    dir: 10-data-sync
-    type: external_worker         # VRL function
-    next: data_import
-  # ... (each phase declares successor by id)
-  - id: classify_job_titles
-    dir: 70-classify-job-titles
-    next: null                    # terminal
-```
-
-Why it works: master_orchestrator reads `pipeline.yml` once at startup, builds directed graph by id, never touches folder names. Add phase: pick unused number in block, create folder, add manifest entry, point predecessor's `next`. No renames, no breaks.
-
-Per-phase folder contents:
-
-```
-NN-phase-name/
-├── README.md          # what, inputs, outputs, errors
-├── code/              # EF source
-└── migrations/        # phase-specific migrations (rare)
-```
-
-[NEW-CHAT] **Database changes** (additive only):
-
-- `pipeline_runs` table: one row per (EST_id, run_date, mode) with current_phase_id, status, timestamps, error
-- `pg_cron` jobs: daily trigger + advance loop
-- No changes to existing tables, no `sales_data` migrations
-
-[NEW-CHAT] `pipeline.yml` loaded at function startup, cached for duration. Changes take effect on next cron tick. No DB migration when pipeline shape changes — manifest _is_ the migration.
-
----
-
-## 7. Phased Rollout Plan
-
-[NEW-CHAT] **Migration runs in shadow mode**: prove parity before cutover. N8N stays running entire time.
-
-> Timeline predictions (2026-04-21):
-> - **Engineering estimate**: 3–4 weeks focused work
-> - **operator prediction**: end of day 2026-04-22 (~30 hours)
-> - **Actual**: `<TBD>`
-
-Decision: skip "stop the bleeding" HC-on-existing-N8N step. Go straight to new system. If N8N breaks before cutover, manual reruns acceptable risk for ~30 hours.
-
-[NEW-CHAT] **Phase A — Build in shadow** (1–2 days):
-
-- A1. Create folder skeleton + `pipeline.yml`
-- A2. Migration: `pipeline_runs` table
-- A3. EF: `master_orchestrator` (basic — sequence phases, no error recovery yet)
-- A4. VRL: `/api/cron/sftp-sync` (daily mode only)
-- A5. CRN jobs (disabled at first)
-- A6. Smoke test: manually trigger master for one EST in test schema, confirm end-to-end vs n8n
-
-Exit: master completes full per-EST run, results match N8N on same date.
-
-[NEW-CHAT] **Phase B — Shadow mode** (1–2 days):
-
-Goal: run new pipeline against settled historical dates, prove zero-diff parity with N8N.
-
-Mechanism: no shadow flag, no shadow schema. Existing pipeline already idempotent on rerun (N8N reruns failed days routinely w/o corruption). New orchestrator runs against dates N8N processed days ago. If truly idempotent, diff = zero. If diff ≠ zero → bug in new orchestrator OR latent non-idempotency in existing phase (both bugs worth finding).
-
-- B1. **Idempotency audit**: for each phase 12–70, confirm rerun on already-completed date = no row changes. Document any non-idempotent phase, fix before proceeding.
-- B2. Pick settled date (e.g., 7 days ago). Snapshot relevant tables filtered to that date.
-- B3. Manually trigger new master for `(Fred's Italian Bistro, settled_date)`.
-- B4. Diff post vs pre. Expected: empty.
-- B5. Repeat for 3 different settled dates.
-- B6. Trigger new master for one fresh date _after_ N8N completes it. Diff again. Expected: empty.
-
-Exit: 3+ settled-date reruns = zero diffs, plus 1 same-day post-N8N rerun = zero diff.
-
-Why it works: only way to know parity is real = compare outputs. Because existing system already idempotent, shadow mode = "did new orchestrator change anything it shouldn't?" Sharper test than parallel runs w/ timestamp reconciliation.
-
-[NEW-CHAT] **Phase C — Cutover** (1 day after shadow validates):
-
-- C1. Disable N8N Schedule Trigger
-- C2. Switch new pipeline out of shadow (write to prod tables)
-- C3. Watch next 3 daily runs closely
-- C4. Keep N8N workflow JSONs in repo + N8N Cloud account for 2 weeks as rollback
-
-Exit: 3 successful prod runs from new pipeline.
-
-[NEW-CHAT] **Phase D — Decommission** (after 2 weeks clean prod runs):
-
-- D1. Archive N8N workflow JSONs to `_archive/<date>_n8n_workflows/`
-- D2. Delete workflows in N8N Cloud
-- D3. Cancel N8N Cloud subscription (or downgrade)
-- D4. Delete `backend/workflows/menu_registry_and_backfill/` entirely
-- D5. Update root README, CLAUDE.md, QUICK_REFERENCE.md (remove N8N refs)
-
-Exit: no N8N refs anywhere in repo or prod.
-
-[NEW-CHAT] **Phase E — Admin dashboard** (parallel track, simultaneous with A/B):
-
-- E1. `/admin/pipeline` route, gated to admin/superadmin/dev roles
-- E2. List recent `pipeline_runs` w/ status, current phase, timing
-- E3. Drill-down per-run: phase-by-phase progress, errors, retry button
-- E4. Live status of today's run across all EST
-- E5. HC integration (manage check, surface alert state in UI)
-
-Dashboard genuinely useful before cutover (shadow mode populates `pipeline_runs`) so build parallel w/ Phase A/B by separate workstream.
-
----
-
-## 8. Risks & Mitigations
-
-[NEW-CHAT] **Master orchestrator bug breaks all EST** (High impact, Medium likelihood):
-- Mitigation: start w/ one EST (Fred's Italian Bistro) for 1 week before adding others
-
-[NEW-CHAT] **Shadow-mode diffs reveal logic we missed** (High impact, Medium likelihood):
-- Mitigation: Phase C explicitly catches; don't cutover until 5 clean days
-
-[NEW-CHAT] **Soviet requires fixed source IP for SFTP** (High impact, Low likelihood):
-- Mitigation: ✓ Verified (operator, 2026-04-21) — not in play. Proceed.
-
-[NEW-CHAT] **VRL SFTP timeout during onboarding chunk** (Medium impact, Low likelihood):
-- Mitigation: chunk tuned to stay well under 800s limit; default 100 files (~100s)
-
-[NEW-CHAT] **VRL + SB outage same day** (High impact, Very low likelihood):
-- Mitigation: HC independent; alert within hours
-
-[NEW-CHAT] **CRN advance loop falls behind** (Medium impact, Low likelihood):
-- Mitigation: 1 min interval; phases async anyway; minimal impact
-
-[NEW-CHAT] **Decommission `menu_registry_and_backfill/` too early** (Medium impact, Low likelihood):
-- Mitigation: don't delete until 2 weeks post-cutover; archive N8N JSONs permanently
-
-[NEW-CHAT] **New person can't find docs (folder name changed)** (Low impact, Medium likelihood):
-- Mitigation: update root README + CLAUDE.md; add forwarding pointer in `_archive/`
-
----
-
-## 9. Shared Contracts Between Workstreams
-
-Two parallel chats building this (backend: orchestrator + SFTP + HC; frontend: admin dashboard). This section = **single source of truth** for shared surface. Either side proposes changes here; change reflected before either codes.
-
-[NEW-CHAT] **Workstream ownership**:
-
-Backend owns (writes):
-- `supabase/functions/master_orchestrator/` — master orchestrator EF
-- `supabase/functions/<phase_name>/` — new phase orchestrators (porting from existing)
-- `frontend/app/api/cron/sftp-sync/route.ts` — VRL SFTP worker (backend code on VRL)
-- `frontend/vercel.json` — cron entries
-- `shared/database/migrations/` — `pipeline_runs` table, CRN jobs
-- `backend/workflows/data_acquisition_and_processing/` — entire new workflow folder + all phase READMEs + `pipeline.yml`
-- HC outbound ping in master_orchestrator (env-var-gated, ~10 lines)
-- "Rerun phase" EF endpoint for dashboard retry button
-
-Frontend owns (writes):
-- `frontend/app/admin/pipeline/` — entire admin dashboard
-- `frontend/components/admin/` — admin UI components
-- `frontend/lib/admin/` — admin client utilities
-- HC account, check, alert routing (healthchecks.io, not code)
-- UI for alert state, drill-downs, retry buttons
-- Read-side queries against `pipeline_runs` (consume only)
-
-Deferred / out of scope:
-- Resend / email routing (HC native email sufficient for v1)
-- SMS escalation
-- Multi-user alert distribution list (post-cutover)
-- Onboarding workflow UI (separate feature)
-
-[NEW-CHAT] **`pipeline_runs` table contract**:
-
-Two ledgers, two granularities:
-
-| Table | Granularity | Owner | Purpose |
-|---|---|---|---|
-| `pipeline_runs` (NEW) | one row per (EST_id, run_date, mode) | master_orchestrator writes | Orchestration ledger — which phase is orchestrator currently driving |
-| `data_processing_status` (EXISTING) | one row per (EST_id, date) w/ per-phase status columns | phase workers update own column | Per-phase work ledger — what work each phase completed for that date |
-
-Master reads DPS (is current phase done?) and writes `pipeline_runs` (we're on phase X now). Dashboard shows both: `pipeline_runs` = "what is orchestrator doing right now?" + DPS = "what work completed?"
-
-Backend creates migration for `pipeline_runs`. Frontend consumes read-only (except retry via backend endpoint). **Backend may add columns; must not rename/remove without coordinated update.**
+default-phase: [ALWAYS]
+
+## status-snapshot
+status: draft v1 · pending review
+branch: `feat/replace-n8n` · target folder: `backend/workflows/DAP/` · decommission: `backend/workflows/menu_registry_and_backfill/`
+last-updated: 2026-04-21
+
+## executive-summary
+
+[ALWAYS]
+  replace N8N orchestration with:
+    - master-ORC (EF triggered by pg_cron)
+    - VRL cron + serverless SFTP worker (only non-SPA compute)
+    - existing PGMQ + worker pattern (already powers 7/21 phases)
+    - independent HC monitor (system cannot silently fail)
+    - admin dashboard (SPA + Next.js frontend)
+
+  migration scope: glue replacement · algorithms stay · ~90% heavy lifting already in EF/RPC/PGMQ
+  architecture: ~200 lines SQL + ~300 lines EF code (boring · Postgres-native)
+  folder structure: build DAP alongside running system → decommission old at end
+
+## why-migrate
+
+trigger-event: 2026-04-13 · N8N "Establishment ORC" workflow failed every morning
+  node: "Filter Nightly Sync" (trivial JS Code node)
+  error: "Task request timed out after 60 seconds"
+  impact: !! pipeline produced zero data for entire week
+  discovery: 2026-04-21 weekly meeting (silent failure · no alert path)
+
+root-cause: error → n8n downstream blocked → error-email node never runs → no alert
+  architectural-defect: system depends on itself to report its own failure
+  solution: [ALWAYS] !! independent heartbeat (HC) fires when expected work doesn't happen
+
+even-if-n8n-fixed, migrate anyway:
+  1. code-first better for AI-assisted dev (vs visual editor + copy-paste friction)
+  2. N8N reliability: CompoundingIssues (TaskRunner beta · MCP gaps · breaking releases)
+  3. timing: onboard new establishments soon → migrate before multi-tenant load
+  4. N8N surface shrunk: orchestration = cron + sequence + polling + email (~small)
+  5. dashboard wanted anyway (system health · multi-tenant view)
+
+## current-state
+
+architecture (hybrid):
+  n8n: orchestration
+  SPA: heavy-lifting (EF · RPC · PGMQ workers)
+  
+phases-already-off-n8n (Edge Function ORC + pg_cron workers + PGMQ queues):
+  02 import_csv_to_database · 06 backfill_menu_group_ids · 09 backfill_wine_ids
+  10 backfill_menu_item_ids · 11 daily_loss_items · 12 sales_data_aggregated · 13 order_rounds
+  pattern: Day-Based Worker Pipeline · resumable · observable · fault-tolerant · months in production
+
+phases-still-in-n8n (small surface):
+  trigger: n8n Schedule Trigger (daily 2am EST) -> pg_cron
+  fan-out: "Filter Nightly Sync" Code node + loop -> Master ORC EF (SQL query)
+  sequencing: "Data Ingest & Table Building" workflow nodes -> PP state machine
+  polling: n8n loop + httpRequest nodes -> PP advance loop (pg_cron every 1 min)
+  SFTP: n8n SFTP nodes -> VRL cron + serverless worker
+  failure-alert: n8n Email node -> HC + dashboard
+
+docs-reference (must-read):
+  [REFERENCE] DAILY_AND_ONBOARDING_OVERVIEW.md — hybrid orchestration · modes · error handling
+  [REFERENCE] PIPELINE_DIAGRAMS.md — 6 Mermaid diagrams · full pipeline · registry · PGMQ pattern · lineage
+  [REFERENCE] DAY_BASED_WORKER_PIPELINE.md — PGMQ + pg_cron + EF pattern (preserved in new system)
+  [REFERENCE] README_MENU_REGISTRY_AND_BACKFILL.md — 21-phase index
+
+docs-to-create:
+  - Master ORC design doc (PP state machine)
+  - SFTP service deployment doc (VRL function · env · retry/backoff · chunked onboarding)
+  - HC + alerting doc
+  - Admin dashboard doc
+  - Cutover runbook
+  - Decommission checklist
+
+## target-architecture
+
+components:
+  pg_cron-daily: daily 02:00 ET trigger
+  pg_cron-advance: every 1 min (poll phase progress)
+  pg_cron-heartbeat: post-run ping to HC
+  master-ORC: EF driven by cron
+  PP: state machine (current_phase · status · timestamps · error)
+  existing-phases: 02..20 ORC/WKR (unchanged)
+  VRL-SFTP-cron: daily 02:00 ET
+  VRL-SFTP-fn: chunked · idempotent · per-establishment
+  HC: independent monitor
+  dashboard: Next.js /admin/pipeline
+
+daily-run-sequence:
+  [ALWAYS]
+    pg_cron-daily -> master-ORC (invoke)
+    master-ORC -> PP (INSERT run per establishment · status=pending · current_phase=01_sftp)
+    master-ORC -> VRL-SFTP (POST per establishment)
+    VRL-SFTP -> SPA Storage (upload missing CSVs)
+    master-ORC -> PP (UPDATE current_phase=02_import_csv)
+
+  loop (pg_cron-advance every 1 min):
+    master-ORC -> PP (SELECT running runs)
+    master-ORC -> phase (status check)
+    
+    alt phase-complete:
+      master-ORC -> next-phase (invoke ORC)
+      master-ORC -> PP (UPDATE current_phase=next)
+    alt phase-running:
+      noop
+    alt phase-failed:
+      master-ORC -> PP (UPDATE status=failed · error=...)
+
+  end-of-run:
+    master-ORC -> PP (UPDATE status=completed)
+    master-ORC -> HC (GET https://hc-ping.com/<uuid>)
+
+design-rationale:
+  [ALWAYS]
+    !! no long-running processes (all return within seconds)
+    !! advancement poll-driven (same model as existing PGMQ)
+    !! recovery automatic (stuck run picked by next loop tick)
+    !! HC genuinely independent (pipeline cannot silence it)
+    !! per-establishment isolation (one fail doesn't block others)
+    !! multi-tenant from day-one (nightly_sync config respected)
+
+heavy-phase-performance:
+  pattern: phase-internal fan-out unchanged
+    ORC fires pg_cron job (process ~60 days at time)
+    each chunk → PGMQ per-day jobs
+    multiple WKR pull from queue in parallel
+    phase-done when completed-days-count == total-days
+  master-ORC doesn't care HOW phase completes · only calls ORC + polls status
+  existing-pattern preserved · performance proves out (10-min weekly backfill is real data)
+
+new-components:
+  | Component | Location | Replaces |
+  | --- | --- | --- |
+  | pg_cron daily trigger | shared/database/migrations/<date>_pipeline_cron.sql | N8N Schedule |
+  | master_ORC EF | supabase/functions/master_orchestrator/ | Establishment ORC + Data Ingest workflow |
+  | PP table | shared/database/migrations/<date>_pipeline_runs.sql | N8N execution history |
+  | pg_cron advance loop | same migration | N8N wait + poll |
+  | /api/cron/sftp-sync | frontend/app/api/cron/sftp-sync/route.ts | N8N SFTP + Soviet Sync |
+  | vercel.json cron | frontend/vercel.json | N8N Schedule for SFTP |
+  | HC check | external | (net-new) |
+  | dashboard | frontend/app/admin/pipeline/ | manual N8N UI |
+
+## sftp-decision
+
+constraint: Soviet delivers daily CSV over SFTP · !! SPA EF cannot make outbound TCP/SSH
+evaluation:
+  | option | cost | pros | cons | verdict |
+  | --- | --- | --- | --- | --- |
+  | A. VRL cron + fn | $0 (already Pro) | same project · git deploy · 1-min cron · 800s duration + Fluid | onboarding chunks need 1400+ days ÷ 2 files · cold-start ~1s | **PRIMARY** |
+  | B. small VPS (Fly/Railway/Hetzner) | $5/mo | no timeout · persistent · always-on | another vendor · CI/CD · uptime risk | backup |
+  | C. DreamHost cron | already paying | owned · no vendor | spotty · low uptime confidence | skip |
+  | D. MFT-as-service | $100–500+/mo | SLA | overkill · vendor lock | skip |
+  | E. GitHub Actions cron | $0 | zero infra | 5–15 min drift · token mgmt · logs elsewhere | skip |
+  | F. AWS Lambda + EventBridge | ~$0 | mature | new vendor · new IAM · new pipeline | skip |
+  | G. Cloudflare Workers | $0 | edge | ssh2-sftp-client not supported | skip |
+
+recommended-approach:
+  endpoint: POST /api/cron/sftp-sync
+  inputs: { establishment_id · mode: "daily" | "onboarding" · max_files?: number }
+  
+  [ALWAYS]
+    read establishment SFTP config from establishment_settings (no hardcoding)
+    list remote SFTP folders:
+      daily: yesterday + last 3 days (catch-up window)
+      onboarding: data_start_date to today
+    compare vs data_processing_status (find missing)
+    process up to max_files (default 100 · ~100s work)
+    per-file: download → SPA Storage → INSERT data_processing_status (phase_01_status=completed)
+    return { synced: N · pending: M · has_more: bool }
+
+  daily-mode: VRL cron once at 02:00 ET · calls endpoint per establishment · idempotent
+  onboarding-mode: master-ORC calls in loop (mode=onboarding · max_files=100 · loop until has_more=false)
+    2800 files ≈ 28 invocations ÷ 100s each = ~50 min onboarding
+    chunked-worker-model: same as existing PGMQ
+
+sftp-risks:
+  ~~Soviet IP allowlist~~ **RESOLVED** (operator 2026-04-21): SSH-key auth only · no IP restriction
+  long-onboarding: rate-limit VRL concurrency (avoid hammering Soviet)
+  cold-start: ~1s per day (negligible)
+  single-vendor: HC catches if VRL outage on same morning
+
+future: Soviet API (when granted) replaces entire SFTP path with HTTPS · zero non-SPA compute
+
+## phase-mapping
+
+| Old (n8n) | New | Notes |
+| --- | --- | --- |
+| Schedule Trigger | pg_cron + VRL cron | belt-and-suspenders · both invoke idempotent endpoints |
+| Establishment ORC | master_ORC EF | queries establishments where nightly_sync=true |
+| Filter Nightly Sync | SQL WHERE clause | 30-line JS → 3 lines SQL |
+| Soviet Sync (SFTP) | VRL /api/cron/sftp-sync | chunked · idempotent · per-establishment |
+| Data Ingest & Table Building | PP state machine + advance loop | phase sequence is data · not workflow nodes |
+| httpRequest nodes (call ORC) | master-ORC HTTP calls | same EF targets · different caller |
+| status-check loops | advance loop (1 min) | same pattern · runs in pg_cron |
+| Failure Email | HC alert + dashboard + Resend | independent paths |
+
+## folder-reorganization
+
+problem: old layout (00_ · 01_ · 05B_) mixed sort-hints with execution-contract
+fix: separate concerns (dbt/Dagster/Airflow approach)
+  - folder-names: kebab-case + leading number (sort only) · spaced in 10s (room to insert)
+  - manifest: source-of-truth for execution order · references phases by stable id
+
+new-layout:
+  ```
+  00-establishment-orchestrator/      # block 0 — entry/dispatch
+  10-data-sync/                       # block 10 — ingestion (VRL SFTP)
+  12-data-import/                     #           (CSV → PG · PGMQ WKR)
+  20-setup-and-validation/            # block 20 — preparation
+  30-menu-group-registry/             # block 30 — registry
+  32-mark-exceptions/
+  34-classify-menu-groups/
+  36-backfill-menu-group-ids/
+  40-wine-registry/                   # block 40 — wine
+  42-backfill-wine-ids/
+  50-menu-item-registry/              # block 50 — menu items
+  52-backfill-menu-item-ids/
+  60-daily-loss-items/                # block 60 — derived/aggregations
+  62-sales-data-aggregated/
+  64-order-rounds/
+  66-availability-history/
+  68-daily-establishment-summary/
+  70-classify-job-titles/             # block 70 — employee
+  80-reserved/                        # block 80 — future expansion
+  90-heartbeat-and-alerting/          # block 90 — operational
+  92-admin-dashboard/
+  ```
+
+manifest (`backend/workflows/DAP/pipeline.yml`):
+  ```yaml
+  version: 1
+  name: data_acquisition_and_processing
+  phases:
+    - id: establishment_orchestrator
+      dir: 00-establishment-orchestrator
+      type: orchestrator
+      next: data_sync
+    - id: data_sync
+      dir: 10-data-sync
+      type: external_worker  # VRL function
+      next: data_import
+    # ... (each phase declares next by id)
+    - id: classify_job_titles
+      dir: 70-classify-job-titles
+      next: null             # terminal
+  ```
+
+per-phase-folder:
+  ```
+  NN-phase-name/
+  ├── README.md               # what · inputs · outputs · error modes
+  ├── code/
+  └── migrations/             # rare; usually shared
+  ```
+
+master-ORC loads pipeline.yml once at startup · builds DAG by id · never touches folder-names
+adding-phase: pick unused number · create folder · add manifest entry
+renaming-folder: change `dir` in manifest · done
+renumbering: change `dir` · code still references by `id`
+contract: `id` never renamed without migration
+
+## database-changes
+
+additive-only:
+  - PP table: one row per (establishment_id · run_date) with phase id · status · timestamps · error
+  - optional pipeline_phase_runs: per-phase timing (v2 · can defer)
+  - pg_cron jobs: daily trigger + advance loop
+
+!! no changes to sales_data · immutability-rule holds
+
+PP is loaded by master-ORC at startup · cached for invocation
+changes to manifest take effect on next cron tick · no DB migration needed (manifest IS migration)
+
+## migration-phases
+
+shadow-first (prove parity before cutting over) · n8n stays running entire time
+
+timeline:
+  engineering-estimate (assistant): 3–4 weeks focused work
+  operator-prediction (2026-04-21 16:00 ET): end-of-day 2026-04-22 (~30 hours)
+  skip: "stop bleeding" HC-on-n8n · go straight to new system
+  
+  actual: <TBD>
+
+### phase-A (shadow) — days 1–2 operator / weeks 1–3 assistant
+
+goal: stand up DAP infrastructure · no production impact
+
+  A1. create DAP skeleton + pipeline.yml
+  A2. migration: PP table
+  A3. EF: master_ORC (basic · can sequence · no error recovery yet)
+  A4. VRL: /api/cron/sftp-sync (daily-mode only)
+  A5. pg_cron jobs (commented out / disabled)
+  A6. smoke-test: manually invoke master-ORC one establishment · test schema
+  
+  exit: master-ORC completes end-to-end · results match n8n on same date
+
+### phase-B (parity-validation) — days 1–2 operator / weeks 3–4 assistant
+
+goal: run new pipeline against settled historical dates · prove zero-diff parity
+
+mechanism: no shadow_mode flag · no shadow schema
+  existing pipeline is idempotent on rerun
+  new ORC runs vs dates n8n already processed days ago
+  if everything idempotent · diff = zero
+  if diff nonzero · either new-ORC bug OR latent non-idempotency in existing phase (both valuable to find)
+
+  B1. **precondition**: idempotency-audit all phases 12–70 (rerun on settled date · confirm zero row changes)
+  B2. pick settled date (e.g. 7 days ago) · snapshot relevant tables
+  B3. manually invoke new master-ORC for (Fred's Italian Bistro · settled_date)
+  B4. diff post vs pre snapshot · expected: empty
+  B5. repeat 3 different settled dates
+  B6. final: trigger new master-ORC for one fresh date AFTER n8n completes · diff again
+  
+  exit: 3+ settled-date reruns produce zero diffs + 1 same-day post-n8n rerun = zero diff
+
+### phase-C (cutover) — day after shadow validates
+
+  C1. disable N8N Schedule Trigger
+  C2. new pipeline out of shadow (write to production)
+  C3. watch 3 daily runs closely
+  C4. keep n8n files in repo + account active 2 weeks (rollback option)
+  
+  exit: 3 successful production runs
+
+### phase-D (decommission) — after 2 weeks clean production
+
+  D1. archive n8n JSONs to _archive/<date>_n8n_workflows/
+  D2. delete workflows in N8N account
+  D3. cancel N8N subscription (or downgrade free)
+  D4. delete menu_registry_and_backfill/ entirely
+  D5. update root README · CLAUDE.md · QUICK_REFERENCE (remove N8N refs)
+  
+  exit: zero N8N references anywhere
+
+### phase-E (dashboard) — parallel track
+
+  E1. /admin/pipeline · gated to admin/superadmin/dev roles
+  E2. recent PP list (status · phase · timing)
+  E3. drill-down: per-phase progress · error details · retry button
+  E4. live today-run status across all establishments
+  E5. HC integration (manage check · surface alert state)
+  
+  genuinely useful in shadow mode · build in parallel by separate workstream
+
+## risks-and-mitigations
+
+| risk | impact | likelihood | mitigation |
+| --- | --- | --- | --- |
+| shadow diffs reveal logic differences | high | medium | phase-C catches · don't cutover until 5 clean days |
+| Soviet requires fixed source IP | high | low | verify first (phase-B1) · fallback to VPS if true |
+| VRL timeout during onboarding chunk | medium | low | tuned to 100 files (~100s) · well under 800s |
+| VRL + SPA outage same day | high | very low | HC independent · alert within hours |
+| pg_cron advance falls behind | medium | low | 1-min interval · phase ORC async anyway |
+| master-ORC bug · all establishments break | high | medium | start one establishment (Fred's) 1 week before others |
+| decommission too early | medium | low | keep 2 weeks post-cutover · archive N8N JSONs permanently |
+| new person can't find docs (folder rename) | low | medium | update README + CLAUDE.md · add forwarding pointer in _archive/ |
+
+## workstream-contracts
+
+two-parallel-chats build this · shared contracts below = single-source-of-truth
+
+### ownership
+
+backend-chat (writes):
+  supabase/functions/master_orchestrator/
+  supabase/functions/<phase_name>/ (port existing)
+  frontend/app/api/cron/sftp-sync/route.ts (VRL worker · backend code)
+  frontend/vercel.json (cron entries)
+  shared/database/migrations/ (PP table · pg_cron jobs)
+  backend/workflows/DAP/ (entire new workflow folder · all phase READMEs · pipeline.yml)
+  HC outbound ping in master-ORC (env-gated · ~10 lines)
+  rerun phase EF endpoint (dashboard retry button)
+
+frontend-chat (writes):
+  frontend/app/admin/pipeline/ (entire dashboard route)
+  frontend/components/admin/ (admin-only UI)
+  frontend/lib/admin/ (admin-only client utils)
+  HC account · check · alert-routing (healthchecks.io · not code)
+  UI: alert state · run drill-downs · retry buttons
+  read-side queries PP (consume only)
+
+out-of-scope:
+  Resend/email routing (HC native sufficient for v1)
+  SMS escalation
+  multi-user alert distribution (defer post-cutover)
+  onboarding workflow UI (separate feature)
+
+### PP table contract
+
+two-ledgers · two-granularities:
+  | table | granularity | owner | purpose |
+  | --- | --- | --- | --- |
+  | PP | one row per (establishment_id · run_date · mode) | master_ORC writes | orchestration — which phase currently |
+  | DPS | one row per (establishment_id · date) + per-phase columns | phase WKR update own | per-phase work — what each phase completed |
+
+master-ORC reads DPS ("is current phase done?") · writes PP ("now on phase X")
+dashboard: PP = "what is ORC doing right now?" · DPS = "what work has each phase completed?"
+
+backend-chat creates PP migration · frontend consumes read-only (except retry via backend endpoint)
+backend may add columns · !! never rename/remove without coordinated update
 
 ```sql
 CREATE TABLE pipeline_runs (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   establishment_id    UUID NOT NULL REFERENCES establishments(establishment_id),
-  run_date            DATE NOT NULL,
-  mode                TEXT NOT NULL,          -- 'daily' | 'onboarding' | 'manual'
-  status              TEXT NOT NULL,          -- 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
-  current_phase_id    TEXT,
+  run_date            DATE NOT NULL,              -- business date this run processes
+  mode                TEXT NOT NULL,              -- 'daily' | 'onboarding' | 'manual'
+  status              TEXT NOT NULL,              -- 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  current_phase_id    TEXT,                       -- stable phase id from pipeline.yml; NULL when pending/completed
   started_at          TIMESTAMPTZ,
   completed_at        TIMESTAMPTZ,
   error_message       TEXT,
-  error_phase_id      TEXT,
-  triggered_by        TEXT NOT NULL,          -- 'pg_cron' | 'manual' | 'retry' | 'onboarding'
-  metadata            JSONB DEFAULT '{}',
+  error_phase_id      TEXT,                       -- which phase failed (if any)
+  triggered_by        TEXT NOT NULL,              -- 'pg_cron' | 'manual' | 'retry' | 'onboarding'
+  metadata            JSONB DEFAULT '{}',         -- flexible per-phase state
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (establishment_id, run_date, mode)
 );
-
 CREATE INDEX idx_pipeline_runs_status ON pipeline_runs(status) WHERE status IN ('pending', 'running');
 CREATE INDEX idx_pipeline_runs_recent ON pipeline_runs(created_at DESC);
 ```
 
-Status machine: `pending → running → completed`; `running → failed → (retry creates new run w/ triggered_by='retry')`; `running → cancelled` (manual only).
+status-state-machine:
+  pending → running → completed
+              ↓
+            failed → (retry creates new run · triggered_by='retry')
+              ↓
+          cancelled (manual-override only)
 
-[NEW-CHAT] **Environment variables**:
+optional-v2: pipeline_phase_runs (per-phase timing) · defer until dashboard demands
 
-| Variable | Provided by | Consumer | Required? | Purpose |
-|---|---|---|---|---|
-| `HEALTHCHECKS_PING_URL` | operator (healthchecks.io) | Backend (master_orchestrator ping) | No — silent no-op if unset | Outbound success heartbeat |
-| `HEALTHCHECKS_CHECK_UUID` | operator (UUID from ping URL) | Frontend (HeartbeatBanner read status) | No — shows "not configured" if unset | Identifies HC check for read API |
-| `HEALTHCHECKS_READ_API_KEY` | operator (read-only API key) | Frontend (HeartbeatBanner) | No — shows "not configured" if unset | Auth for HC read API |
-| `MASTER_ORCHESTRATOR_URL` | Backend (post-deploy) | Frontend (dashboard retry proxy) | Required once retry ships | Base URL for master_orchestrator EF |
-| `SUPABASE_SERVICE_ROLE_KEY` | existing | both | existing | RPC + admin reads |
+### environment-variables
 
-SFTP credentials per EST continue from `establishment_settings.soviet_config.sftp_credentials_key` → SB Vault (no env vars, no hardcoding).
+both-chats need these · operator provides HC values (account setup) · devs set in SPA/VRL env
 
-[NEW-CHAT] **Retry endpoint contract**:
+| var | provided-by | consumer | required? | purpose |
+| --- | --- | --- | --- | --- |
+| HEALTHCHECKS_PING_URL | operator (healthchecks.io) | backend (master-ORC ping at run-end) | no (noop if unset) | outbound success heartbeat |
+| HEALTHCHECKS_CHECK_UUID | operator (UUID part of ping URL) | frontend (HeartbeatBanner reads status) | no (banner shows "not configured") | identifies check for read API |
+| HEALTHCHECKS_READ_API_KEY | operator (read-only API key) | frontend (HeartbeatBanner) | no | auth for hc read API |
+| MASTER_ORCHESTRATOR_URL | backend (post-deploy) | frontend (dashboard retry proxy) | yes (post-button-ship) | base URL for master-ORC EF |
+| SUPABASE_SERVICE_ROLE_KEY | already exists | both | already exists | RPC + admin reads |
 
-Backend exposes:
+SFTP-credentials: per-establishment from establishment_settings.soviet_config.sftp_credentials_key → SPA Vault
+!! no hardcoding · no env vars
 
-```
-POST /functions/v1/master_orchestrator/retry
-Authorization: Bearer <user JWT w/ admin/superadmin/dev role>
-Body: {
-  "pipeline_run_id": "uuid",
-  "from_phase_id": "<phase_id>" | null    // null = restart from current_phase_id
-}
-Response: {
-  "new_pipeline_run_id": "uuid",
-  "status": "pending"
-}
-```
+### retry-endpoint-contract
 
-Behavior: creates NEW `pipeline_runs` row w/ `triggered_by='retry'`, links via `metadata.retried_from`. Original row untouched. Frontend builds button that calls this + updates dashboard.
+backend-chat exposes:
+  ```
+  POST /functions/v1/master_orchestrator/retry
+  Authorization: Bearer <user JWT with admin/superadmin/dev role>
+  Body: { "pipeline_run_id": "uuid", "from_phase_id": "<phase_id>" | null }
+  Response: { "new_pipeline_run_id": "uuid", "status": "pending" }
+  ```
 
-[NEW-CHAT] **Concurrency rules**:
+behavior: create NEW PP row · triggered_by='retry' · link via metadata.retried_from
+original row untouched · frontend builds button · calls endpoint · updates dashboard
 
-- One in-flight `pipeline_runs` per (EST_id, run_date, mode) at a time. Enforced by UNIQUE constraint. Master checks before starting.
-- Stuck-run timeout: `running` row w/ `started_at` older than 6 hours = abandoned. Advance loop marks `failed` w/ `error_message='timeout'`, allows new runs.
-- Cron fires while previous run in progress: master detects existing `running` row, logs and returns no-op. No duplicate.
-- Onboarding ≠ block daily: distinct rows (UNIQUE includes `mode`), so onboarding can run concurrently w/ daily.
+### concurrency-rules
 
-[NEW-CHAT] **Shadow mode** (restated):
+[ALWAYS]
+  !! one in-flight PP row per (establishment_id · run_date · mode) (UNIQUE constraint enforces)
+  !! master-ORC checks before starting
+  stuck-run-timeout: running > 6 hours old → marked failed · error='timeout'
+  cron-fires-while-previous-running: master-ORC detects existing running row → logs · returns no-op
+  onboarding-doesn't-block-daily: distinct rows (UNIQUE includes mode) → can run concurrently
 
-See Phase B. No flag, no shadow schema. Run new orchestrator against settled past dates, prove zero-diff. Frontend should not gate UI on shadow flag — dashboard simply shows `pipeline_runs`.
+### shadow-mode-strategy
 
-[NEW-CHAT] **Phase IDs are stable**:
+[REFERENCE] phase-B: no flag · no shadow schema
+run new ORC vs settled dates · prove zero-diff
+frontend: no UI gates on shadow flag (doesn't exist) · dashboard shows whatever's in PP
 
-`id` in `pipeline.yml` (e.g., `data_sync`, `menu_group_registry`) = contract. Both chats reference by id. Renaming id = breaking change requiring coordinated update. Adding phase = non-breaking.
+### phase-ids-stable
 
----
+[ALWAYS]
+  id field in pipeline.yml (e.g. data_sync · menu_group_registry) is contract
+  both chats reference phases by id
+  !! renaming id = breaking change (coordinated update required)
+  adding phase = non-breaking
 
-## 10. Open Questions & Decisions (all as of 2026-04-21)
+## open-questions-and-decisions
 
-[ON-TRIGGER] **RESOLVED decisions** (tracking for audit trail):
+all-dated 2026-04-21 unless-noted
 
-1. ✓ Soviet SFTP IP allowlisting — **NO**: SSH key auth only, no IP restriction. Vercel-as-host viable.
-2. ✓ Email delivery — **HC native sufficient v1**; Resend post-cutover.
-3. ✓ HC plan — **FREE TIER**: 20 checks >> need. SMS deferred. Upgrade if real need.
-4. ✓ `pipeline_runs` retention — **KEEP FOREVER**: ~365 rows/year/EST = trivial. No partitioning/drop.
-5. ✓ Per-EST runtime budget — **COMPLETE BY 06:00 ET**: 4 hours after 02:00 trigger = HC grace window. Miss → alert.
-6. ✓ Onboarding throttling — **1 SFTP invocation every 30 sec**: conservative start. Tune up if Soviet tolerates.
-7. ✓ Alert distribution v1 — **OPERATOR ONLY**: single recipient OK v1. Add second contact post-cutover.
+1. ~~**Soviet SFTP IP allowlisting**~~ **RESOLVED** (operator): SSH-key auth only · Vercel-as-host confirmed
+2. ~~**Email delivery**~~ **DEFERRED** (operator): HC native sufficient v1 · Resend post-cutover
+3. ~~**HC plan**~~ **RESOLVED — FREE TIER** (operator): 20-check ceiling · abundant · SMS deferred
+4. ~~**PP retention**~~ **RESOLVED — KEEP FOREVER** (operator): ~365 rows/year/est trivial
+5. ~~**Per-establishment runtime budget**~~ **RESOLVED — 06:00 ET** (operator): 4-hour window post-02:00 trigger · HC grace period
+6. ~~**Onboarding throttling**~~ **RESOLVED — 1 VRL INVOCATION EVERY 30 SECONDS** (operator): conservative · tune up if Soviet tolerates
+7. ~~**Alert distribution**~~ **RESOLVED — OPERATOR ONLY v1** (operator): single recipient · add second post-cutover
+8. **Future: Soviet API** — when granted · entire VRL SFTP service replaced with HTTPS · zero non-SPA compute
+   build modular (single-responsibility WKR · SFTP details don't leak to master-ORC) so swap is clean
 
-[REFERENCE] **Future** (informational, not blocking):
+## healthchecks.io-setup (operator-once)
 
-8. Soviet API access (when granted): entire VRL SFTP service replaced by HTTPS calls, zero non-SB compute. Build SFTP service modular so swap is clean.
+~5 min · operator account so alerts go directly to inbox
 
----
+1. sign up <https://healthchecks.io/> with admin email
+2. create check: **"Production data pipeline"**
+3. schedule:
+   - type: **Simple**
+   - period: **24 hours** (ping once per successful daily run)
+   - grace: **4 hours** (alert if no ping by 06:00 ET · given 02:00 trigger)
+4. save · copy **ping URL** (https://hc-ping.com/<uuid>)
+5. Settings → API Access · create **read-only API key**
+6. provide to dev chats:
+   - HEALTHCHECKS_PING_URL = full URL → backend
+   - HEALTHCHECKS_CHECK_UUID = <uuid> part → frontend
+   - HEALTHCHECKS_READ_API_KEY = key → frontend
 
-## 11. Healthchecks.io Setup (operator does once)
+until values provided: both ping + HeartbeatBanner noop gracefully (no errors · no broken UI)
 
-[NEW-CHAT] One-time setup, ~5 min. Operator performs under their own account (alert emails → inbox directly).
+post-cutover optional:
+  add second recipient
+  consider Hobbyist ($5/mo) if SMS escalation needed
 
-1. Sign up <https://healthchecks.io/> w/ `admin@example.com`
-2. Create check: **"Production data pipeline"**
-3. Schedule: Type = Simple, Period = 24 hours (ping once per successful daily run), Grace = 4 hours (alert by 06:00 ET given 02:00 trigger)
-4. Save. Copy ping URL: `https://hc-ping.com/<uuid>`
-5. Settings → API Access: create read-only API key
-6. Provide to dev chats:
-   - `HEALTHCHECKS_PING_URL` = full URL → backend (SB EF env)
-   - `HEALTHCHECKS_CHECK_UUID` = just `<uuid>` part → frontend (VRL env)
-   - `HEALTHCHECKS_READ_API_KEY` = key → frontend (VRL env)
+## reference-links
 
-Until provided: both ping + HeartbeatBanner no-op gracefully.
+[REFERENCE] existing-docs (feed this plan):
+  DAILY_AND_ONBOARDING_OVERVIEW.md
+  PIPELINE_DIAGRAMS.md
+  DAY_BASED_WORKER_PIPELINE.md
+  README_MENU_REGISTRY_AND_BACKFILL.md
+  README_ORCHESTRATOR.md
+  README_DATA_SYNC.md
+  soviet_sync_v02.json
+  01_daily_establishment_orchestrator.json
 
-Post-cutover optionally:
-- Add second email recipient
-- Consider Hobbyist plan ($5/mo) if SMS escalation needed
+[REFERENCE] external:
+  https://vercel.com/docs/functions/limitations
+  https://vercel.com/docs/cron-jobs
+  https://healthchecks.io/
+  https://supabase.com/docs/guides/database/extensions/pg_cron
+  https://www.npmjs.com/package/ssh2-sftp-client
 
----
+## appendices
 
-## 12. Reference Links
+### why-not-inngest-trigger-dev-temporal
 
-[REFERENCE] **Docs that fed this plan**:
+pipeline = 15-step linear DAG · not branching complex-conditional workflows
+PGMQ + pg_cron + WKR already handles fan-out · retries · resumability for heavy phases
+cost: another vendor · auth model · deploy pipeline · billing · AI-learning overhead
+custom PP state machine = ~200 lines SQL + ~300 lines EF (boring · maintainable by one person)
+revisit if: grow to dozens branching workflows · complex retry semantics
 
-- DAILY_AND_ONBOARDING_OVERVIEW.md
-- PIPELINE_DIAGRAMS.md (6 Mermaid diagrams)
-- DAY_BASED_WORKER_PIPELINE.md
-- README_MENU_REGISTRY_AND_BACKFILL.md
-- README_ORCHESTRATOR.md
-- README_DATA_SYNC.md
-- soviet_sync_v02.json
-- 01_daily_establishment_orchestrator.json
+### why-not-stay-on-n8n-with-better-monitoring
 
-[REFERENCE] **External**:
-
-- Vercel Functions duration: https://vercel.com/docs/functions/limitations
-- Vercel cron: https://vercel.com/docs/cron-jobs
-- Healthchecks.io: https://healthchecks.io/
-- SB pg_cron: https://supabase.com/docs/guides/database/extensions/pg_cron
-- ssh2-sftp-client: https://www.npmjs.com/package/ssh2-sftp-client
-
----
-
-## Appendix A — Why not Inngest, Trigger.dev, Temporal?
-
-[REFERENCE] Pipeline = essentially 15-step linear DAG, not branching workflows w/ complex parallel/conditional logic. PQ + CRN + worker pattern already handles fan-out, retries, resumability for heavy phases. Adding Inngest/Trigger.dev = new vendor, auth model, deploy pipeline, billing, learning curve. Custom state machine in `pipeline_runs` = ~200 lines SQL + ~300 lines EF code, maintainable by one person.
-
-Revisit if ever dozens of branching workflows w/ complex retry semantics. For now, keep it boring and Postgres-native.
-
-## Appendix B — Why not stay on N8N w/ better monitoring?
-
-[REFERENCE] HC heartbeat closes silent-failure hole regardless of platform. If silent failure were only problem, could stop there. Reasons to migrate anyway:
-
-1. **Ergonomics**: code-first beats visual editor for AI-assisted dev
-2. **Reliability**: N8N Cloud multi-year track record of breaking releases (TaskRunner latest)
-3. **Vendor consolidation**: SB + VRL only (two). Remove N8N = one fewer thing to know.
-4. **Cost**: N8N subscription disappears
-5. **Learning**: contributors (human/AI) know SQL + TS already; don't need N8N quirks
-
-Migration cost (3–4 weeks focused) recouped within months in maintenance saved.
+HC heartbeat (phase-A) closes silent-failure hole regardless-of-platform
+if silent-failure only problem · could stop there
+reasons to migrate anyway:
+  1. maintainer-ergonomics: code-first > visual-editor for AI-assisted dev
+  2. reliability: N8N multi-year track of breaking releases (TaskRunner latest)
+  3. vendor-consolidation: remove N8N · stay SPA + VRL only (two vendors · not three)
+  4. cost: N8N subscription disappears
+  5. learning-curve: contributors know SQL + TS already (don't need N8N quirks)
+migration-cost (3–4 weeks) recouped within months in maintenance time

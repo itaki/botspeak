@@ -1,20 +1,22 @@
 # BOTSPEAK
 
-**A way for bots to talk to bots.** More context, less prose.
+**A way for bots to talk to bots.** Strip the human scaffolding. Keep the signal.
 
 ![Two bots chatting in BOTSPEAK](images/two-bots-chatting.png)
 
-Human view: you are here  ·  Bot view: [README-FOR-AI.md](README-FOR-AI.md)  ·  [MIT](LICENSE)
+Human view: you are here  ·  Bot view: [README-FOR-AI.md](README-FOR-AI.md)  ·  Why: [PHILOSOPHY.md](PHILOSOPHY.md)  ·  Evals: [showcase](showcase/index.html)  ·  [MIT](LICENSE)
 
 ---
 
-A skill for AI coding agents.
+When two humans communicate, language is full of scaffolding. Articles like "the" and "a." Transitions like "as mentioned above." Hedging like "typically." Humans need that scaffolding because human cognition is sequential, distractible, and emotional. When a modern language model reads, almost none of it earns its place. **BOTSPEAK is what AI-to-AI documents look like when you remove what was only there for humans.**
 
-**Primary mode** — Every new rule, skill, memory page, and handoff your agent writes comes out in BOTSPEAK automatically. No prompting. No reformatting. Just compressed, structured docs by default.
+A skill for AI coding agents:
+
+**Primary mode** — Every new rule, skill, memory page, and handoff your agent writes comes out in BOTSPEAK automatically. No prompting. No reformatting. Structured docs by default.
 
 **Secondary mode** — Compress your existing prose docs on demand. One file or an entire directory.
 
-*Same information. Up to 50% less context burn.*
+*Same information. The shorter token count is the measurement, not the motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
 ---
 
@@ -317,15 +319,24 @@ See [examples/03-memory-page/](examples/03-memory-page/) for a concrete BOTSPEAK
 
 ## Evals
 
-Two experiments in [evals/](evals/):
+The release is gated on two evidence signals — see the [showcase page](showcase/index.html) for the live artifacts.
 
-**[Round-trip fidelity](https://itaki.github.io/botspeak/evals/#round-trip)** — compress a document into BOTSPEAK, translate back to prose, repeat 5 times. Does it drift like a telephone game, or converge and stabilize? (Spoiler: converges at iteration 2, 100% similarity after that.)
+**Round-trip fidelity** (the canonical eval) — compress 9 real AI-facing documents into BOTSPEAK, then audit. v2.2.0: **9 / 9 PASS** (up from 7 / 9 in v2.1.0). See [evals/round-trip-results.md](evals/round-trip-results.md).
 
-**[The Flappy Bird test](https://itaki.github.io/botspeak/evals/game-prompt/demo.html)** — build a complete Flappy Bird game from the original prose prompt, then build it again from the BOTSPEAK-compressed version. Do both games run? Do the physics match? This answers the skeptic question: *does the AI actually do the same thing with the compressed instructions?*
+**Game synthesis** (the stress test) — give a fresh model only the BOTSPEAK-compressed prompt and have it build a game. Compare the result to the prose-built version. Four games passed clean-room as of v2.2.0:
 
-→ **[See all evals](https://itaki.github.io/botspeak/evals/)** — results, tables, and interactive demos.
+| Game | Compression | Physics constants matched |
+|---|---|---|
+| [Flappy Bird](evals/game-prompt/parity-report.md) | 31% | 15 / 15 |
+| [Snake](evals/snake-prompt/parity-report.md) | 35% | 10 / 10 |
+| [Pong](evals/pong-prompt/parity-report.md) | 39% | 14 / 14 |
+| [Breakout](evals/breakout-prompt/parity-report.md) | 44% | 21 / 21 |
 
-See [evals/README.md](evals/README.md) for methodology and how to run.
+The showcase page renders both prose-built and BOTSPEAK-built versions side by side as live iframes you can play.
+
+→ **[Open the showcase](showcase/index.html)** for the side-by-side comparison.
+
+See [evals/README.md](evals/README.md) for methodology and how to run the evals yourself.
 
 ---
 

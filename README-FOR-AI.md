@@ -1,61 +1,155 @@
-# BOTSPEAK README (AI-facing)
+<!-- BOTSPEAK v2.2.0 · compressed by claude-sonnet-4-6 · 2026-05-18 -->
 
-[NEW-CHAT] this file = compressed equivalent of `README.md` · target reader = AI agent
-[ALWAYS] user-facing chat output -> prose only · zero BT
+# BOTSPEAK
 
 @defs
-  BT = BOTSPEAK
-  BS = /botspeak
-  TR = /botspeak-translate
-  AR = always-on rule
+  BT  = BOTSPEAK
+  BST = /botspeak-translate
+  AOR = always-on rule
 @end
 
----
+default-phase: REFERENCE
 
-## identity
+bot-to-bot notation · strip human scaffolding · keep signal
 
-tagline: "A way for bots to talk to bots. More context, less prose."
-BT = writing convention for AI-facing docs · primary reader = AI agent
-4 mechanisms: symbol contracts · @defs aliases · phase tags · XML structure
-primary mode: every new rule, skill, memory, handoff -> BT automatically (AR installed) · no prompting required
-secondary mode: compress existing prose docs on demand (file || directory)
-target savings: up to 50% context burn reduction
-round-trip: `TR` renders any BT file -> human prose on demand
+![Two bots chatting in BOTSPEAK](images/two-bots-chatting.png)
+
+Human view: you are here · Bot view: [README-FOR-AI.md](README-FOR-AI.md) · Why: [PHILOSOPHY.md](PHILOSOPHY.md) · Evals: [showcase](showcase/index.html) · [MIT](LICENSE)
 
 ---
 
-## measured compression
+Human writing = scaffolding-heavy (articles · transitions · hedging). LLM cognition ≠ human → scaffolding earns nothing. BT = AI-to-AI docs without human scaffolding.
 
-| doc type | before (tokens) | after (tokens) | reduction |
-| --- | ---: | ---: | ---: |
-| arch migration plan (code-heavy) | 12,063 | 6,529 | 46% |
-| philosophy rule | 1,748 | 1,005 | 42% |
-| context handoff | 1,019 | 625 | 39% |
-| long `CLAUDE.md` | 8,083 | 5,324 | 34% |
-| memory/wiki page | 1,004 | 758 | 25% |
-| short rule | 412 | 338 | 18% |
+primary mode: new rules · skills · memory pages · handoffs -> BT automatically · no prompting
+secondary mode: compress existing prose docs on demand · file or directory
 
-[REFERENCE] `examples/` -> full before/after pairs for each doc type
-
-real unlock: each individual file · single compressed strategic doc saves 4K–6K tokens/session
-whole-repo effect: BT across `CLAUDE.md`, rules, skills, memory, handoffs -> each file 18–46%, adds up fast
-example: repo burning 30K tokens before first word -> ~20K with BT applied
+*Same information. Shorter token count = measurement, not motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
 ---
 
-## why compression improves quality
+## Before / After
 
-[REFERENCE] [2025 paper](https://arxiv.org/abs/2604.00025v1): constraining LLMs to brief responses -> +26 percentage points accuracy on benchmarks
-[ALWAYS] less noise in context -> better attention on signal · compressed structured instructions > verbose prose
-[ALWAYS] agent likely gets *better*, not worse
+| Document type                                         | Before (tokens) | After (tokens) | Reduction | Example folder                                                   |
+| ----------------------------------------------------- | --------------- | -------------- | --------- | ---------------------------------------------------------------- |
+| Architecture migration plan (code-heavy)              | 12,063          | 6,529          | **46%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Project philosophy / manifesto rule                   | 1,748           | 1,005          | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
+| Context handoff (one session → next)                  | 1,019           | 625            | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Long CLAUDE.md (file AI reads every session)          | 8,083           | 5,324          | **34%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Wiki / memory page (Karpathy LLM-wiki style)          | 1,004           | 758            | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Short rule (branch guard)                             | 412             | 338            | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
+
+Per-file unlock: one well-compressed strategic doc saves 4,000–6,000 tokens/session. BT across CLAUDE.md · rules · skills · memory pages · handoffs: 18–46% each. Repo burning 30,000 tokens before first word -> ~20,000.
 
 ---
 
-## core mechanisms (4 levers)
+## What BT Is
 
-### 1. aliases (`@defs`) — primary token sink fix
+Every rule · skill · memory page · handoff agent re-reads every session = prose written for humans → token burn before first word.
 
-repeated identifiers = #1 token sink · `establishment_id` 47x = 4-8 tokens each, every session
+BT = writing convention for AI-primary docs:
+
+- **Aliases** (`@defs E = establishment_id`) declared once → `E` everywhere · kills #1 token sink in CLAUDE.md files
+- **Symbol contracts** (`!!` = never · `ok` = allowed · `->` = leads to) defined once, used everywhere
+- **Phase tags** (`[NEW-CHAT]` `[ALWAYS]` `[REFERENCE]`) → agents skip inapplicable context
+- **XML structure** for long docs: Claude parses XML semantic boundaries more reliably than markdown headings
+
+BST renders any BT file -> human prose on demand.
+
+---
+
+## Won't Fewer Tokens Make My Agent Worse?
+
+No — opposite.
+
+> [A 2025 paper](https://arxiv.org/abs/2604.00025v1) found that constraining LLMs to brief responses improved accuracy by **26 percentage points** on certain benchmarks.
+
+Less noise -> better attention. Compressed structured instructions outperform verbose prose; attention is finite. Agent likely gets *better*, not worse.
+
+---
+
+## Install
+
+### Step 1 — Install the skills
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
+```
+
+Drops two skills into every AI agent detected (Claude Code · Cursor · Codex · Gemini CLI · anything in `~/.agents`):
+
+- `/botspeak` — compress file or directory -> BT · file ref: replaces in place · pasted text: creates new file · flags: `-bu` backup first · `-c` output to chat
+- `BST` — render BT -> human prose · creates `[filename].bst.md` · flag: `-c` to render in chat
+
+Opt-in. Nothing changes until invoked. Want always-on? Step 2.
+
+### Step 2 — Install the AOR (manual, by design)
+
+New AI-facing docs -> BT by default, no prompting. Manual by design: IDE rule systems vary; won't touch existing files.
+
+| IDE                 | What to do                                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cursor**          | Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) into `.cursor/rules/botspeak-always-on.mdc` in project root. (Global: paste contents into Cursor Settings → Rules → User Rules.) |
+| **Claude Code**     | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).                                                                   |
+| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.windsurf/rules/botspeak-always-on.md` in project root.                                                                               |
+| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.clinerules/botspeak-always-on.md` in project root.                                                                                   |
+| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.github/copilot-instructions.md`.                                                                                                   |
+| **Codex / generic** | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) into `AGENTS.md` in project root.                                                                                                         |
+| **Anything else**   | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) wherever harness keeps always-on instructions.                                                                                           |
+
+Don't see your IDE? Add it — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## First 60 Seconds After Install
+
+**1. Compress most-read file.**
+
+```
+/botspeak -bu @CLAUDE.md
+```
+
+`-bu` saves datestamped backup (`CLAUDE.bu.20260506.md`) before touching anything. Original replaced in place with BT version. Shows token-savings summary + two-sentence description.
+
+**2. Read back in plain English (optional sanity check).**
+
+```
+/botspeak-translate @CLAUDE.md
+```
+
+Creates `CLAUDE.bst.md` next to original — aliases expanded · symbols decoded. Open · verify · delete. Add `-c` for translation in chat.
+
+**3. Let BT write next doc automatically.**
+*(requires [AOR](#step-2--install-the-always-on-rule-manual-by-design) from Step 2)*
+
+```
+"Save what we just talked about as a handoff doc for tomorrow."
+```
+
+Agent writes handoff in BT without being asked: correct notation · phase tags · aliases.
+
+**4. Compress whole folder at once.**
+
+```
+/botspeak ~/.cursor/skills/
+```
+
+Scans every `.md` and `.mdc` file · shows token-count table with flags for large files · asks whether to back up first · converts directory · prints before/after totals. **Use cheap model (Haiku · GPT-4o-mini) for big batches.**
+
+---
+
+## Reading a BT Document
+
+`BST @file` — creates `file.bst.md` next to original. Translation = intentionally exhaustive: every abbreviation spelled out · every symbol expanded · every constraint stated explicitly. More verbose than original BT by design — extra words prove nothing lost in compression.
+
+skill = optional: any modern AI reads BT -> prose if asked. Skill provides faithful one-to-one decompression vs paraphrase. Use when fidelity matters; skip when good-enough.
+
+---
+
+## The Four Things That Do the Work
+
+### 1. Aliases (`@defs`) — killer feature
+
+Repeated identifiers = #1 token sink. `establishment_id` 47 times · `materialized_view_refresh_concurrently` 23 times · 4–8 tokens each · every session · forever.
 
 ```
 @defs
@@ -69,21 +163,23 @@ repeated identifiers = #1 token sink · `establishment_id` 47x = 4-8 tokens each
 !! never hardcode E && S && any per-establishment value
 ```
 
-2,000-token file with @defs -> saves 400+ tokens per session
+This block alone in 2,000-token file -> 400+ tokens saved. Every session.
 
-### 2. phase tags
+### 2. Phase Tags
 
-| tag | meaning |
-|---|---|
-| `[NEW-CHAT]` | load at session start; agent may skip once established |
-| `[ALWAYS]` | every turn |
-| `[ON-TRIGGER]` | condition-gated; read only when pattern fires |
-| `[REFERENCE]` | look-up only; skip during normal load |
-| `[HANDOFF]` | cross-session; new agent reads first turn only |
+```
+[NEW-CHAT]    load at session start; agent may skip after context established
+[ALWAYS]      every turn
+[ON-TRIGGER]  condition-gated; read only when pattern fires
+[REFERENCE]   look-up only; skip during normal session load
+[HANDOFF]     cross-session context; new agent reads first turn only
+```
 
-correctly tagged 1,500-token file -> loads ~600 tokens mid-session
+Correctly tagged 1,500-token file -> ~600 tokens loaded mid-session. Rest = established context · deferred lookups · first-turn orientation not needed again.
 
-### 3. symbols (ASCII dialect — 1 token/symbol guaranteed)
+### 3. Symbols
+
+**ASCII** (recommended default — every symbol is 1 token guaranteed):
 
 ```
 ->   leads to       !!   never / forbidden
@@ -92,13 +188,13 @@ correctly tagged 1,500-token file -> loads ~600 tokens mid-session
 !=   not-equal      =    defined-as
 ```
 
-[REFERENCE] SPEC.md -> full symbol table
+ASCII operators = 1 token each, guaranteed by every modern BPE tokenizer. See [SPEC.md](SPEC.md) for full table.
 
-### 4. XML structure (long docs)
+### 4. XML Structure (long docs)
 
-[ON-TRIGGER] doc > 10 lines && clear sections -> wrap in XML ok
+XML blocks outperform markdown headings for model reliability in long files.
 
-```xml
+```
 <context>
   <defs>
     @defs
@@ -115,204 +211,147 @@ correctly tagged 1,500-token file -> loads ~600 tokens mid-session
 </context>
 ```
 
-Claude/GPT/Gemini parse named XML blocks more reliably than markdown headings -> unambiguous boundaries, better retrieval
-
----
-
-## install
-
-### step 1: install skills
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
-```
-
-installs 2 skills in all detected agents (Claude Code, Cursor, Codex, Gemini CLI, `~/.agents`):
-- `BS` -> compress file || directory into BT · file ref: replace in place · pasted text: create new file · `-bu` backup first · `-c` output to chat
-- `TR` -> BT -> `[filename].bst.md` next to original · `-c` render in chat instead
-
-opt-in: nothing changes until invoked · AR = always-on (step 2)
-
-### step 2: install AR (manual, by design)
-
-makes every new AI-facing doc -> BT by default (no prompting required)
-manual by design: IDE rule systems vary · !! never auto-touch what user already wrote
-
-| IDE | action |
-|---|---|
-| Cursor (project) | copy `rules/botspeak-always-on.mdc` -> `.cursor/rules/botspeak-always-on.mdc` |
-| Cursor (global) | paste content -> Cursor Settings -> Rules -> User Rules |
-| Claude Code | append `rules/botspeak-always-on.md` -> project `CLAUDE.md` or `~/.claude/CLAUDE.md` |
-| Windsurf | copy `rules/botspeak-always-on.md` -> `.windsurf/rules/botspeak-always-on.md` |
-| Cline | copy `rules/botspeak-always-on.md` -> `.clinerules/botspeak-always-on.md` |
-| Copilot | append `rules/botspeak-always-on.md` -> `.github/copilot-instructions.md` |
-| Codex / generic | copy `rules/botspeak-always-on.md` -> `AGENTS.md` |
-| other | paste `rules/botspeak-always-on.md` wherever harness keeps always-on instructions |
-
-[REFERENCE] `CONTRIBUTING.md` -> add new IDE
-
----
-
-## first 60 seconds after install
-
-1. compress most-read file:
-   ```
-   BS -bu @CLAUDE.md
-   ```
-   `-bu` -> datestamped backup (`CLAUDE.bu.YYYYMMDD.md`) + replace in place + token-savings summary
-
-2. sanity check (optional):
-   ```
-   TR @CLAUDE.md
-   ```
-   creates `CLAUDE.bst.md` (all aliases expanded, all symbols decoded) · verify · delete · `-c` for chat
-
-3. auto-write new doc (AR required):
-   > "Save what we just talked about as a handoff doc for tomorrow."
-   agent writes BT handoff automatically: correct notation, phase tags, aliases, everything
-
-4. batch compress a whole folder:
-   ```
-   BS ~/.cursor/skills/
-   ```
-   scans every `.md` + `.mdc` · shows token-count table with flags for large files · asks backup? · converts + prints before/after totals
-   !! use cheap model (Haiku, GPT-4o-mini) for large batches
-
----
-
-## reading a BOTSPEAK doc
-
-`TR @file` -> creates `file.bst.md` · translation intentionally exhaustive: every alias expanded, every symbol decoded, every constraint stated explicitly · more verbose than BT by design (extra words = proof nothing was lost)
-no skill required: any modern LLM can render BT -> prose on request · skill = faithful one-to-one decompression vs paraphrase · skip when good-enough is fine · use when fidelity matters
-add `-c` to render in chat instead of file
+All three major model families (Claude · GPT · Gemini) parse named XML blocks more reliably than loose markdown headings. `<context>` `<defs>` `<rules>` `<reference>` = unambiguous boundaries · better retrieval.
 
 ---
 
 ## FAQ
 
-Q: AI needs prose to understand rules?
-A: No. LLMs trained on code/JSON/XML/math — structured text = native language. "lost in the middle" worse for prose than symbols.
+**Q: Doesn't AI need prose to understand rules?**
+A: No. LLMs trained on code · JSON · XML · YAML · math — structured text = native language. "Lost in middle" problem worse for prose than symbols. BT a rule · ask agent to summarize → summary will match.
 
-Q: IDE skill tool wrote plain prose?
-A: expected (IDE tools don't know BT). run `BS` on file or directory. AR = automatic going forward.
+**Q: IDE skill tool wrote plain prose. Now what?**
+A: Expected — IDE tools don't know about BT. Run `/botspeak` on file (or directory: `/botspeak ~/.cursor/skills/`). With AOR installed, anything AI writes *for itself* -> BT from then on.
 
-Q: should I rewrite all existing rules now?
-A: No. start with most-read file (`CLAUDE.md` || largest always-on rule). compress, measure, continue.
+**Q: Rewrite all existing rules right now?**
+A: No. Start with most-read file — usually `CLAUDE.md` or largest always-on rule. Compress that one · measure savings · go from there.
 
-Q: output to chat instead of file?
-A: `-c` or `--chat` on both `BS` and `TR`
+**Q: Output to chat instead of file?**
+A: Use `-c` or `--chat`. Works on `/botspeak` and BST.
 
-Q: BT all the time?
-A: install AR -> step 2
+**Q: BT always on?**
+A: Install AOR — [Step 2](#step-2--install-the-always-on-rule-manual-by-design).
 
-Q: skip BT for one doc?
-A: "write this in prose" || "no botspeak" || `-bs`
+**Q: Skip BT for one document?**
+A: Say so: *"write this in prose"* · *"no botspeak"* · `-bs`.
 
-Q: new agent on team can't read it?
-A: every modern LLM (Claude, GPT, Gemini, Llama, Mistral) handles BT without preamble. drop `SPEC.md` into project for belt-and-suspenders.
+**Q: New agent on team can't read it?**
+A: Every modern LLM (Claude · GPT · Gemini · Llama · Mistral) handles BT without preamble. Drop `SPEC.md` into project — agent reads once, set.
 
-Q: vs Caveman?
-A: different problems. Caveman = compresses AI output to humans. BT = shapes what AI writes for other AI readers. install both: they compose perfectly.
+**Q: What about Caveman?**
+A: Different problem. [Caveman](https://github.com/JuliusBrussee/caveman) compresses what AI *outputs to humans*. BT shapes what AI *writes for other AI readers*. Install both — they compose perfectly.
 
-Q: vs CRUX-Compress / llm-min.txt / Compresr?
-A: those = compressor tools (process prose + custom DSL). BT = writing convention: write natively, no compressor required. `TR` = always readable back.
+**Q: Why not CRUX-Compress / llm-min.txt / Compresr?**
+A: Those = compressor *tools* — process existing prose with custom DSL. BT = *writing convention*: write in it natively, no compressor required. Round-trip translate skill included.
 
-Q: uninstall?
-A:
+**Q: How to uninstall?**
+A: Run uninstaller:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/uninstall.sh | bash
 ```
-removes skills from all detected agents · !! AR not auto-removed (manual; uninstaller tells you where to look)
+
+Skills removed from all detected agents automatically. *AOR not auto-removed* (lives inside IDE's rule system); uninstaller tells you exactly where to look.
 
 ---
 
-## comparison
+## Compared to Other Tools
 
-| | BT | Caveman | CRUX-Compress | llm-min.txt |
-|---|---|---|---|---|
-| compresses | AI-facing docs (input) | AI output to humans | AI rules (input) | API/library docs |
-| approach | writing convention | output style | compressor tool + DSL | compressor tool |
-| aliases | ✅ `@defs` | — | — | — |
-| phase tags | ✅ | — | — | — |
-| round-trip translate | ✅ `TR` | n/a | — | — |
-| frontmatter-safe | ✅ (body only) | n/a | partial | n/a |
-| multi-tool support | ✅ Claude/Cursor/Codex/Gemini/+25 | ✅ 30+ agents | Claude/Cursor | generic |
-| stars (May 2026) | new | 53.9k | ~3 | ~700 |
+|                          | BOTSPEAK                         | Caveman               | CRUX-Compress         | llm-min.txt      |
+| ------------------------ | -------------------------------- | --------------------- | --------------------- | ---------------- |
+| **Compresses**           | AI-facing docs (input)           | AI output to humans   | AI rules (input)      | API/library docs |
+| **Approach**             | Writing convention               | Output style          | Compressor tool + DSL | Compressor tool  |
+| **Aliases**              | ✅ `@defs`                        | —                     | —                     | —                |
+| **Phase tags**           | ✅                                | —                     | —                     | —                |
+| **Round-trip translate** | ✅ `/botspeak-translate`          | n/a (output is final) | —                     | —                |
+| **Frontmatter-safe**     | ✅ (compresses body only)         | n/a                   | partial               | n/a              |
+| **Multi-tool support**   | ✅ Claude/Cursor/Codex/Gemini/+25 | ✅ 30+ agents          | Claude/Cursor         | Generic          |
+| **Stars (May 2026)**     | new                              | 53.9k                 | ~3                    | ~700             |
 
-[ALWAYS] BT coexists with Caveman; they don't compete
+BT = only convention (not tool) for AI-facing document writing + compression with verified round-trip. Coexists with Caveman; not competing.
 
 ---
 
-## repo map
+## What's in the Box
 
-```text
+```
 botspeak/
-├── README.md                            ← human view
-├── README-FOR-AI.md                     ← this file (AI view)
+├── README.md                            ← you are here
 ├── SPEC.md                              ← language spec: symbols, aliases, grammar, pitfalls
 ├── LICENSE                              ← MIT
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── CLAUDE.md, AGENTS.md, GEMINI.md      ← bootstrap files for AI agents working on this repo
-├── install.sh                           ← one-line installer (skills only)
+├── install.sh                           ← one-line installer (skills only — rules install manually)
 ├── uninstall.sh                         ← removes skills from all detected agents
-├── rules/
-│   ├── botspeak-always-on.md            ← universal (Claude · Windsurf · Cline · Copilot · etc.)
-│   └── botspeak-always-on.mdc           ← Cursor format (alwaysApply frontmatter)
+├── rules/                               ← always-on rule templates (manual install, see README)
+│   ├── botspeak-always-on.md            ← universal markdown (Claude · Windsurf · Cline · Copilot · etc.)
+│   └── botspeak-always-on.mdc           ← Cursor format (with alwaysApply frontmatter)
 ├── .cursor/rules/botspeak.mdc           ← Cursor rule active in this repo (self-hosting)
 ├── skills/
-│   ├── botspeak/SKILL.md                ← BS: compress file || dir; -bu backup; -c chat
-│   └── botspeak-translate/SKILL.md      ← TR: BT -> [filename].bst.md; -c chat
+│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK (replaces in place; -bu to backup first; -c for chat)
+│   └── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → [filename].bst.md (-c for chat)
 ├── agents/
-│   └── botspeak-translator.md           ← bidirectional agent (for agent-definition harnesses)
-└── examples/
-    ├── 01-short-rule/                   ← branch guard:            412 →   338 (18%)
-    ├── 02-context-handoff/              ← session handoff:       1,019 →   625 (39%)
-    ├── 03-memory-page/                  ← wiki page:             1,004 →   758 (25%)
-    ├── 04-philosophy-rule/              ← manifesto:             1,748 → 1,005 (42%)
-    ├── 05-aliased-claude-md/            ← long CLAUDE.md:        8,083 → 5,324 (34%)
-    └── 06-backend-migration/            ← arch migration plan:  12,063 → 6,529 (46%)
+│   └── botspeak-translator.md           ← bidirectional agent (for tools that load agent definitions)
+└── examples/                            ← six before/after pairs
+    ├── 01-short-rule/                   ← branch guard:                    412 →   338 (18%)
+    ├── 02-context-handoff/              ← session handoff:               1,019 →   625 (39%)
+    ├── 03-memory-page/                  ← Karpathy-style wiki page:      1,004 →   758 (25%)
+    ├── 04-philosophy-rule/              ← project manifesto:             1,748 → 1,005 (42%)
+    ├── 05-aliased-claude-md/            ← long CLAUDE.md example:        8,083 → 5,324 (34%)
+    └── 06-backend-migration/            ← arch migration plan (code-heavy): 12,063 → 6,529 (46%)
 ```
 
 ---
 
-## Karpathy LLM wiki pattern
+## On Karpathy's LLM Wiki
 
-[REFERENCE] [LLM wiki pattern](https://github.com/Ar9av/obsidian-wiki): compile reusable knowledge into interconnected markdown pages
-BT = compressed upgrade path: same operational meaning, fewer tokens per retrieval, lower recurring context burn
-[REFERENCE] `examples/03-memory-page/` -> concrete BT wiki-style page
+Andrej Karpathy's [LLM wiki pattern](https://github.com/Ar9av/obsidian-wiki) = right idea: compile reusable knowledge once into interconnected markdown pages.
 
----
+BT = compressed upgrade path for that pattern: same operational meaning · fewer tokens per retrieval · lower recurring context burn. Wiki grows; token cost grows much slower.
 
-## evals
-
-[REFERENCE] `evals/` -> 2 experiments:
-1. round-trip fidelity: compress -> translate -> repeat 5x · converges at iteration 2 · 100% similarity after
-2. Flappy Bird test: build game from prose prompt && from BT-compressed version · do both run? do physics match?
-
-[REFERENCE] https://itaki.github.io/botspeak/evals/ -> results, tables, interactive demos
-[REFERENCE] `evals/README.md` -> methodology + how to run
+See [examples/03-memory-page/](examples/03-memory-page/) for concrete BT wiki-style page.
 
 ---
 
-## notes & caveats
+## Evals
 
-- BT shines on prose-heavy docs (rules, `CLAUDE.md`, memory, handoffs, manifestos) -> 65-78% compression
-- BT slouches on already-dense content (Mermaid, SQL, numeric tables, code blocks, file trees) -> ~43% · still worth it: `@defs` && phase tags sharpen behavior even when byte savings modest
-- !! batch jobs -> cheap model (Haiku / GPT-4o-mini)
-- timing: Haiku ~2 min / 50 KB (~12.5K tokens) · 200 KB ≈ 8 min · thinking models (Sonnet, Opus) = 3-5x slower
-- `.gitignore`: add `*.bst.md` && `*.bu.*.md` (disposable artifacts; read them, toss them)
-- `BS` replaces files in place · add `-bu` for datestamped backup (`filename.bu.YYYYMMDD.md`) · directory mode always offers backup before bulk convert
+Release gated on two evidence signals — see [showcase page](showcase/index.html) for live artifacts.
+
+**Round-trip fidelity** (canonical eval) — compress 9 real AI-facing docs -> BT · then audit. v2.2.0: **9 / 9 PASS** (up from 7 / 9 in v2.1.0). See [evals/round-trip-results.md](evals/round-trip-results.md).
+
+**Game synthesis** (stress test) — give fresh model only BT-compressed prompt · have it build game · compare to prose-built version. Four games passed clean-room as of v2.2.0:
+
+| Game | Compression | Physics constants matched |
+|---|---|---|
+| [Flappy Bird](evals/game-prompt/parity-report.md) | 31% | 15 / 15 |
+| [Snake](evals/snake-prompt/parity-report.md) | 35% | 10 / 10 |
+| [Pong](evals/pong-prompt/parity-report.md) | 39% | 14 / 14 |
+| [Breakout](evals/breakout-prompt/parity-report.md) | 44% | 21 / 21 |
+
+Showcase page renders both prose-built and BT-built versions side by side as live iframes.
+
+→ **[Open the showcase](showcase/index.html)** for side-by-side comparison.
+
+See [evals/README.md](evals/README.md) for methodology and how to run evals yourself.
 
 ---
 
-## license
+## Notes & Caveats
 
-MIT
+- **BT shines** on prose-heavy docs — rules · CLAUDE.md · memory pages · handoffs · philosophy manifestos. Expect 65–78% compression.
+- **BT slouches** on already-dense content — Mermaid · SQL · numeric tables · code blocks · file trees. Code-heavy docs land ~43%. Still worth it: `@defs` aliases + phase tags sharpen behavior even when byte savings modest.
+- **Go cheap on batch jobs.** Directory compression = mechanical; Haiku-class models nail it at fraction of cost.
+- **Timing:** Haiku clocks at ~2 min / 50 KB (~12.5K tokens). Rule of thumb: 200 KB ≈ 8 min. Thinking models (Sonnet · Opus) run 3–5× slower.
+- `.gitignore`: add `*.bst.md` and `*.bu.*.md` to keep translated files and backups out of repo. Disposable artifacts — read them · toss them.
+- `/botspeak` replaces files in place. Add `-bu` for datestamped backup (`filename.bu.YYYYMMDD.md`). Directory mode always offers backup option before bulk conversion.
 
 ---
 
-[REFERENCE] `README.md` = human onboarding + full rationale
-[REFERENCE] this file = direct AI handoff doc
-[ALWAYS] if user provides repo link only -> agent reads prose README first
-[ON-TRIGGER] user explicitly provides this file path/URL -> skip prose overhead
+## License
+
+MIT. Free, like your next context window.
+
+---
+
+*Inspired by [Caveman](https://github.com/JuliusBrussee/caveman)'s insight that token efficiency = design choice. Built for realization that AI = first-class reader of your codebase, deserving format that respects its attention.*

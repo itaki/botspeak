@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<!-- Approx 480 lines
+     Sections: constants · state · audio · drawing · physics · input · game-loop
+     Built from BOTSPEAK v2.1.0 specification -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      display: block;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
+      transform-origin: center center;
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="480" height="640"></canvas>
+<script>
+'use strict';
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const CVW = 480;
+const CVH = 640;
+const GRAVITY = 0.5;
+const FLAP_VEL = -9;
+const TERMINAL_VEL = 12;
+const PIPE_SPEED = 3;
+const PIPE_WIDTH = 60;
+const PIPE_CAP_W = 70;
+const PIPE_CAP_H = 20;
+const PIPE_GAP = 150;
+const PIPE_SPAWN_INTERVAL = 90;
+const PIPE_FIRST_SPAWN = 120;
+const BIRD_RADIUS = 14;
+const BIRD_X = CVW * 0.20;
+const GROUND_H = 40;
+const FORGIVENESS = 4;
+const PARTICLE_COUNT = 20;
+const PARTICLE_LIFETIME = 40;
+const BEST_KEY = 'flappyBirdBest';
+const WARM_COLORS = ['#ffd700','#ffb300','#ff8c00','#ff4500','#ff6347','#ffa500'];
+
+// Cloud base positions – single offset scrolls all together (ambient parallax)
+const CLOUD_BASES = [
+  { x:  80, y: 100, rx: 50, ry: 28 },
+  { x: 240, y:  60, rx: 65, ry: 30 },
+  { x: 380, y: 130, rx: 45, ry: 22 },
+  { x: 120, y: 180, rx: 55, ry: 25 },
+  { x: 320, y:  90, rx: 70, ry: 32 },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+let gs              = 'menu';  // menu | playing | dying | gameover
+let frameCounter    = 0;
+let framesSinceStart = 0;
+let score           = 0;
+let bestScore       = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+let newBest         = false;
+let flapRequested   = false;
+
+// Ambient offsets — single scalar each (parallax)
+let cloudOffset  = 0;   // += 0.75 per FR
+let groundOffset = 0;   // += 3    per FR
+
+let bird      = {};
+let pipes     = [];     // entities: each has independent .x
+let particles = [];     // entities: each has independent .x .y
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playFlap() {
+  try {
+    const ac = getAudio(), osc = ac.createOscillator(), g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'sine'; osc.frequency.value = 520;
+    g.gain.setValueAtTime(0.25, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.08);
+    osc.start(); osc.stop(ac.currentTime + 0.08);
+  } catch (_) {}
+}
+
+function playPoint() {
+  try {
+    const ac = getAudio(), t = ac.currentTime;
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, t);
+    osc.frequency.setValueAtTime(880, t + 0.05);
+    g.gain.setValueAtTime(0.3, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.10);
+    osc.start(t); osc.stop(t + 0.10);
+  } catch (_) {}
+}
+
+function playHit() {
+  try {
+    const ac = getAudio();
+    const sz  = Math.floor(ac.sampleRate * 0.15);
+    const buf = ac.createBuffer(1, sz, ac.sampleRate);
+    const d   = buf.getChannelData(0);
+    for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = buf; src.connect(g); g.connect(ac.destination);
+    g.gain.setValueAtTime(0.4, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.15);
+    src.start(); src.stop(ac.currentTime + 0.15);
+  } catch (_) {}
+}
+
+function playDie() {
+  try {
+    const ac = getAudio(), osc = ac.createOscillator(), g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, ac.currentTime);
+    osc.frequency.linearRampToValueAtTime(200, ac.currentTime + 0.3);
+    g.gain.setValueAtTime(0.3, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.3);
+    osc.start(); osc.stop(ac.currentTime + 0.3);
+  } catch (_) {}
+}
+
+// ─── DRAWING ──────────────────────────────────────────────────────────────────
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, CVH);
+  grad.addColorStop(0, '#0f3460');
+  grad.addColorStop(1, '#16213e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CVW, CVH);
+}
+
+function drawClouds() {
+  // Clouds: single cloudOffset scalar scrolls all cloud base positions together
+  const scrolled = cloudOffset % CVW;
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#ffffff';
+  for (const c of CLOUD_BASES) {
+    // Draw at base_x - cloudOffset % CVW; duplicate copies for seamless wrap
+    for (let n = -1; n <= 1; n++) {
+      const dx = c.x - scrolled + n * CVW;
+      if (dx + c.rx < 0 || dx - c.rx > CVW) continue;
+      ctx.beginPath();
+      ctx.ellipse(dx, c.y, c.rx, c.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawGround() {
+  ctx.fillStyle = '#2d5a27';
+  ctx.fillRect(0, CVH - GROUND_H, CVW, GROUND_H);
+  ctx.fillStyle = '#8fbc45';
+  ctx.fillRect(0, CVH - GROUND_H, CVW, 6);
+}
+
+function drawPipe(pipe) {
+  // pipe.x is the per-instance x position; used directly for rendering
+  const px   = pipe.x;
+  const topH = pipe.gapY - PIPE_GAP / 2;
+  const botY = pipe.gapY + PIPE_GAP / 2;
+  const botH = CVH - GROUND_H - botY;
+  const capX = px - (PIPE_CAP_W - PIPE_WIDTH) / 2;
+
+  // Top pipe body + highlight
+  ctx.fillStyle = '#2d6a4f'; ctx.fillRect(px, 0, PIPE_WIDTH, topH);
+  ctx.fillStyle = '#40916c'; ctx.fillRect(px, 0, 8, topH);
+  // Top pipe cap + highlight
+  ctx.fillStyle = '#2d6a4f'; ctx.fillRect(capX, topH - PIPE_CAP_H, PIPE_CAP_W, PIPE_CAP_H);
+  ctx.fillStyle = '#40916c'; ctx.fillRect(capX, topH - PIPE_CAP_H, 8, PIPE_CAP_H);
+
+  // Bottom pipe body + highlight
+  ctx.fillStyle = '#2d6a4f'; ctx.fillRect(px, botY, PIPE_WIDTH, botH);
+  ctx.fillStyle = '#40916c'; ctx.fillRect(px, botY, 8, botH);
+  // Bottom pipe cap + highlight
+  ctx.fillStyle = '#2d6a4f'; ctx.fillRect(capX, botY, PIPE_CAP_W, PIPE_CAP_H);
+  ctx.fillStyle = '#40916c'; ctx.fillRect(capX, botY, 8, PIPE_CAP_H);
+}
+
+function drawBird(bx, by, vel, phase) {
+  ctx.save();
+  ctx.translate(bx, by);
+  const rot = Math.min(Math.PI / 2, Math.max(-Math.PI / 6, vel * 0.06));
+  ctx.rotate(rot);
+
+  // Wing – animates ±Y over 8-FR cycle
+  const wingY = Math.sin(phase * Math.PI * 2 / 8) * 4;
+  ctx.fillStyle = '#c8a000';
+  ctx.beginPath();
+  ctx.ellipse(-8, wingY + 5, 10, 5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.arc(6, -5, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(7, -6, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Beak
+  ctx.fillStyle = '#ff8c00';
+  ctx.beginPath();
+  ctx.moveTo(10, -1);
+  ctx.lineTo(18,  2);
+  ctx.lineTo(10,  5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawScore() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.roundRect(CVW / 2 - 60, 20, 120, 58, 10);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(score), CVW / 2, 51);
+  ctx.restore();
+}
+
+function drawBestScore() {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Best: ' + bestScore, CVW - 12, 12);
+  ctx.restore();
+}
+
+function drawParticles() {
+  ctx.save();
+  for (const p of particles) {
+    ctx.globalAlpha = p.life / PARTICLE_LIFETIME;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMenuScreen() {
+  const bobY = CVH / 2 + Math.sin(frameCounter * Math.PI * 2 / 60) * 8;
+  drawBird(BIRD_X, bobY, 0, frameCounter);
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 10;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 52px sans-serif';
+  ctx.fillText('FLAPPY BIRD', CVW / 2, CVH * 0.40);
+
+  const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(frameCounter * Math.PI * 2 / 60));
+  ctx.globalAlpha = pulse;
+  ctx.font = '22px sans-serif';
+  ctx.fillText('Press SPACE or tap to start', CVW / 2, CVH * 0.60);
+  ctx.restore();
+}
+
+function drawGameOverScreen() {
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, CVW, CVH);
+
+  const px = CVW / 2 - 160, py = CVH / 2 - 125;
+  ctx.fillStyle = 'rgba(15,20,50,0.93)';
+  ctx.beginPath();
+  ctx.roundRect(px, py, 320, 250, 16);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 32px sans-serif';
+  ctx.fillText('GAME OVER', CVW / 2, py + 45);
+
+  ctx.font = 'bold 64px sans-serif';
+  ctx.fillText(String(score), CVW / 2, py + 120);
+
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = '#aaaacc';
+  ctx.fillText('Best: ' + bestScore, CVW / 2, py + 172);
+
+  if (newBest) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('★  NEW BEST!  ★', CVW / 2, py + 200);
+  }
+
+  const pulse = 0.5 + 0.5 * Math.sin(frameCounter * Math.PI * 2 / 60);
+  ctx.globalAlpha = 0.5 + 0.5 * pulse;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('Press SPACE or tap to restart', CVW / 2, py + 230);
+  ctx.restore();
+}
+
+// ─── PHYSICS ──────────────────────────────────────────────────────────────────
+function initBird() {
+  bird = { x: BIRD_X, y: CVH / 2, vy: 0 };
+}
+
+function spawnPipe() {
+  const minY = CVH * 0.20;
+  const maxY = CVH * 0.75;
+  pipes.push({ x: CVW, gapY: minY + Math.random() * (maxY - minY), scored: false });
+}
+
+function spawnParticles(bx, by) {
+  particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 4;
+    particles.push({
+      x: bx, y: by,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      radius: 3 + Math.random() * 3,
+      color: WARM_COLORS[Math.floor(Math.random() * WARM_COLORS.length)],
+      life: PARTICLE_LIFETIME,
+    });
+  }
+}
+
+function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
+  const fx = rx + FORGIVENESS, fy = ry + FORGIVENESS;
+  const fw = rw - FORGIVENESS * 2, fh = rh - FORGIVENESS * 2;
+  const nx = Math.max(fx, Math.min(cx, fx + fw));
+  const ny = Math.max(fy, Math.min(cy, fy + fh));
+  return (cx - nx) ** 2 + (cy - ny) ** 2 < cr * cr;
+}
+
+function pipeHitsbird(pipe) {
+  // Collision uses pipe.x directly (per-instance entity position)
+  const topH = pipe.gapY - PIPE_GAP / 2;
+  const botY = pipe.gapY + PIPE_GAP / 2;
+  const capX = pipe.x - (PIPE_CAP_W - PIPE_WIDTH) / 2;
+  return (
+    circleRectHit(bird.x, bird.y, BIRD_RADIUS, pipe.x, 0,    PIPE_WIDTH, topH,       ) ||
+    circleRectHit(bird.x, bird.y, BIRD_RADIUS, capX,   topH - PIPE_CAP_H, PIPE_CAP_W, PIPE_CAP_H) ||
+    circleRectHit(bird.x, bird.y, BIRD_RADIUS, pipe.x, botY, PIPE_WIDTH, CVH - GROUND_H - botY) ||
+    circleRectHit(bird.x, bird.y, BIRD_RADIUS, capX,   botY, PIPE_CAP_W, PIPE_CAP_H)
+  );
+}
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+function handleFlap() {
+  getAudio(); // lazy init AudioContext on first user gesture
+  if (gs === 'menu') {
+    gs = 'playing';
+    framesSinceStart = 0;
+    initBird();
+    pipes = [];
+    particles = [];
+    score = 0;
+    newBest = false;
+    playFlap();
+  } else if (gs === 'playing') {
+    bird.vy = FLAP_VEL;
+    playFlap();
+  } else if (gs === 'gameover') {
+    // !! no menu return on restart
+    gs = 'playing';
+    framesSinceStart = 0;
+    initBird();
+    pipes = [];
+    particles = [];
+    score = 0;
+    newBest = false;
+    playFlap();
+  }
+  // gs === 'dying': input ignored (!! do not restart until particles done)
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); flapRequested = true; }
+});
+canvas.addEventListener('click', () => { flapRequested = true; });
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault(); // only on canvas, not page
+  flapRequested = true;
+}, { passive: false });
+
+// ─── GAME LOOP ────────────────────────────────────────────────────────────────
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+  frameCounter++;
+
+  if (flapRequested) { flapRequested = false; handleFlap(); }
+
+  // Ambient scrolling – always active regardless of GS
+  cloudOffset  += 0.75;  // 1/4 of pipe speed
+  groundOffset += 3;     // matches pipe speed
+
+  // ── Draw background ──
+  drawSky();
+  drawClouds();
+
+  if (gs === 'menu') {
+    drawGround();
+    drawMenuScreen();
+    drawBestScore();
+    return;
+  }
+
+  // ── Update: playing only ──
+  if (gs === 'playing') {
+    framesSinceStart++;
+
+    // Bird physics
+    bird.vy = Math.min(TERMINAL_VEL, bird.vy + GRAVITY);
+    bird.y += bird.vy;
+
+    // Bird top boundary
+    if (bird.y - BIRD_RADIUS < 0) { bird.y = BIRD_RADIUS; bird.vy = 0; }
+
+    // Pipe spawning
+    if (framesSinceStart === PIPE_FIRST_SPAWN) spawnPipe();
+    if (framesSinceStart > PIPE_FIRST_SPAWN &&
+        (framesSinceStart - PIPE_FIRST_SPAWN) % PIPE_SPAWN_INTERVAL === 0) spawnPipe();
+
+    // Pipe movement – per-instance x mutation
+    for (const pipe of pipes) {
+      pipe.x -= 3;  // per-instance x mutation; PIPE_SPEED = 3 px/FR
+    }
+    pipes = pipes.filter(p => p.x + PIPE_CAP_W > -10);
+
+    // Scoring: bird.x passes pipe right edge
+    for (const pipe of pipes) {
+      if (!pipe.scored && bird.x > pipe.x + PIPE_WIDTH) {
+        pipe.scored = true;
+        score++;
+        playPoint();
+      }
+    }
+
+    // Collision detection
+    let hit = bird.y + BIRD_RADIUS >= CVH - GROUND_H;
+    if (!hit) {
+      for (const pipe of pipes) { if (pipeHitsbird(pipe)) { hit = true; break; } }
+    }
+
+    if (hit) {
+      gs = 'dying';
+      spawnParticles(bird.x, bird.y);
+      playHit();
+      setTimeout(playDie, 100);
+      if (score > bestScore) {
+        bestScore = score;
+        newBest = true;
+        localStorage.setItem(BEST_KEY, String(bestScore));
+      }
+    }
+  }
+
+  // ── Update: dying ──
+  if (gs === 'dying') {
+    // Bird gravity continues; x fixed (bird.x never changes)
+    bird.vy = Math.min(TERMINAL_VEL, bird.vy + GRAVITY);
+    bird.y += bird.vy;
+
+    // Update particles – each has independent x/y/vx/vy
+    for (const p of particles) {
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.vy += GRAVITY;
+      p.life--;
+    }
+    particles = particles.filter(p => p.life > 0);
+
+    // Transition: both conditions required
+    if (particles.length === 0 && (bird.y + BIRD_RADIUS >= CVH - GROUND_H || bird.y > CVH)) {
+      gs = 'gameover';
+    }
+  }
+
+  // ── Render game scene (playing · dying · gameover) ──
+  for (const pipe of pipes) drawPipe(pipe);
+  drawGround();
+
+  // Bird render
+  if (gs === 'gameover') {
+    drawBird(bird.x, CVH - GROUND_H - BIRD_RADIUS, 0, 0);
+  } else {
+    drawBird(bird.x, bird.y, bird.vy, frameCounter);
+  }
+
+  if (particles.length > 0) drawParticles();
+
+  if (gs === 'playing' || gs === 'dying') {
+    drawScore();
+    drawBestScore();
+  }
+
+  if (gs === 'gameover') drawGameOverScreen();
+}
+
+// ─── RESIZE ───────────────────────────────────────────────────────────────────
+function handleResize() {
+  const scale = Math.min(window.innerWidth / CVW, window.innerHeight / CVH);
+  canvas.style.transform = `scale(${scale})`;
+  // Internal canvas resolution never changes (480×640 preserved)
+}
+window.addEventListener('resize', handleResize);
+handleResize();
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+initBird();
+gameLoop();
+</script>
+</body>
+</html>

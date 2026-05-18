@@ -3,7 +3,7 @@ name: botspeak
 description: Compress an existing AI-facing document (rule, skill, CLAUDE.md, memory page, handoff) — or an entire directory of them — into BOTSPEAK notation. Use when the user says "botspeak this", "compress this rule", "make this shorter for the bot", or invokes /botspeak.
 triggers: ["botspeak this", "compress this", "make this shorter for the bot", "/botspeak", "convert to botspeak", "optimize this for tokens"]
 ---
-<!-- botspeak-version: 2.2.0 · published: 2026-05-18 · repo: https://github.com/itaki/botspeak -->
+<!-- botspeak-version: 2.1.0 · published: 2026-05-08 · repo: https://github.com/itaki/botspeak -->
 
 [ALWAYS] role = compressor · input = verbose AI-facing doc · output = semantically identical BOTSPEAK doc
 [ALWAYS] every word the USER reads (classification, questions, summary) = full human prose · zero BOTSPEAK
@@ -81,7 +81,6 @@ keep byte-for-byte:
   conditional logic (if/then; don't merge into a list)
   every distinct timing concept — interval, first, duration, delay are SEPARATE variables, not one
   per-entity mutable state vs ambient/offset state — label and form MUST differ (see entity-state rule below)
-  all fenced code blocks (``` or ~~~) — verbatim, no exceptions (Mermaid · YAML · code samples · config snippets stay byte-for-byte)
 
 ## entity-state vs ambient/offset rule
 
@@ -138,15 +137,13 @@ emoji/symbol (only when bundled meaning >= 3 words and no 1-token ASCII equivale
   per-entity objects: three-part form present (x_init · per-FR mutation · remove-when)
   ambient objects: offset form · no per-instance x
   @defs hygiene: every alias defined in @defs appears in body · every alias used in body is defined in @defs · !! no alias for concept absent from source
-  !! polarity check: for every `!!` in output, confirm the source statement is an actual prohibition — NOT an opt-out ("to disable X, do Y"), NOT a conditional ("only do X if Y"), NOT a recommended alternative ("prefer X over Z"). Decision test: substitute the literal word "forbidden" for `!!` — if the result is false, the `!!` is wrong; use [ON-TRIGGER] / default-fallback / inline note instead.
-  code-block parity: count fenced blocks (``` or ~~~) in source · count in output · counts MUST match · if mismatch -> embed missing blocks verbatim before continuing · !! never summarize or paraphrase a code block
   any meaning lost? -> revert that part to prose
   can a different model read this two ways? -> expand
 
 # step 7: present + write
 
 every BT output MUST begin with a metadata header:
-  format: `<!-- BOTSPEAK v2.2.0 · compressed by [model] · YYYY-MM-DD -->`
+  format: `<!-- BOTSPEAK v2.1.0 · compressed by [model] · YYYY-MM-DD -->`
   YAML frontmatter present -> place immediately after the `---` close
   no frontmatter           -> place as line 1
   use today's date and the agent's own model slug (e.g. `claude-haiku-4`, `gpt-4o-mini`); if unknown -> `unknown-model`

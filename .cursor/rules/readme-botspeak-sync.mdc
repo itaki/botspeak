@@ -2,6 +2,7 @@
 description: Keep README and README-FOR-AI in sync on commit/push
 alwaysApply: true
 ---
+<!-- BOTSPEAK v2.1.0 · compressed by claude-sonnet-4-6 · 2026-05-08 -->
 
 # README Sync Rule [ALWAYS]
 

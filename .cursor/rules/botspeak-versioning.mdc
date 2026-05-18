@@ -1,0 +1,78 @@
+<!-- BOTSPEAK v2.1.0 · compressed by claude-sonnet-4-6 · 2026-05-08 -->
+# BOTSPEAK Versioning Protocol [ALWAYS]
+
+[ALWAYS] this rule applies to ALL edits to SPEC.md · skills/botspeak/SKILL.md · installed skill copies
+
+## version sources of truth
+
+[REFERENCE] SPEC.md line 1   = `# BOTSPEAK SPEC vX.Y.Z`  (the authoritative version)
+[REFERENCE] SPEC.md line 3   = `<!-- botspeak-version: X.Y.Z · published: YYYY-MM-DD · repo: ... -->`
+[REFERENCE] SKILL.md line 6  = `<!-- botspeak-version: X.Y.Z · published: YYYY-MM-DD · repo: ... -->`
+[REFERENCE] SKILL.md step 7  = hardcoded format string `<!-- BOTSPEAK vX.Y.Z · compressed by [model] · YYYY-MM-DD -->`
+
+[ALWAYS] all four locations MUST agree · !! mismatch -> treat as broken version
+
+## when to bump SPEC.md version
+
+[REFERENCE] PATCH (X.Y.Z -> X.Y.Z+1)  clarification · wording fix · new example · no new rules or symbols
+[REFERENCE] MINOR (X.Y.Z -> X.Y+1.0)  new section · new symbol · new phase tag · backward-compatible rule change
+[REFERENCE] MAJOR (X.Y.Z -> X+1.0.0)  complete overhaul · breaking symbol contract · new paradigm
+
+[ON-TRIGGER] any edit to SPEC.md -> bump version in H1 + metadata comment · !! even for typo fixes
+
+## skill publish protocol
+
+[ON-TRIGGER] user says "publish skill" || "release skill" || "update the installed skill" || "distill spec to skill":
+
+### pre-flight
+  confirm SPEC.md version is finalized · !! stop if SPEC.md has uncommitted edits that haven't been version-bumped
+  ask user (prose) for a short-tag describing what changed (e.g. "versioning-header", "strict-equals-rule", "conflict-detection")
+  if user does not provide one -> infer from the largest change in SPEC.md since last skill version
+
+### step 1 — determine archive seq
+  read skills/_archive/README.md
+  find the highest existing seq number in the botspeak/ table (e.g. v07 -> next = 08)
+  pad to 2 digits
+
+### step 2 — write the new skill
+  distill SPEC.md -> skills/botspeak/SKILL.md (or apply targeted edits if partial update)
+  update version comment (line after frontmatter ---): `<!-- botspeak-version: X.Y.Z · published: YYYY-MM-DD · repo: https://github.com/itaki/botspeak -->`
+  update step 7 hardcoded format string: `<!-- BOTSPEAK vX.Y.Z · compressed by [model] · YYYY-MM-DD -->`
+  !! SKILL.md version MUST equal SPEC.md version before continuing
+
+### step 3 — archive the new skill + SPEC
+  count lines in skills/botspeak/SKILL.md
+  archive filename: `v<seq>-<YYYYMMDD>-<lines>L-<short-tag>.md`
+  cp skills/botspeak/SKILL.md skills/_archive/botspeak/<filename>
+  count lines in SPEC.md
+  spec archive seq = highest existing seq in skills/_archive/spec/ + 1
+  cp SPEC.md skills/_archive/spec/v<seq>-<YYYYMMDD>-<lines>L-<short-tag>.md
+
+### step 4 — install
+  cp skills/botspeak/SKILL.md ~/.cursor/skills-cursor/botspeak/SKILL.md
+
+### step 5 — update archive README
+  add row to the botspeak/ table in skills/_archive/README.md:
+    | v<seq> | YYYY-MM-DD | <lines> | `<git-short-hash>` | <short-tag> + key changes (1 sentence) |
+  add row to the spec/ table in skills/_archive/README.md (same format)
+  get git short hash: `git rev-parse --short HEAD` (use `pending` if not yet committed)
+
+### step 6 — confirm
+  tell user (prose):
+    "Published BOTSPEAK v<X.Y.Z> as archive v<seq> (<lines> lines, <short-tag>).
+     Installed to ~/.cursor/skills-cursor/botspeak/SKILL.md.
+     Archive entry added to skills/_archive/README.md."
+
+!! do NOT publish if SPEC.md and SKILL.md versions differ
+!! do NOT skip the archive step — the archive is the regression test baseline
+
+## sync check
+
+[ON-TRIGGER] user asks "what version is botspeak?" || "is the skill up to date?":
+  read SPEC.md line 1 + line 3
+  read skills/botspeak/SKILL.md line 6 + step 7 format string
+  read ~/.cursor/skills-cursor/botspeak/SKILL.md line 6
+  report (prose): SPEC version · SKILL version · installed version · all match? yes/no
+
+[ALWAYS] !! never edit SKILL.md version without also editing SPEC.md version
+[ALWAYS] !! never ship a compressed output with a version string that doesn't match the skill that ran

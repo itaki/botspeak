@@ -3,9 +3,8 @@
 node_modules/
 __pycache__/
 .env
-MARKETING-TODO.md
+/marketing/
 /images-working/
+/_archive/
 *.bu.*.md
-*.bst.md
-_archive/
 *.bst.md

@@ -1,6 +1,6 @@
-# BOTSPEAK SPEC v2.2.0
+# BOTSPEAK SPEC v2.1.0
 
-<!-- botspeak-version: 2.2.0 · published: 2026-05-18 · repo: https://github.com/itaki/botspeak -->
+<!-- botspeak-version: 2.1.0 · published: 2026-05-08 · repo: https://github.com/itaki/botspeak -->
 
 > Human-maintainer specification. This document is intentionally human-readable and may use prose, markdown tables, and visual symbols for clarity.
 >
@@ -374,7 +374,6 @@ exact numbers · thresholds · limits
 constraint polarity (!! never vs ok allowed -- wrong polarity = bug)
 every distinct timing concept (interval, first, duration, delay are SEPARATE variables, not one)
 per-entity mutable state (each instance has its own copy of a variable) vs ambient/offset state (single shared scalar)
-all fenced code blocks (``` or ~~~) — verbatim, no exceptions (Mermaid, YAML, code samples, config snippets all stay byte-for-byte)
 ```
 
 **Per-entity state vs ambient/offset state.** When a spec describes objects that each carry independent position or other state (enemies, projectiles, particles), each instance requires an explicit `x_init`, per-frame mutation (`x: -= speed each FR`), and removal condition. When a spec describes ambient effects driven by a single shared scalar (scrolling background, parallax layer), use the offset form (`layer_offset: += speed each FR`). Using the same motion language for both causes build models to apply one abstraction to all — usually the ambient/offset pattern, which silently breaks per-entity physics while visually appearing correct. If the two kinds of motion coexist in one spec, label them explicitly (e.g. `← entity: per-instance x` vs `← ambient: single offset`).
@@ -819,34 +818,6 @@ obj.remove-when: obj.x + obj.w < 0
 ```
 Reserve the `layer_offset += speed each FR` form for ambient/parallax effects with no per-instance state. Label both forms explicitly when they coexist in one document.
 
-**14. Applying `!!` to correct-but-cautionary statements (polarity inversion)**
-
-`!!` means "forbidden / never do this." Before emitting `!!`, verify the underlying claim is actually a prohibition. Source language that *sounds* cautionary is not always a prohibition:
-
-```
-source: "To opt out of auto-update, set DISABLE_AUTOUPDATER=1"
-  wrong: !! DISABLE_AUTOUPDATER=1                    (reads as: forbidden setting)
-  right: [ON-TRIGGER] opt-out auto-update -> set DISABLE_AUTOUPDATER=1
-
-source: "Only run X if Y holds"
-  wrong: !! run X                                    (reads as: forbidden)
-  right: [ON-TRIGGER] Y holds -> run X
-
-source: "Prefer X over Z when possible"
-  wrong: !! use Z                                    (reads as: forbidden)
-  right: default X · fallback Z (when X unavailable)
-```
-
-The decompressed `!!` reads as "forbidden / warning" without context. A polarity-inverted `!!` is dangerous because it travels cleanly through the round-trip and produces an actively wrong constraint — an agent following it will do the opposite of what the source said.
-
-**Decision test:** can you replace `!!` with the literal word "forbidden" or "never" and have the statement still be true? If not, `!!` is wrong; use a phase tag, an `[ON-TRIGGER]` form, or an inline note instead.
-
-**15. Dropping fenced code blocks on long docs**
-
-Code blocks are often the highest-value content in a technical spec — they're the concrete artifact the rule is about. The skill is supposed to preserve them verbatim, but on long/complex docs (4000+ words) the rule gets crowded out and Mermaid diagrams, YAML configs, and code snippets get summarized or dropped.
-
-The fix is procedural, not notational: count fenced code blocks (``` or ~~~) in the source, count them in the compressed output, and fail compression if the counts disagree. If the doc is too large for single-pass preservation of all its code blocks, see §10 (size guidance) — split the doc or keep code blocks as appendices.
-
 ### How to debug a BOTSPEAK file that "isn't working"
 
 1. **Run `/botspeak-translate` on it.** Compare the output to what you intended. Drift means the BOTSPEAK is wrong, not the agent.
@@ -857,28 +828,7 @@ The fix is procedural, not notational: count fenced code blocks (``` or ~~~) in 
 
 ---
 
-## 10. Document Size Guidance
-
-BOTSPEAK works best on documents under ~1500 words. Above that, three problems compound:
-
-- **Code blocks, diagrams, and inline examples become disproportionately large** relative to compressible prose. They cannot be compressed (see §4 and §9 pitfall 15), so the achievable ratio on the *body* falls fast while the *output* keeps growing.
-- **Compression ratio falls below 0.25.** Below that threshold, most content is already dense and further compression risks dropping signal.
-- **`@defs` proximity reliability degrades.** Per §2, alias resolution becomes unreliable past 4K tokens of body unless `<section>`-scoped `<defs>` blocks are used at section boundaries.
-
-**Recommended strategy by source size:**
-
-```
-< 1500 words    -> single-pass compression, doc-scope @defs
-1500-4000 words -> single-pass compression, but verify code-block count + polarity carefully
-4000-8000 words -> section-scope <defs> mandatory · re-declare aliases per major section
-> 8000 words    -> split the doc · compress each section separately · or keep code blocks as appendices and compress only the prose
-```
-
-When in doubt, split. A 6000-word migration spec is better expressed as four 1500-word sections each compressed independently than as one giant pass where the verify checks struggle to keep up.
-
----
-
-## 11. The One Inviolable Rule
+## 10. The One Inviolable Rule
 
 **[ALWAYS]** any content the USER will read (questions, concerns, choices, warnings, error messages, explanations) -> full clear prose in their language -> zero BOTSPEAK
 

@@ -2,17 +2,22 @@
 description: BOTSPEAK — write AI-facing docs in compressed symbol+alias notation, never in chat
 alwaysApply: true
 ---
+<!-- BOTSPEAK v2.1.0 · compressed by claude-sonnet-4-6 · 2026-05-08 -->
 
-# BOTSPEAK [ALWAYS]
+# BT [ALWAYS]
 
-[ALWAYS] BOTSPEAK only in AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs)
-[ALWAYS] chat replies to USER = full human prose · !! zero BOTSPEAK
-[NEW-CHAT] NEW AI-facing docs -> write in BOTSPEAK · EXISTING docs -> refactor only when user explicitly asks
-[ON-TRIGGER] user requests prose ("write this in prose" || "make this readable" || "no botspeak" || "-bs") -> render in human prose · skip BOTSPEAK for this output
+@defs
+  BT = BOTSPEAK
+@end
+
+[ALWAYS] BT only in AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs)
+[ALWAYS] chat replies to USER = full human prose · !! zero BT
+[NEW-CHAT] NEW AI-facing docs -> write in BT · EXISTING docs -> refactor only when user explicitly asks
+[ON-TRIGGER] user requests prose ("write this in prose" || "make this readable" || "no botspeak" || "-bs") -> render in human prose · skip BT for this output
 
 # skills
 !! writing new BT docs -> load /botspeak skill for grammar · symbols · write order
-/botspeak           -> compress doc or directory -> BOTSPEAK
-/botspeak-translate -> render BOTSPEAK -> human prose for audit/review
+/botspeak           -> compress doc or directory -> BT
+/botspeak-translate -> render BT -> human prose for audit/review
 
-[ALWAYS] user reads it -> prose · agent reads it -> BOTSPEAK
+[ALWAYS] user reads it -> prose · agent reads it -> BT

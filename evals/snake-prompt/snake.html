@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<!-- Snake · ~350 lines · sections: setup, state, audio, render, game-logic, input, main-loop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: monospace;
+  }
+  #score-display {
+    color: #fff;
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+  }
+  #best-display {
+    color: #888;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  canvas {
+    display: block;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="score-display">0</div>
+<div id="best-display">BEST: 0</div>
+<canvas id="cv" width="400" height="400"></canvas>
+<script>
+'use strict';
+
+// ─── constants ───────────────────────────────────────────────────────────────
+const COLS = 20, ROWS = 20, CELL = 20;
+const CV_W = 400, CV_H = 400;
+const TK_START = 150, TK_MIN = 60, TK_STEP = 10;
+const SC_KEY = 'snakeBest';
+
+// ─── canvas setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score-display');
+const bestEl  = document.getElementById('best-display');
+
+// ─── state ────────────────────────────────────────────────────────────────────
+// BD: array of {col, row} objects — per-instance segment positions, head at BD[0]
+let BD = [];
+let snakeDir   = { dx: 1, dy: 0 };   // current direction
+let dirPending = null;                // input buffer: queue max 1 pending direction change
+let foodPos    = { col: 0, row: 0 }; // single food instance
+let score      = 0;
+let bestScore  = parseInt(localStorage.getItem(SC_KEY) || '0', 10);
+let foodsEaten = 0;
+let tkInterval = TK_START;
+let frameCounter = 0;
+let gameState  = 'menu'; // 'menu' | 'playing' | 'dead' | 'win'
+let deathFlashFrames = 0;
+let tkTimer    = null;   // setTimeout handle for game logic tick
+
+// ─── audio ───────────────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playEat() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.3, t);
+  g.gain.setValueAtTime(0, t + 0.06);
+  g.connect(audioCtx.destination);
+  const o1 = audioCtx.createOscillator();
+  o1.frequency.setValueAtTime(440, t);
+  o1.connect(g); o1.start(t); o1.stop(t + 0.03);
+  const o2 = audioCtx.createOscillator();
+  o2.frequency.setValueAtTime(660, t + 0.03);
+  o2.connect(g); o2.start(t + 0.03); o2.stop(t + 0.06);
+}
+
+function playDeath() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.4, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  g.connect(audioCtx.destination);
+  const o = audioCtx.createOscillator();
+  o.frequency.setValueAtTime(300, t);
+  o.frequency.linearRampToValueAtTime(100, t + 0.25);
+  o.connect(g); o.start(t); o.stop(t + 0.25);
+  // white noise burst
+  const noiseLen = Math.floor(audioCtx.sampleRate * 0.05);
+  const buf = audioCtx.createBuffer(1, noiseLen, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.2, t + 0.25);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
+  src.connect(ng); ng.connect(audioCtx.destination);
+  src.start(t + 0.25); src.stop(t + 0.30);
+}
+
+// ─── food ─────────────────────────────────────────────────────────────────────
+function spawnFood() {
+  // collect all occupied cells
+  const occupied = new Set(BD.map(s => s.col + ',' + s.row));
+  const empty = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (!occupied.has(c + ',' + r)) empty.push({ col: c, row: r });
+    }
+  }
+  if (empty.length === 0) {
+    gameState = 'win';
+    return;
+  }
+  foodPos = empty[Math.floor(Math.random() * empty.length)];
+}
+
+// ─── game init ────────────────────────────────────────────────────────────────
+function startGame() {
+  // BD: array of per-instance segment objects {col, row}, head at index 0
+  BD = [
+    { col: 3, row: 10 },
+    { col: 2, row: 10 },
+    { col: 1, row: 10 }
+  ];
+  snakeDir   = { dx: 1, dy: 0 };
+  dirPending = null;
+  score      = 0;
+  foodsEaten = 0;
+  tkInterval = TK_START;
+  deathFlashFrames = 0;
+  gameState  = 'playing';
+  scoreEl.textContent = '0';
+  spawnFood();
+  scheduleTick();
+}
+
+// ─── game logic tick (setTimeout-based — separate from rAF render loop) ───────
+function gameTick() {
+  if (gameState !== 'playing') return;
+
+  // apply buffered direction change (validate not-reverse)
+  if (dirPending) {
+    const d = dirPending;
+    const notReverse = !(d.dx === -snakeDir.dx && d.dy === -snakeDir.dy);
+    if (notReverse) snakeDir = d;
+    dirPending = null;
+  }
+
+  // compute new head
+  const head    = BD[0];
+  const newHead = { col: head.col + snakeDir.dx, row: head.row + snakeDir.dy };
+
+  // collision: boundary
+  if (newHead.col < 0 || newHead.col >= COLS || newHead.row < 0 || newHead.row >= ROWS) {
+    die(); return;
+  }
+  // collision: self (check body segments excluding head, per spec BD[1..])
+  for (let i = 1; i < BD.length; i++) {
+    if (BD[i].col === newHead.col && BD[i].row === newHead.row) {
+      die(); return;
+    }
+  }
+
+  // prepend new head — per-instance mutation of BD array
+  BD.unshift(newHead);
+
+  // check food eaten
+  const ateFood = newHead.col === foodPos.col && newHead.row === foodPos.row;
+  if (ateFood) {
+    // tail kept = snake grows (no BD.pop())
+    score      += 10;
+    foodsEaten += 1;
+    scoreEl.textContent = String(score);
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem(SC_KEY, String(bestScore));
+      bestEl.textContent = 'BEST: ' + bestScore;
+    }
+    playEat();
+    // speed progression: decrease tick interval every 5 foods
+    if (foodsEaten % 5 === 0) {
+      tkInterval = Math.max(TK_MIN, tkInterval - TK_STEP);
+    }
+    spawnFood();
+    if (gameState === 'win') return;
+  } else {
+    // remove tail (snake does not grow)
+    BD.pop();
+  }
+
+  scheduleTick();
+}
+
+function scheduleTick() {
+  if (tkTimer) clearTimeout(tkTimer);
+  tkTimer = setTimeout(gameTick, tkInterval);
+}
+
+function die() {
+  gameState = 'dead';
+  deathFlashFrames = 3;
+  playDeath();
+  if (tkTimer) { clearTimeout(tkTimer); tkTimer = null; }
+}
+
+// ─── rendering (rAF loop — separate from game logic) ─────────────────────────
+function drawRoundedRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function render() {
+  frameCounter++;
+
+  // clear
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, CV_W, CV_H);
+
+  // grid overlay
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, CV_H); ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(CV_W, r * CELL); ctx.stroke();
+  }
+
+  if (gameState === 'menu') {
+    drawMenu();
+    return;
+  }
+
+  // draw food (single-instance, pulses via frame_counter)
+  {
+    const pulse = Math.sin((frameCounter / 60) * Math.PI * 2);
+    const r = 8 + pulse;  // oscillates 7–9px
+    const fx = foodPos.col * CELL + CELL / 2;
+    const fy = foodPos.row * CELL + CELL / 2;
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath(); ctx.arc(fx, fy, r, 0, Math.PI * 2); ctx.fill();
+    // shiny highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath(); ctx.arc(fx - 3, fy - 3, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // draw snake body segments (BD array, per-instance {col,row})
+  for (let i = BD.length - 1; i >= 1; i--) {
+    const s = BD[i];
+    ctx.fillStyle = '#2ecc71';
+    drawRoundedRect(s.col * CELL + 1, s.row * CELL + 1, CELL - 2, CELL - 2, 2);
+    ctx.fill();
+  }
+
+  // draw snake head
+  if (BD.length > 0) {
+    const h = BD[0];
+    ctx.fillStyle = '#39ff14';
+    drawRoundedRect(h.col * CELL + 1, h.row * CELL + 1, CELL - 2, CELL - 2, 2);
+    ctx.fill();
+    // eyes: 2× 3px dark circles in direction of movement
+    const ex = h.col * CELL + CELL / 2;
+    const ey = h.row * CELL + CELL / 2;
+    const offsets = getEyeOffsets(snakeDir);
+    ctx.fillStyle = '#111';
+    for (const off of offsets) {
+      ctx.beginPath();
+      ctx.arc(ex + off.x, ey + off.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (gameState === 'dead') drawDeath();
+  if (gameState === 'win')  drawWin();
+}
+
+function getEyeOffsets(dir) {
+  // two eyes perpendicular to movement direction
+  if (dir.dx === 1)  return [{ x: 5, y: -4 }, { x: 5, y: 4 }];
+  if (dir.dx === -1) return [{ x: -5, y: -4 }, { x: -5, y: 4 }];
+  if (dir.dy === -1) return [{ x: -4, y: -5 }, { x: 4, y: -5 }];
+  return [{ x: -4, y: 5 }, { x: 4, y: 5 }];
+}
+
+function drawMenu() {
+  ctx.fillStyle = '#39ff14';
+  ctx.font = 'bold 56px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SNAKE', CV_W / 2, CV_H / 2 - 30);
+
+  const alpha = 0.5 + 0.5 * Math.sin(frameCounter * 0.05);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px monospace';
+  ctx.fillText('Press SPACE or click to start', CV_W / 2, CV_H / 2 + 20);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#888';
+  ctx.font = '14px monospace';
+  ctx.fillText('BEST: ' + bestScore, CV_W / 2, CV_H - 20);
+}
+
+function drawDeath() {
+  if (deathFlashFrames > 0) {
+    ctx.fillStyle = 'rgba(255,0,0,0.35)';
+    ctx.fillRect(0, 0, CV_W, CV_H);
+    deathFlashFrames--;
+    return;
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, 0, CV_W, CV_H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = 'bold 48px monospace';
+  ctx.fillText('GAME OVER', CV_W / 2, CV_H / 2 - 60);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '22px monospace';
+  ctx.fillText('Score: ' + score, CV_W / 2, CV_H / 2 - 15);
+
+  if (score > 0 && score >= bestScore) {
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('NEW BEST!', CV_W / 2, CV_H / 2 + 15);
+  }
+
+  ctx.fillStyle = '#888';
+  ctx.font = '14px monospace';
+  ctx.fillText('Best: ' + bestScore, CV_W / 2, CV_H / 2 + 42);
+
+  ctx.fillStyle = '#fff';
+  const a = 0.5 + 0.5 * Math.sin(frameCounter * 0.05);
+  ctx.globalAlpha = a;
+  ctx.font = '14px monospace';
+  ctx.fillText('Press SPACE or click to restart', CV_W / 2, CV_H / 2 + 75);
+  ctx.globalAlpha = 1;
+}
+
+function drawWin() {
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, 0, CV_W, CV_H);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#39ff14';
+  ctx.font = 'bold 52px monospace';
+  ctx.fillText('YOU WIN!', CV_W / 2, CV_H / 2 - 20);
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px monospace';
+  ctx.fillText('Press SPACE or click to restart', CV_W / 2, CV_H / 2 + 30);
+}
+
+// ─── input handling ───────────────────────────────────────────────────────────
+const DIR_MAP = {
+  ArrowUp:    { dx: 0, dy: -1 },
+  ArrowDown:  { dx: 0, dy: 1 },
+  ArrowLeft:  { dx: -1, dy: 0 },
+  ArrowRight: { dx: 1, dy: 0 }
+};
+
+document.addEventListener('keydown', (e) => {
+  initAudio();
+  if (e.key === ' ') {
+    e.preventDefault();
+    if (gameState === 'menu' || gameState === 'dead' || gameState === 'win') startGame();
+    return;
+  }
+  if (gameState !== 'playing') return;
+  const newDir = DIR_MAP[e.key];
+  if (!newDir) return;
+  e.preventDefault();
+  // store at most 1 pending direction change (overwrite previous if not yet consumed)
+  dirPending = newDir;
+});
+
+canvas.addEventListener('click', () => {
+  initAudio();
+  if (gameState === 'menu' || gameState === 'dead' || gameState === 'win') startGame();
+});
+
+// touch swipe: detect direction from touchstart -> touchend delta
+let touchStartX = 0, touchStartY = 0;
+canvas.addEventListener('touchstart', (e) => {
+  initAudio();
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+canvas.addEventListener('touchend', (e) => {
+  if (gameState === 'menu' || gameState === 'dead' || gameState === 'win') { startGame(); return; }
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    dirPending = dx > 0 ? { dx: 1, dy: 0 } : { dx: -1, dy: 0 };
+  } else {
+    dirPending = dy > 0 ? { dx: 0, dy: 1 } : { dx: 0, dy: -1 };
+  }
+}, { passive: true });
+
+// ─── main rAF loop (render only — game logic driven by separate setTimeout) ───
+function loop() {
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ─── init ─────────────────────────────────────────────────────────────────────
+bestEl.textContent = 'BEST: ' + bestScore;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

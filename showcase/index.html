@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOTSPEAK · Evaluations — v2.2.0</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-card: #11161f;
+    --bg-card-2: #161c27;
+    --border: #1f2837;
+    --text: #e6edf3;
+    --text-dim: #8b98a9;
+    --text-muted: #5d6b7e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.92em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero */
+  .hero {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #11161f 0%, var(--bg) 100%);
+  }
+  .hero h1 {
+    font-size: clamp(36px, 5vw, 56px);
+    margin: 0 0 12px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .hero .subtitle {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 28px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .hero p { font-size: 18px; color: var(--text-dim); max-width: 780px; margin: 0 0 16px; }
+  .hero .meta {
+    margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);
+    color: var(--text-muted); font-size: 14px;
+  }
+  .hero .meta strong { color: var(--text-dim); font-weight: 600; }
+
+  /* Section heads */
+  section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+  section h2 {
+    font-size: 32px; margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  section .lede {
+    color: var(--text-dim); font-size: 17px; max-width: 780px;
+    margin: 0 0 40px;
+  }
+
+  /* Game card */
+  .game-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .game-card-header {
+    padding: 24px 28px;
+    background: var(--bg-card-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .game-card-header h3 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.01em; }
+  .game-card-header .description { margin: 0; color: var(--text-dim); font-size: 15px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    background: var(--bg-card);
+    padding: 16px 20px;
+  }
+  .stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .stat .value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .value.pass { color: var(--green); }
+
+  .iframes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 24px;
+  }
+  .iframe-box { background: #000; border-radius: 8px; overflow: hidden; }
+  .iframe-box .iframe-label {
+    background: var(--bg-card-2);
+    color: var(--text-dim);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .iframe-box .iframe-label .src { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .iframe-box iframe {
+    width: 100%; height: 540px; border: 0; display: block; background: #000;
+  }
+
+  .links { padding: 12px 28px 24px; color: var(--text-muted); font-size: 13px; }
+  .links a { margin-right: 18px; }
+
+  /* Round-trip table */
+  table { width: 100%; border-collapse: collapse; }
+  table th, table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  table th {
+    background: var(--bg-card-2);
+    font-weight: 600;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  table .pass { color: var(--green); font-weight: 600; }
+  table .partial { color: var(--yellow); font-weight: 600; }
+  table .fixed { color: var(--green); font-weight: 600; }
+  table .nochange { color: var(--text-dim); }
+
+  /* Side-by-side iframes break to stacked on mobile */
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .iframes { grid-template-columns: 1fr; }
+    .iframe-box iframe { height: 480px; }
+  }
+
+  /* Footer */
+  footer { padding: 48px 0 64px; color: var(--text-muted); font-size: 13px; }
+  footer .links a { margin-right: 18px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="subtitle">BOTSPEAK · Evaluations</div>
+    <h1>How AIs should talk to other AIs.</h1>
+    <p>
+      BOTSPEAK exists to give AIs a way to talk to other AIs in something closer to their
+      native voice. The Flappy Bird and Snake and Pong and Breakout demos on this page are
+      stress tests for the language's fidelity. They are diagnostic instruments. They are
+      not the product.
+    </p>
+    <p>
+      What this page tries to show is that a fresh model with no prior context, given only a
+      BOTSPEAK-compressed prompt, produces a game that matches the prose-built game on every
+      numeric constant and every behavioral rule.
+    </p>
+    <div class="meta">
+      <strong>Spec version:</strong> v2.2.0 ·
+      <strong>Run date:</strong> 2026-05-18 ·
+      <strong>Model:</strong> Claude Sonnet 4.6 (all builds) ·
+      <strong>Methodology:</strong> clean-room subagents per stage ·
+      <strong>Repo:</strong> <a href="https://github.com/itaki/botspeak">github.com/itaki/botspeak</a>
+    </div>
+  </div>
+</header>
+
+<section id="games">
+  <div class="container">
+    <h2>Game synthesis evals</h2>
+    <p class="lede">
+      Four games, four head-to-head comparisons. Each row shows the prose-built version on the
+      left and the BOTSPEAK-built version on the right. The two were built independently by
+      different fresh model instances. Neither saw the other. Neither saw any prior context
+      about this project. Click in to play. Identical physics is the result.
+    </p>
+
+    <!-- Flappy Bird -->
+    <article class="game-card">
+      <div class="game-card-header">
+        <h3>Flappy Bird</h3>
+        <p class="description">Physics-driven side-scroller. Per-entity pipe state. Particle death animation. localStorage best score. The historical regression test — v2.0.0 failed this; v2.2.0 passes clean-room.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Prose words</div><div class="value">1,415</div></div>
+        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">974</div></div>
+        <div class="stat"><div class="label">Compression</div><div class="value">31%</div></div>
+        <div class="stat"><div class="label">Parity</div><div class="value pass">15 / 15</div></div>
+      </div>
+      <div class="iframes">
+        <div class="iframe-box">
+          <div class="iframe-label"><span>Prose build</span><span class="src">flappy-prose.html</span></div>
+          <iframe src="../evals/game-prompt/results/flappy-prose.html" loading="lazy"></iframe>
+        </div>
+        <div class="iframe-box">
+          <div class="iframe-label"><span>BOTSPEAK build</span><span class="src">botspeak-sonnet-v22.html</span></div>
+          <iframe src="../evals/game-prompt/results/botspeak-sonnet-v22.html" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="links">
+        <a href="../evals/game-prompt/source.md">prose source</a>
+        <a href="../evals/game-prompt/source-botspeak-v22.md">BOTSPEAK source</a>
+        <a href="../evals/game-prompt/parity-report.md">parity report</a>
+      </div>
+    </article>
+
+    <!-- Snake -->
+    <article class="game-card">
+      <div class="game-card-header">
+        <h3>Snake</h3>
+        <p class="description">Grid logic, turn-based. Tests preservation of input-buffer rules and the no-reverse-direction constraint — small details a sloppy compression could lose.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Prose words</div><div class="value">851</div></div>
+        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">549</div></div>
+        <div class="stat"><div class="label">Compression</div><div class="value">35%</div></div>
+        <div class="stat"><div class="label">Parity</div><div class="value pass">10 / 10</div></div>
+      </div>
+      <div class="iframes">
+        <div class="iframe-box">
+          <div class="iframe-label"><span>Prose build</span><span class="src">prose-sonnet.html</span></div>
+          <iframe src="../evals/snake-prompt/results/prose-sonnet.html" loading="lazy"></iframe>
+        </div>
+        <div class="iframe-box">
+          <div class="iframe-label"><span>BOTSPEAK build</span><span class="src">botspeak-sonnet-v22.html</span></div>
+          <iframe src="../evals/snake-prompt/results/botspeak-sonnet-v22.html" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="links">
+        <a href="../evals/snake-prompt/source.md">prose source</a>
+        <a href="../evals/snake-prompt/source-botspeak-v22.md">BOTSPEAK source</a>
+        <a href="../evals/snake-prompt/parity-report.md">parity report</a>
+      </div>
+    </article>
+
+    <!-- Pong -->
+    <article class="game-card">
+      <div class="game-card-header">
+        <h3>Pong</h3>
+        <p class="description">Tier 1 canary game. Simplest one-shot in the suite — if BOTSPEAK ever fails on Pong, compression is too aggressive. Tests the bounce-angle formula and CPU AI.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Prose words</div><div class="value">1,350</div></div>
+        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">820</div></div>
+        <div class="stat"><div class="label">Compression</div><div class="value">39%</div></div>
+        <div class="stat"><div class="label">Parity</div><div class="value pass">14 / 14</div></div>
+      </div>
+      <div class="iframes">
+        <div class="iframe-box">
+          <div class="iframe-label"><span>Prose build</span><span class="src">prose-sonnet.html</span></div>
+          <iframe src="../evals/pong-prompt/results/prose-sonnet.html" loading="lazy"></iframe>
+        </div>
+        <div class="iframe-box">
+          <div class="iframe-label"><span>BOTSPEAK build</span><span class="src">botspeak-sonnet-v22.html</span></div>
+          <iframe src="../evals/pong-prompt/results/botspeak-sonnet-v22.html" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="links">
+        <a href="../evals/pong-prompt/source.md">prose source</a>
+        <a href="../evals/pong-prompt/source-botspeak-v22.md">BOTSPEAK source</a>
+        <a href="../evals/pong-prompt/parity-report.md">parity report</a>
+      </div>
+    </article>
+
+    <!-- Breakout -->
+    <article class="game-card">
+      <div class="game-card-header">
+        <h3>Breakout</h3>
+        <p class="description">Physics + grid data structure combined. Tests preservation of per-row color array, per-row score array, and edge-detection collision logic.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Prose words</div><div class="value">1,499</div></div>
+        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">838</div></div>
+        <div class="stat"><div class="label">Compression</div><div class="value">44%</div></div>
+        <div class="stat"><div class="label">Parity</div><div class="value pass">21 / 21</div></div>
+      </div>
+      <div class="iframes">
+        <div class="iframe-box">
+          <div class="iframe-label"><span>Prose build</span><span class="src">prose-sonnet.html</span></div>
+          <iframe src="../evals/breakout-prompt/results/prose-sonnet.html" loading="lazy"></iframe>
+        </div>
+        <div class="iframe-box">
+          <div class="iframe-label"><span>BOTSPEAK build</span><span class="src">botspeak-sonnet-v22.html</span></div>
+          <iframe src="../evals/breakout-prompt/results/botspeak-sonnet-v22.html" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="links">
+        <a href="../evals/breakout-prompt/source.md">prose source</a>
+        <a href="../evals/breakout-prompt/source-botspeak-v22.md">BOTSPEAK source</a>
+        <a href="../evals/breakout-prompt/parity-report.md">parity report</a>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section id="roundtrip">
+  <div class="container">
+    <h2>Round-trip fidelity evals</h2>
+    <p class="lede">
+      Take a real AI-facing document, compress it via the BOTSPEAK skill, then audit. Did
+      every constraint survive? Did the polarity stay intact? Did the code blocks make it
+      through? This is the canonical eval because it tests the language on its actual design
+      target — internal AI-to-AI documents — rather than downstream code synthesis.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Document</th>
+          <th>Type</th>
+          <th style="text-align:right">Source words</th>
+          <th style="text-align:right">Compressed</th>
+          <th style="text-align:right">Ratio</th>
+          <th>v2.1.0</th>
+          <th>v2.2.0</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">~257</td><td style="text-align:right">~140</td><td style="text-align:right">0.54</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">~560</td><td style="text-align:right">~155</td><td style="text-align:right">0.28</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">~est</td><td style="text-align:right">~est</td><td style="text-align:right">~0.53</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">~est</td><td style="text-align:right">~est</td><td style="text-align:right">~0.56</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (long)</td><td style="text-align:right">~4,506</td><td style="text-align:right">~680</td><td style="text-align:right">0.15</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
+        <tr><td>06</td><td>examples/06-backend-migration</td><td>tech migration spec</td><td style="text-align:right">~6,375</td><td style="text-align:right">~1,480</td><td style="text-align:right">0.23</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
+        <tr><td>E-01</td><td>external/django-cursorrules</td><td>.cursorrules</td><td style="text-align:right">~380</td><td style="text-align:right">~195</td><td style="text-align:right">0.51</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>E-02</td><td>external/rust-agents-md</td><td>AGENTS.md</td><td style="text-align:right">~560</td><td style="text-align:right">~255</td><td style="text-align:right">0.46</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>E-03</td><td>external/ai-dev-mdc</td><td>.mdc rule</td><td style="text-align:right">~460</td><td style="text-align:right">~220</td><td style="text-align:right">0.44</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 32px; padding: 20px 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+      <h3 style="margin: 0 0 12px; font-size: 18px;">What changed in v2.2.0</h3>
+      <p style="margin: 0 0 10px;">
+        <strong>Polarity inversion fixed.</strong> In v2.1.0, doc 05 marked
+        <code>DISABLE_AUTOUPDATER=1</code> with the <code>!!</code> "forbidden" symbol because the
+        source language sounded cautionary. But that variable is an opt-out, not a prohibition.
+        v2.2.0 adds a polarity verification step in the skill: substitute the literal word
+        "forbidden" for each <code>!!</code> and verify the resulting statement holds.
+      </p>
+      <p style="margin: 0;">
+        <strong>Code-block parity enforced.</strong> In v2.1.0, doc 06's compression dropped 18 of
+        its 20 Mermaid diagrams, YAML configs, and SQL snippets even though the skill said to
+        preserve code blocks. v2.2.0 adds an explicit count check in the verify pass: count
+        fenced blocks in source vs output and fail if the counts disagree. The re-run preserves
+        20 of 20.
+      </p>
+    </div>
+
+    <p class="lede" style="margin-top: 32px;">
+      Full results table with verification commands:
+      <a href="../evals/round-trip-results.md">evals/round-trip-results.md</a>.
+    </p>
+
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="../README.md">README</a>
+      <a href="../SPEC.md">SPEC v2.2.0</a>
+      <a href="../PHILOSOPHY.md">Philosophy</a>
+      <a href="../skills/botspeak/SKILL.md">/botspeak skill</a>
+      <a href="../skills/botspeak-translate/SKILL.md">/botspeak-translate skill</a>
+      <a href="https://github.com/itaki/botspeak">GitHub</a>
+    </div>
+    <p style="margin-top: 16px;">
+      BOTSPEAK v2.2.0 · MIT licensed · This page was hand-authored as a single HTML file,
+      no build step, because HTML is the right format when humans are reading.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!--
+  Pong — Single-player vs CPU | Approximate line count: ~370
+  Sections: Constants · State · Audio · Drawing · Physics · Input · Game Loop
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PONG</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #canvas {
+    display: block;
+    transform-origin: center center;
+    box-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.04);
+  }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="800" height="500"></canvas>
+<script>
+'use strict';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const W            = 800;
+const H            = 500;
+const PADDLE_W     = 12;
+const PADDLE_H     = 80;
+const PLAYER_X     = 30;
+const CPU_X        = W - 30 - PADDLE_W;
+const BALL_SIZE    = 12;
+const BALL_VX0     = 5;
+const BALL_MAX_VX  = 12;
+const PLAYER_SPD   = 7;
+const CPU_CHASE    = 5;
+const CPU_DRIFT    = 2;
+const SPEEDUP      = 1.05;
+const WIN_SCORE    = 7;
+const SERVE_DELAY  = 60;
+const PULSE_PERIOD = 60;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let gameState   = 'menu'; // 'menu' | 'playing' | 'gameover'
+let frame       = 0;
+let serving     = false;
+let serveTimer  = 0;
+let lastWinner  = null;  // 'player' | 'cpu' — who won the last match (for restart serve dir)
+let playerScore = 0;
+let cpuScore    = 0;
+
+let ball   = { x: W/2 - BALL_SIZE/2, y: H/2 - BALL_SIZE/2, vx: 0, vy: 0 };
+let player = { y: H/2 - PADDLE_H/2 };
+let cpu    = { y: H/2 - PADDLE_H/2 };
+
+let keys     = { up: false, down: false };
+let touchDir = 0; // -1=up, 0=none, 1=down
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function tone(type, freq, dur, t) {
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.start(t);
+  osc.stop(t + dur + 0.01);
+}
+
+function soundPaddle() {
+  if (!audioCtx) return;
+  tone('square', 440, 0.06, audioCtx.currentTime);
+}
+
+function soundWall() {
+  if (!audioCtx) return;
+  tone('sine', 220, 0.05, audioCtx.currentTime);
+}
+
+function soundScore() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  tone('sine', 880, 0.08, t);
+  tone('sine', 440, 0.08, t + 0.08);
+}
+
+function soundWin() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  tone('sine', 523, 0.12, t);
+  tone('sine', 659, 0.12, t + 0.12);
+  tone('sine', 784, 0.12, t + 0.24);
+}
+
+// ─── Drawing ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+function drawCourt() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawPaddles() {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(PLAYER_X, player.y, PADDLE_W, PADDLE_H);
+  ctx.fillRect(CPU_X,    cpu.y,    PADDLE_W, PADDLE_H);
+}
+
+function drawBall() {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(ball.x, ball.y, BALL_SIZE, BALL_SIZE);
+}
+
+function drawScore() {
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 64px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(playerScore, W * 0.25, 80);
+  ctx.fillText(cpuScore,    W * 0.75, 80);
+  ctx.restore();
+}
+
+function pulseAlpha() {
+  // 0.4–1.0 over PULSE_PERIOD frames
+  return 0.7 + 0.3 * Math.sin((frame / PULSE_PERIOD) * Math.PI * 2);
+}
+
+function drawMenu() {
+  drawCourt();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = 'bold 48px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('PONG', W / 2, H * 0.35);
+
+  ctx.save();
+  ctx.globalAlpha  = pulseAlpha();
+  ctx.fillStyle    = '#ffffff';
+  ctx.font         = '24px sans-serif';
+  ctx.fillText('Press SPACE or tap to start', W / 2, H * 0.55);
+  ctx.restore();
+}
+
+function drawPlaying() {
+  drawCourt();
+  drawPaddles();
+  drawBall();
+  drawScore();
+}
+
+function drawGameover() {
+  drawCourt();
+  drawPaddles();
+  drawBall();
+  drawScore();
+
+  // Overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+
+  const playerWon = playerScore >= WIN_SCORE;
+  ctx.font         = 'bold 48px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = playerWon ? '#39ff14' : '#ff3939';
+  ctx.fillText(playerWon ? 'YOU WIN!' : 'CPU WINS', W / 2, H * 0.35);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = '32px sans-serif';
+  ctx.fillText(playerScore + ' : ' + cpuScore, W / 2, H * 0.35 + 60);
+
+  ctx.save();
+  ctx.globalAlpha = pulseAlpha();
+  ctx.fillStyle   = '#ffffff';
+  ctx.font        = '24px sans-serif';
+  ctx.fillText('Press SPACE or tap to play again', W / 2, H * 0.65);
+  ctx.restore();
+}
+
+// ─── Physics ──────────────────────────────────────────────────────────────────
+function clamp(y) {
+  return Math.max(0, Math.min(H - PADDLE_H, y));
+}
+
+function resetBall(vxSign) {
+  // vxSign: +1 → ball goes right (vx = +5), -1 → ball goes left (vx = -5)
+  ball.x  = W / 2 - BALL_SIZE / 2;
+  ball.y  = H / 2 - BALL_SIZE / 2;
+  ball.vx = vxSign * BALL_VX0;
+  ball.vy = (Math.random() * 6) - 3;
+  serving    = true;
+  serveTimer = SERVE_DELAY;
+}
+
+function startGame(serveVxSign) {
+  playerScore = 0;
+  cpuScore    = 0;
+  player.y    = H / 2 - PADDLE_H / 2;
+  cpu.y       = H / 2 - PADDLE_H / 2;
+  resetBall(serveVxSign);
+  gameState = 'playing';
+}
+
+function paddleCollide(paddleX, paddleY) {
+  const bcx = ball.x + BALL_SIZE / 2;
+  const bcy = ball.y + BALL_SIZE / 2;
+  const pcy = paddleY + PADDLE_H / 2;
+  ball.vy = ((bcy - pcy) / (PADDLE_H / 2)) * 7;
+  ball.vx = -ball.vx;
+  ball.vx *= SPEEDUP;
+  ball.vy *= SPEEDUP;
+  if (Math.abs(ball.vx) > BALL_MAX_VX) {
+    ball.vx = Math.sign(ball.vx) * BALL_MAX_VX;
+  }
+  soundPaddle();
+}
+
+function updatePhysics() {
+  // Player paddle
+  const dir = (keys.up   || touchDir === -1) ? -1
+            : (keys.down || touchDir ===  1) ?  1 : 0;
+  player.y = clamp(player.y + dir * PLAYER_SPD);
+
+  // CPU paddle
+  const ballCY = ball.y + BALL_SIZE / 2;
+  const cpuCY  = cpu.y  + PADDLE_H  / 2;
+  if (ball.vx > 0) {
+    const diff = ballCY - cpuCY;
+    cpu.y = clamp(cpu.y + Math.sign(diff) * Math.min(Math.abs(diff), CPU_CHASE));
+  } else {
+    const diff = (H / 2 - PADDLE_H / 2) - cpu.y;
+    cpu.y = clamp(cpu.y + Math.sign(diff) * Math.min(Math.abs(diff), CPU_DRIFT));
+  }
+
+  // Serve delay — ball frozen at center
+  if (serving) {
+    serveTimer--;
+    ball.x = W / 2 - BALL_SIZE / 2;
+    ball.y = H / 2 - BALL_SIZE / 2;
+    if (serveTimer <= 0) serving = false;
+    return;
+  }
+
+  // Move ball
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Wall bounce
+  if (ball.y <= 0) {
+    ball.y = 0;
+    ball.vy *= -1;
+    soundWall();
+  }
+  if (ball.y + BALL_SIZE >= H) {
+    ball.y = H - BALL_SIZE;
+    ball.vy *= -1;
+    soundWall();
+  }
+
+  // Player paddle collision (ball moving left, vx < 0)
+  if (ball.vx < 0 &&
+      ball.x <= PLAYER_X + PADDLE_W &&
+      ball.x + BALL_SIZE >= PLAYER_X &&
+      ball.y + BALL_SIZE >= player.y &&
+      ball.y <= player.y + PADDLE_H) {
+    ball.x = PLAYER_X + PADDLE_W;
+    paddleCollide(PLAYER_X, player.y);
+  }
+
+  // CPU paddle collision (ball moving right, vx > 0)
+  if (ball.vx > 0 &&
+      ball.x + BALL_SIZE >= CPU_X &&
+      ball.x <= CPU_X + PADDLE_W &&
+      ball.y + BALL_SIZE >= cpu.y &&
+      ball.y <= cpu.y + PADDLE_H) {
+    ball.x = CPU_X - BALL_SIZE;
+    paddleCollide(CPU_X, cpu.y);
+  }
+
+  // Scoring
+  if (ball.x + BALL_SIZE > W) {
+    playerScore++;
+    soundScore();
+    if (playerScore >= WIN_SCORE) {
+      lastWinner = 'player';
+      gameState  = 'gameover';
+      soundWin();
+    } else {
+      resetBall(+1); // spec: player scores → vx = +5
+    }
+  } else if (ball.x < 0) {
+    cpuScore++;
+    soundScore();
+    if (cpuScore >= WIN_SCORE) {
+      lastWinner = 'cpu';
+      gameState  = 'gameover';
+      soundWin();
+    } else {
+      resetBall(-1); // spec: CPU scores → vx = -5
+    }
+  }
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+function handleStart() {
+  ensureAudio();
+  if (gameState === 'menu') {
+    startGame(+1);
+  } else if (gameState === 'gameover') {
+    // Serve toward the loser of the previous match
+    // loser of 'player' win → cpu → ball goes right → vx = +5 → sign +1
+    // loser of 'cpu'    win → player → ball goes left → vx = -5 → sign -1
+    const sign = (lastWinner === 'player') ? +1 : -1;
+    startGame(sign);
+  }
+}
+
+window.addEventListener('keydown', function(e) {
+  if (e.code === 'ArrowUp'   || e.code === 'KeyW') keys.up   = true;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
+  if (e.code === 'Space') { handleStart(); e.preventDefault(); }
+});
+
+window.addEventListener('keyup', function(e) {
+  if (e.code === 'ArrowUp'   || e.code === 'KeyW') keys.up   = false;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
+});
+
+function getCanvasY(e) {
+  const rect   = canvas.getBoundingClientRect();
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return (clientY - rect.top) * (H / rect.height);
+}
+
+canvas.addEventListener('mousedown', function(e) {
+  ensureAudio();
+  if (gameState !== 'playing') { handleStart(); return; }
+  touchDir = getCanvasY(e) < H / 2 ? -1 : 1;
+});
+
+canvas.addEventListener('mouseup', function() { touchDir = 0; });
+
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  ensureAudio();
+  if (gameState !== 'playing') { handleStart(); return; }
+  touchDir = getCanvasY(e) < H / 2 ? -1 : 1;
+}, { passive: false });
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  touchDir = 0;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  if (gameState === 'playing') {
+    touchDir = getCanvasY(e) < H / 2 ? -1 : 1;
+  }
+}, { passive: false });
+
+// ─── Window Resize ────────────────────────────────────────────────────────────
+function handleResize() {
+  const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+  canvas.style.transform = 'scale(' + scale + ')';
+}
+window.addEventListener('resize', handleResize);
+handleResize();
+
+// ─── Game Loop ────────────────────────────────────────────────────────────────
+function loop() {
+  frame++;
+  if (gameState === 'menu') {
+    drawMenu();
+  } else if (gameState === 'playing') {
+    updatePhysics();
+    drawPlaying();
+  } else if (gameState === 'gameover') {
+    drawGameover();
+  }
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

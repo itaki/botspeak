@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Breakout · approx 330 lines
+     Sections: constants · state · audio · draw · physics · input · game-loop -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breakout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+#cv {
+  display: block;
+  transform-origin: center center;
+  box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 20px rgba(0,191,255,0.12);
+}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script>
+'use strict';
+
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+
+const CV_W = 480, CV_H = 640;
+const PD_W = 80, PD_H = 12, PD_R = 6, PD_Y = CV_H - 40;
+const PD_SPD = 8;
+const BL_R = 7;
+const BR_COLS = 8, BR_ROWS = 5, BR_W = 54, BR_H = 20, BR_GAP = 4, BR_TOP = 60;
+const BR_CLR = ['#ff4d4d', '#ff944d', '#ffd84d', '#4dd47e', '#4d9dff'];
+const BR_PTS = [50, 40, 30, 20, 10];
+const SERVE_DELAY = 30;
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let state = 'menu'; // menu · playing · win · GO
+let score = 0, lives = 3, frame_counter = 0;
+
+const pd = { x: CV_W / 2 - PD_W / 2 };
+const bl = { cx: 0, cy: 0, vx: 0, vy: 0, onPad: true };
+let bricks = [];
+let serve_timer = 0;
+
+const keys = {};
+let mouseX = null, touchX = null;
+
+function makeBricks() {
+  bricks = [];
+  const gw = BR_COLS * BR_W + (BR_COLS - 1) * BR_GAP;
+  const ox = (CV_W - gw) / 2;
+  for (let r = 0; r < BR_ROWS; r++)
+    for (let c = 0; c < BR_COLS; c++)
+      bricks.push({ x: ox + c * (BR_W + BR_GAP), y: BR_TOP + r * (BR_H + BR_GAP), row: r, alive: true });
+}
+
+function serveBall() {
+  bl.cx = pd.x + PD_W / 2;
+  bl.cy = PD_Y - BL_R;
+  bl.vx = (Math.random() < 0.5 ? 1 : -1) * 3;
+  bl.vy = -4;
+  bl.onPad = true;
+  serve_timer = SERVE_DELAY;
+}
+
+function resetGame() {
+  score = 0; lives = 3; frame_counter = 0;
+  pd.x = CV_W / 2 - PD_W / 2;
+  makeBricks();
+  serveBall();
+  state = 'playing';
+}
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+
+let actx = null;
+function ac() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  return actx;
+}
+
+function tone(type, freq, dur, freqEnd) {
+  try {
+    const a = ac(), t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (freqEnd != null) o.frequency.linearRampToValueAtTime(freqEnd, t + dur);
+    g.gain.setValueAtTime(0.3, t);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (_) {}
+}
+
+function sndPaddle() { tone('square', 440, 0.05); }
+function sndWall()   { tone('sine',   220, 0.04); }
+function sndLife()   { tone('sine',   300, 0.20, 100); }
+
+function sndBrick() {
+  try {
+    const a = ac(), t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(660, t);
+    o.frequency.setValueAtTime(880, t + 0.04);
+    g.gain.setValueAtTime(0.3, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.08);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + 0.08);
+  } catch (_) {}
+}
+
+function sndWin() {
+  try {
+    const a = ac();
+    [[523, 0], [659, 0.12], [784, 0.24]].forEach(([f, off]) => {
+      const t = a.currentTime + off;
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.35, t + 0.01);
+      g.gain.linearRampToValueAtTime(0, t + 0.12);
+      o.connect(g); g.connect(a.destination);
+      o.start(t); o.stop(t + 0.12);
+    });
+  } catch (_) {}
+}
+
+// ── DRAW ──────────────────────────────────────────────────────────────────────
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+cv.width = CV_W; cv.height = CV_H;
+
+function rrPath(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function darken(hex) {
+  return 'rgb(' + [1, 3, 5].map(i => Math.max(0, parseInt(hex.slice(i, i + 2), 16) - 60)).join(',') + ')';
+}
+
+function drawBricks() {
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    const c = BR_CLR[b.row];
+    ctx.fillStyle = c;
+    rrPath(b.x, b.y, BR_W, BR_H, 3); ctx.fill();
+    ctx.strokeStyle = darken(c); ctx.lineWidth = 2;
+    rrPath(b.x + 2, b.y + 2, BR_W - 4, BR_H - 4, 2); ctx.stroke();
+  }
+}
+
+function drawPaddle() {
+  ctx.fillStyle = '#00bfff';
+  rrPath(pd.x, PD_Y, PD_W, PD_H, PD_R); ctx.fill();
+}
+
+function drawBall() {
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(bl.cx, bl.cy, BL_R, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawHUD() {
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';  ctx.fillText('SCORE: ' + score, 12, 28);
+  ctx.textAlign = 'right'; ctx.fillText('LIVES: ' + lives, CV_W - 12, 28);
+}
+
+function pulse() {
+  return 0.4 + 0.3 * (1 + Math.sin((frame_counter / 60) * Math.PI * 2));
+}
+
+function draw() {
+  ctx.fillStyle = '#0d1b2a';
+  ctx.fillRect(0, 0, CV_W, CV_H);
+  drawBricks(); drawPaddle(); drawBall(); drawHUD();
+
+  ctx.textAlign = 'center';
+
+  if (state === 'menu') {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('BREAKOUT', CV_W / 2, CV_H * 0.35);
+    ctx.globalAlpha = pulse();
+    ctx.font = '20px sans-serif';
+    ctx.fillText('Press SPACE or click to start', CV_W / 2, CV_H * 0.50);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = 'alphabetic';
+
+  } else if (state === 'win' || state === 'GO') {
+    const isWin = state === 'win';
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, CV_W, CV_H);
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = isWin ? '#4dd47e' : '#ff4d4d';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText(isWin ? 'YOU WIN!' : 'GAME OVER', CV_W / 2, CV_H * 0.35);
+    ctx.fillStyle = '#fff';
+    ctx.font = '28px sans-serif';
+    ctx.fillText('SCORE: ' + score, CV_W / 2, CV_H * 0.35 + 52);
+    ctx.globalAlpha = pulse();
+    ctx.font = '20px sans-serif';
+    ctx.fillText(isWin ? 'Press SPACE to play again' : 'Press SPACE to try again', CV_W / 2, CV_H * 0.60);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = 'alphabetic';
+  }
+}
+
+// ── PHYSICS ───────────────────────────────────────────────────────────────────
+
+function movePaddle() {
+  if (touchX !== null) {
+    pd.x = Math.max(0, Math.min(CV_W - PD_W, touchX - PD_W / 2));
+  } else if (mouseX !== null) {
+    pd.x = Math.max(0, Math.min(CV_W - PD_W, mouseX - PD_W / 2));
+  } else {
+    if (keys['ArrowLeft']  || keys['a'] || keys['A']) pd.x = Math.max(0,          pd.x - PD_SPD);
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) pd.x = Math.min(CV_W - PD_W, pd.x + PD_SPD);
+  }
+}
+
+function brickHit() {
+  const px = bl.cx - bl.vx, py = bl.cy - bl.vy;
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    if (bl.cx + BL_R <= b.x || bl.cx - BL_R >= b.x + BR_W ||
+        bl.cy + BL_R <= b.y || bl.cy - BL_R >= b.y + BR_H) continue;
+    const pox = px + BL_R > b.x && px - BL_R < b.x + BR_W;
+    const poy = py + BL_R > b.y && py - BL_R < b.y + BR_H;
+    if      ( pox && !poy) bl.vy = -bl.vy;          // top/bottom entry
+    else if (!pox &&  poy) bl.vx = -bl.vx;          // left/right entry
+    else { bl.vx = -bl.vx; bl.vy = -bl.vy; }        // corner entry
+    b.alive = false; score += BR_PTS[b.row]; sndBrick(); break;
+  }
+}
+
+function update() {
+  movePaddle();
+
+  if (state === 'menu') {
+    bl.cx = pd.x + PD_W / 2; bl.cy = PD_Y - BL_R; return;
+  }
+  if (state !== 'playing') return;
+
+  if (serve_timer > 0) { serve_timer--; if (serve_timer === 0) bl.onPad = false; }
+
+  if (bl.onPad) { bl.cx = pd.x + PD_W / 2; bl.cy = PD_Y - BL_R; return; }
+
+  bl.cx += bl.vx; bl.cy += bl.vy;
+
+  // Wall bounces
+  if (bl.cx - BL_R <= 0)    { bl.cx = BL_R;        bl.vx =  Math.abs(bl.vx); sndWall(); }
+  if (bl.cx + BL_R >= CV_W) { bl.cx = CV_W - BL_R; bl.vx = -Math.abs(bl.vx); sndWall(); }
+  if (bl.cy - BL_R <= 0)    { bl.cy = BL_R;        bl.vy =  Math.abs(bl.vy); sndWall(); }
+
+  // Paddle collision
+  const pdCx = pd.x + PD_W / 2;
+  if (bl.vy > 0 &&
+      bl.cy + BL_R >= PD_Y && bl.cy - BL_R <= PD_Y + PD_H &&
+      bl.cx + BL_R >  pd.x && bl.cx - BL_R <  pd.x + PD_W) {
+    bl.cy = PD_Y - BL_R;
+    bl.vy = -Math.abs(bl.vy);
+    bl.vx = ((bl.cx - pdCx) / (PD_W / 2)) * 5;
+    bl.vx = Math.max(-7, Math.min(7, bl.vx));
+    sndPaddle();
+  }
+
+  brickHit();
+
+  // Ball falls off bottom
+  if (bl.cy - BL_R > CV_H) {
+    lives--; sndLife();
+    if (lives <= 0) { state = 'GO'; } else serveBall();
+    return;
+  }
+
+  // Win
+  if (bricks.every(b => !b.alive)) { state = 'win'; sndWin(); }
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === ' ') { e.preventDefault(); if (state !== 'playing') resetGame(); }
+});
+window.addEventListener('keyup', e => { delete keys[e.key]; });
+
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  mouseX = (e.clientX - r.left) * (CV_W / r.width);
+  touchX = null;
+});
+cv.addEventListener('mouseleave', () => { mouseX = null; });
+cv.addEventListener('click', () => { if (state !== 'playing') resetGame(); });
+
+cv.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  touchX = (e.touches[0].clientX - r.left) * (CV_W / r.width);
+  if (state !== 'playing') resetGame();
+}, { passive: false });
+
+cv.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  touchX = (e.touches[0].clientX - r.left) * (CV_W / r.width);
+}, { passive: false });
+
+cv.addEventListener('touchend', e => { e.preventDefault(); }, { passive: false });
+
+// ── RESIZE ────────────────────────────────────────────────────────────────────
+
+function applyScale() {
+  const s = Math.min(window.innerWidth / CV_W, window.innerHeight / CV_H);
+  cv.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', applyScale);
+applyScale();
+
+// ── GAME LOOP ─────────────────────────────────────────────────────────────────
+
+let lastTs = null, accum = 0;
+const STEP = 1000 / 60;
+const MAX_DT = 200;
+
+function loop(ts) {
+  if (lastTs === null) lastTs = ts;
+  accum += Math.min(ts - lastTs, MAX_DT);
+  lastTs = ts;
+  while (accum >= STEP) {
+    frame_counter++;
+    update();
+    accum -= STEP;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Init
+makeBricks();
+pd.x = CV_W / 2 - PD_W / 2;
+bl.cx = pd.x + PD_W / 2; bl.cy = PD_Y - BL_R;
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

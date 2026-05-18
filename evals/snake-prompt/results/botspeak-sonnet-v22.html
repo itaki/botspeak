@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<!--
+  Snake Game · ~490 lines
+  Sections: HTML/CSS layout, Constants, State init, Audio, Game logic, Render, Input, Bootstrap
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: monospace;
+  color: #fff;
+}
+#score-display {
+  text-align: center;
+  margin-bottom: 12px;
+}
+#current-score {
+  font-size: 48px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+  font-family: monospace;
+}
+#best-score {
+  font-size: 18px;
+  color: #aaa;
+  margin-top: 6px;
+  font-family: monospace;
+}
+#canvas {
+  display: block;
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.25), 0 0 8px rgba(0,0,0,0.8);
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="score-display">
+  <div id="current-score">0</div>
+  <div id="best-score">BEST: 0</div>
+</div>
+<canvas id="canvas" width="400" height="400"></canvas>
+
+<script>
+'use strict';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const COLS        = 20;
+const ROWS        = 20;
+const CELL        = 20;
+const SBKEY       = 'snakeBest';
+const SPEED_START = 150;
+const SPEED_MIN   = 60;
+const SPEED_DEC   = 10;
+const FOODS_STEP  = 5;
+
+// ── Canvas ───────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+// ── State ────────────────────────────────────────────────────────────────────
+let state;        // 'menu' | 'playing' | 'gameover' | 'win'
+let snake;        // array of {col, row}, head at index 0
+let dir;          // {dc, dr} — active direction
+let dirBuffer;    // {dc, dr} | null — queued direction (max 1)
+let food;         // {col, row}
+let score;
+let foodsEaten;
+let tickDelay;
+let tickTimer;
+let frame       = 0;
+let flashFrames = 0;
+let isNewBest   = false;
+let bestScore   = parseInt(localStorage.getItem(SBKEY) || '0', 10);
+let audioCtx    = null;
+let touchStart  = null;
+
+// ── Score Display ─────────────────────────────────────────────────────────────
+function updateScoreDisplay() {
+  document.getElementById('current-score').textContent = score != null ? score : 0;
+  document.getElementById('best-score').textContent = 'BEST: ' + bestScore;
+}
+updateScoreDisplay();
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playEat() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  [440, 660].forEach((freq, i) => {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type           = 'sine';
+    osc.frequency.value = freq;
+    const start = t + i * 0.03;
+    gain.gain.setValueAtTime(0.3, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.03);
+    osc.start(start);
+    osc.stop(start + 0.03);
+  });
+}
+
+function playDeath() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  // Descending tone: 300Hz → 100Hz over 250ms
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(300, t);
+  osc.frequency.linearRampToValueAtTime(100, t + 0.25);
+  gain.gain.setValueAtTime(0.4, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  osc.start(t);
+  osc.stop(t + 0.25);
+
+  // White noise burst: 50ms
+  const bufLen  = Math.ceil(audioCtx.sampleRate * 0.05);
+  const buf     = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const data    = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+  const src       = audioCtx.createBufferSource();
+  const noiseGain = audioCtx.createGain();
+  src.buffer = buf;
+  src.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+  noiseGain.gain.setValueAtTime(0.4, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  src.start(t);
+  src.stop(t + 0.05);
+}
+
+// ── Game Logic ────────────────────────────────────────────────────────────────
+function initGame() {
+  snake      = [{ col: 12, row: 10 }, { col: 11, row: 10 }, { col: 10, row: 10 }];
+  dir        = { dc: 1, dr: 0 };
+  dirBuffer  = null;
+  score      = 0;
+  foodsEaten = 0;
+  tickDelay  = SPEED_START;
+  isNewBest  = false;
+  flashFrames = 0;
+  spawnFood();
+  updateScoreDisplay();
+}
+
+function spawnFood() {
+  const empty = [];
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      if (!snake.some(s => s.col === c && s.row === r)) {
+        empty.push({ col: c, row: r });
+      }
+    }
+  }
+  if (empty.length === 0) {
+    state = 'win';
+    clearTimeout(tickTimer);
+    return;
+  }
+  food = empty[Math.floor(Math.random() * empty.length)];
+}
+
+function tick() {
+  if (state !== 'playing') return;
+
+  // Apply buffered direction
+  if (dirBuffer) {
+    dir       = dirBuffer;
+    dirBuffer = null;
+  }
+
+  // Compute new head
+  const head    = snake[0];
+  const newHead = { col: head.col + dir.dc, row: head.row + dir.dr };
+
+  // Boundary collision
+  if (newHead.col < 0 || newHead.col >= COLS || newHead.row < 0 || newHead.row >= ROWS) {
+    doGameOver();
+    return;
+  }
+
+  // Self collision
+  if (snake.some(s => s.col === newHead.col && s.row === newHead.row)) {
+    doGameOver();
+    return;
+  }
+
+  const ateFood = newHead.col === food.col && newHead.row === food.row;
+  snake.unshift(newHead);
+  if (!ateFood) {
+    snake.pop();
+  } else {
+    score += 10;
+    foodsEaten++;
+    if (score > bestScore) {
+      bestScore = score;
+      isNewBest = true;
+      localStorage.setItem(SBKEY, bestScore);
+    }
+    updateScoreDisplay();
+    // Speed up every FOODS_STEP foods
+    if (foodsEaten % FOODS_STEP === 0) {
+      tickDelay = Math.max(SPEED_MIN, tickDelay - SPEED_DEC);
+    }
+    playEat();
+    spawnFood();
+  }
+
+  tickTimer = setTimeout(tick, tickDelay);
+}
+
+function doGameOver() {
+  state       = 'gameover';
+  flashFrames = 3;
+  clearTimeout(tickTimer);
+  playDeath();
+  if (score > bestScore) {
+    bestScore = score;
+    isNewBest = true;
+    localStorage.setItem(SBKEY, bestScore);
+    updateScoreDisplay();
+  }
+}
+
+function startGame() {
+  initAudio();
+  clearTimeout(tickTimer);
+  initGame();
+  state     = 'playing';
+  tickTimer = setTimeout(tick, tickDelay);
+}
+
+// ── Render Helpers ────────────────────────────────────────────────────────────
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth   = 0.5;
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c * CELL, 0);
+    ctx.lineTo(c * CELL, ROWS * CELL);
+    ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r * CELL);
+    ctx.lineTo(COLS * CELL, r * CELL);
+    ctx.stroke();
+  }
+}
+
+function roundedRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawSnake() {
+  // Draw body first (back to front), then head on top
+  for (let i = snake.length - 1; i >= 0; i--) {
+    const seg = snake[i];
+    const x   = seg.col * CELL;
+    const y   = seg.row * CELL;
+    ctx.fillStyle = (i === 0) ? '#39ff14' : '#2ecc71';
+    roundedRect(x + 1, y + 1, CELL - 2, CELL - 2, 2);
+    ctx.fill();
+  }
+
+  // Eyes on head — 2×3px ellipses, positioned by direction
+  const h  = snake[0];
+  const hx = h.col * CELL;
+  const hy = h.row * CELL;
+  ctx.fillStyle = '#111';
+
+  let e1, e2;
+  const { dc, dr } = dir;
+  if (dc === 1 && dr === 0) {        // right
+    e1 = { x: hx + 15, y: hy + 5  };
+    e2 = { x: hx + 15, y: hy + 14 };
+  } else if (dc === -1 && dr === 0) { // left
+    e1 = { x: hx + 5,  y: hy + 5  };
+    e2 = { x: hx + 5,  y: hy + 14 };
+  } else if (dc === 0 && dr === -1) { // up
+    e1 = { x: hx + 5,  y: hy + 5  };
+    e2 = { x: hx + 14, y: hy + 5  };
+  } else {                            // down
+    e1 = { x: hx + 5,  y: hy + 15 };
+    e2 = { x: hx + 14, y: hy + 15 };
+  }
+
+  [e1, e2].forEach(e => {
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y, 1, 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawFood() {
+  // Pulse: radius oscillates 7–9px over 60-frame cycle
+  const t      = (frame % 60) / 60;
+  const radius = 7 + 2 * Math.sin(t * Math.PI * 2);
+  const fx     = food.col * CELL + CELL / 2;
+  const fy     = food.row * CELL + CELL / 2;
+
+  ctx.beginPath();
+  ctx.arc(fx, fy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = '#e74c3c';
+  ctx.fill();
+
+  // Shiny highlight: 2px white circle, upper-left
+  ctx.beginPath();
+  ctx.arc(fx - radius * 0.35, fy - radius * 0.35, 2, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fill();
+}
+
+// ── Render States ─────────────────────────────────────────────────────────────
+function drawMenu() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 400, 400);
+  drawGrid();
+
+  // Title
+  ctx.fillStyle    = '#39ff14';
+  ctx.font         = 'bold 64px monospace';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SNAKE', 200, 160);
+
+  // Pulsing subtitle
+  const opacity    = 0.5 + 0.5 * Math.sin(frame * 0.05);
+  ctx.fillStyle    = `rgba(255,255,255,${opacity})`;
+  ctx.font         = '16px monospace';
+  ctx.fillText('Press SPACE or click to start', 200, 235);
+
+  // Best score at bottom
+  ctx.fillStyle = '#aaa';
+  ctx.font      = '14px monospace';
+  ctx.fillText('BEST: ' + bestScore, 200, 345);
+}
+
+function drawPlaying() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 400, 400);
+  drawGrid();
+  drawFood();
+  drawSnake();
+
+  // Red flash overlay during game-over transition (while still state=playing
+  // this is unused; flash is handled in drawGameOver)
+}
+
+function drawGameOver() {
+  // Render frozen game state underneath
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 400, 400);
+  drawGrid();
+  if (food) drawFood();
+  drawSnake();
+
+  if (flashFrames > 0) {
+    // Red tint flash: 3 frames
+    ctx.fillStyle = 'rgba(220,30,30,0.45)';
+    ctx.fillRect(0, 0, 400, 400);
+    flashFrames--;
+    return;
+  }
+
+  // Semi-transparent dark overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.76)';
+  ctx.fillRect(0, 0, 400, 400);
+
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#fff';
+  ctx.font      = 'bold 48px monospace';
+  ctx.fillText('GAME OVER', 200, 140);
+
+  ctx.font = '22px monospace';
+  ctx.fillText('Score: ' + score, 200, 200);
+  ctx.fillText('Best:  ' + bestScore, 200, 232);
+
+  if (isNewBest) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font      = 'bold 22px monospace';
+    ctx.fillText('NEW BEST!', 200, 272);
+  }
+
+  const op      = 0.5 + 0.5 * Math.sin(frame * 0.05);
+  ctx.fillStyle = `rgba(255,255,255,${op})`;
+  ctx.font      = '14px monospace';
+  ctx.fillText('Press SPACE or click to restart', 200, 345);
+}
+
+function drawWin() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 400, 400);
+  drawGrid();
+
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font      = 'bold 56px monospace';
+  ctx.fillText('YOU WIN!', 200, 155);
+
+  ctx.fillStyle = '#fff';
+  ctx.font      = '22px monospace';
+  ctx.fillText('Score: ' + score, 200, 225);
+  ctx.fillText('Best:  ' + bestScore, 200, 257);
+
+  const op      = 0.5 + 0.5 * Math.sin(frame * 0.05);
+  ctx.fillStyle = `rgba(255,255,255,${op})`;
+  ctx.font      = '14px monospace';
+  ctx.fillText('Press SPACE or click to restart', 200, 345);
+}
+
+// ── Render Loop (rAF) ─────────────────────────────────────────────────────────
+function render() {
+  frame++;
+  switch (state) {
+    case 'menu':     drawMenu();     break;
+    case 'playing':  drawPlaying();  break;
+    case 'gameover': drawGameOver(); break;
+    case 'win':      drawWin();      break;
+  }
+  requestAnimationFrame(render);
+}
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+function tryChangeDir(dc, dr) {
+  if (state !== 'playing') return;
+  // Determine what direction is effectively "pending" (buffered or current)
+  const pending = dirBuffer || dir;
+  // Block exact reverse of pending direction
+  if (dc === -pending.dc && dr === -pending.dr) return;
+  // Block identical to pending (no-op)
+  if (dc === pending.dc && dr === pending.dr) return;
+  dirBuffer = { dc, dr };
+}
+
+document.addEventListener('keydown', e => {
+  switch (e.key) {
+    case 'ArrowUp':
+      e.preventDefault();
+      tryChangeDir(0, -1);
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      tryChangeDir(0, 1);
+      break;
+    case 'ArrowLeft':
+      e.preventDefault();
+      tryChangeDir(-1, 0);
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      tryChangeDir(1, 0);
+      break;
+    case ' ':
+      e.preventDefault();
+      initAudio();
+      if (state === 'menu' || state === 'gameover' || state === 'win') startGame();
+      break;
+  }
+});
+
+canvas.addEventListener('click', () => {
+  initAudio();
+  if (state === 'menu' || state === 'gameover' || state === 'win') startGame();
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  initAudio();
+  const t   = e.touches[0];
+  touchStart = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (!touchStart) return;
+  const t  = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  touchStart = null;
+
+  if (state !== 'playing') {
+    startGame();
+    return;
+  }
+
+  // Minimum delta to register as swipe
+  if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    tryChangeDir(dx > 0 ? 1 : -1, 0);
+  } else {
+    tryChangeDir(0, dy > 0 ? 1 : -1);
+  }
+}, { passive: false });
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+score = 0;
+updateScoreDisplay();
+state = 'menu';
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

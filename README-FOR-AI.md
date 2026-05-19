@@ -95,18 +95,32 @@ Keep reading below for proof · side-by-side game builds · real before/after co
 
 ## Before / After (real documents)
 
+### Synthetic examples (authored + round-tripped)
+
 | Document type                                         | Before  | After  | Reduction | Folder                                                           |
 | ----------------------------------------------------- | -------:| ------:| ---------:| ---------------------------------------------------------------- |
-| Short rule (branch guard)                             | 411     | 335    | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
-| Context handoff (one session → next)                  | 1,019   | 624    | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003   | 758    | **24%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Project philosophy / manifesto rule                   | 1,748   | 1,005  | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Long CLAUDE.md (code-heavy)                           | 8,083   | 7,159  | **11%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Architecture migration plan (code-heavy)              | 12,063  | 9,783  | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Short rule (branch guard)                             | 410     | 331    | **19%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Context handoff (one session → next)                  | 1,017   | 619    | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003   | 754    | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Project philosophy / manifesto rule                   | 1,731   | 1,000  | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
+| Long CLAUDE.md (Toast/restaurant ops · hand-written)  | 8,055   | 7,101  | **12%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Architecture migration plan (code-heavy)              | 12,001  | 9,709  | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
 
-*Tokens = chars / 4 (standard BPE approximation). Reproduce: `wc -c examples/$N/before.md examples/$N/after.md`.*
+### Real CLAUDE.md files from popular GitHub repos
 
-Prose-heavy docs (rules · handoffs · philosophy): 18–42%. Code-heavy docs (long CLAUDE.md · arch plans): 11–19% — BT preserves fenced code blocks verbatim. Stack BT across CLAUDE.md · rules · skills · memory pages · handoffs -> savings compound: repo burning 30,000 tokens pre-first-word -> ~24,000.
+| Repository (stars)                          | Before | After  | Reduction | Folder                                                                       |
+| ------------------------------------------- | ------:| ------:| ---------:| ---------------------------------------------------------------------------- |
+| [`langchain-ai/langchain`][lc] (137K ★)     | 3,236  | 2,997  | **7%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
+| [`browser-use/browser-use`][bu] (94K ★)     | 2,787  | 2,275  | **18%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
+| [`BerriAI/litellm`][ll] (47K ★)             | 3,767  | 3,469  | **8%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
+
+[lc]: https://github.com/langchain-ai/langchain
+[bu]: https://github.com/browser-use/browser-use
+[ll]: https://github.com/BerriAI/litellm
+
+*Tokens = chars / 4 (standard BPE approximation). Reproduce: `wc -c examples/$N/before.md examples/$N/after.md`. Per-example folders include exact `o200k_base` counts.*
+
+**Honest spread.** Prose-heavy docs (handoffs · philosophy · multi-paragraph rules) -> 25-42% · BT strips articles · hedging · throat-clearing · aliases repeated identifiers. Code-heavy docs (long CLAUDE.md w/ fenced examples) -> 7-19% · BT preserves fenced blocks byte-for-byte · rewriting code would break the example. Real-world CLAUDE.md in big repos -> cluster 7-18% · authors already hand-tuned vs agents over months · easy wins gone before BT sees the file. Stack BT across CLAUDE.md · rules · skills · memory pages · handoffs -> savings compound: repo burning 30,000 tokens pre-first-word -> ~24,000.
 
 ---
 

@@ -86,18 +86,34 @@ Same gravity, same bounce angle, same spawn cadence, same brick scoring, ~half t
 
 ## Before / After (real documents)
 
+### Synthetic examples (six document types we author and round-trip ourselves)
+
 | Document type                                         | Before | After | Reduction | Folder                                                           |
 | ----------------------------------------------------- | ------:| -----:| ---------:| ---------------------------------------------------------------- |
-| Short rule (branch guard)                             | 411    | 335   | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
-| Context handoff (one session → next)                  | 1,019  | 624   | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003  | 758   | **24%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Project philosophy / manifesto rule                   | 1,748  | 1,005 | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Long CLAUDE.md (the file your AI reads every session) | 8,083  | 7,159 | **11%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Architecture migration plan (code-heavy)              | 12,063 | 9,783 | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Short rule (branch guard)                             | 410    | 331   | **19%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Context handoff (one session → next)                  | 1,017  | 619   | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003  | 754   | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Project philosophy / manifesto rule                   | 1,731  | 1,000 | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
+| Long CLAUDE.md (Toast/restaurant ops, hand-written)   | 8,055  | 7,101 | **12%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Architecture migration plan (code-heavy)              | 12,001 | 9,709 | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
 
-*Tokens = `chars / 4` (the standard GPT/Claude BPE approximation). Verify any row yourself: `wc -c examples/$N/before.md examples/$N/after.md`.*
+### Real `CLAUDE.md` files from popular GitHub repos
 
-Prose-heavy docs (rules, handoffs, philosophy) hit 18–42%. Code-heavy docs (long `CLAUDE.md`, architecture plans) hit 11–19% because BOTSPEAK preserves fenced code blocks verbatim. Stack BOTSPEAK across `CLAUDE.md`, rules, skills, memory pages, and handoffs and the savings compound: a repo that burned 30,000 tokens before your first word might cost 24,000.
+We fetched the live `CLAUDE.md` from three high-star repositories and compressed each in place. Each row links to the folder where you can diff the verbatim source against the BOTSPEAK output.
+
+| Repository (stars)                          | Before | After  | Reduction | Folder                                                                       |
+| ------------------------------------------- | ------:| ------:| ---------:| ---------------------------------------------------------------------------- |
+| [`langchain-ai/langchain`][lc] (137K ★)     | 3,236  | 2,997  | **7%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
+| [`browser-use/browser-use`][bu] (94K ★)     | 2,787  | 2,275  | **18%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
+| [`BerriAI/litellm`][ll] (47K ★)             | 3,767  | 3,469  | **8%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
+
+[lc]: https://github.com/langchain-ai/langchain
+[bu]: https://github.com/browser-use/browser-use
+[ll]: https://github.com/BerriAI/litellm
+
+*Tokens = `chars / 4` (the standard GPT/Claude BPE approximation). Verify any row yourself: `wc -c examples/$N/before.md examples/$N/after.md`. The per-example folders also include exact `o200k_base` counts.*
+
+**The honest read.** Compression depends on what's actually in the file. Prose-heavy docs (handoffs, philosophy, multi-paragraph rules) compress 25–42% because BOTSPEAK strips articles, hedging, and throat-clearing while aliasing repeated identifiers. Code-heavy docs (long `CLAUDE.md` files full of fenced examples) compress 7–19% because BOTSPEAK preserves every fenced block byte-for-byte by design — rewriting code would break the example. Real-world `CLAUDE.md` files from big repos cluster around 7–18% because their authors have already hand-tuned them against agents over many months: the easy wins are gone before BOTSPEAK sees the file. Stack BOTSPEAK across `CLAUDE.md`, rules, skills, memory pages, and handoffs and the savings compound regardless: a repo that burned 30,000 tokens before your first word might cost 24,000.
 
 ---
 

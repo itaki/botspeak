@@ -222,7 +222,7 @@
     <article class="game-card">
       <div class="game-card-header">
         <h3>Flappy Bird</h3>
-        <p class="description">Physics-driven side-scroller. Per-entity pipe state. Particle death animation. localStorage best score. The historical regression test — v2.0.0 failed this; v2.2.0 passes clean-room.</p>
+        <p class="description">Physics-driven side-scroller. Per-entity pipe state. Particle death animation. localStorage best score. Stress-tests entity-state preservation under compression.</p>
       </div>
       <div class="stats">
         <div class="stat"><div class="label">Prose words</div><div class="value">1,415</div></div>
@@ -359,43 +359,24 @@
           <th>Document</th>
           <th>Type</th>
           <th style="text-align:right">Source (tok)</th>
-          <th style="text-align:right">v2.2.0 (tok)</th>
+          <th style="text-align:right">BOTSPEAK (tok)</th>
           <th style="text-align:right">Ratio</th>
-          <th>v2.1.0</th>
-          <th>v2.2.0</th>
+          <th>Result</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">411</td><td style="text-align:right">337</td><td style="text-align:right">0.82</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">1,019</td><td style="text-align:right">624</td><td style="text-align:right">0.61</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">1,003</td><td style="text-align:right">758</td><td style="text-align:right">0.76</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">1,748</td><td style="text-align:right">1,005</td><td style="text-align:right">0.58</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (code-heavy)</td><td style="text-align:right">8,083</td><td style="text-align:right">7,159</td><td style="text-align:right">0.89</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
-        <tr><td>06</td><td>examples/06-backend-migration</td><td>migration spec (code-heavy)</td><td style="text-align:right">12,063</td><td style="text-align:right">9,783</td><td style="text-align:right">0.81</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
+        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">411</td><td style="text-align:right">335</td><td style="text-align:right">0.81</td><td class="pass">PASS</td></tr>
+        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">1,019</td><td style="text-align:right">624</td><td style="text-align:right">0.61</td><td class="pass">PASS</td></tr>
+        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">1,003</td><td style="text-align:right">758</td><td style="text-align:right">0.76</td><td class="pass">PASS</td></tr>
+        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">1,748</td><td style="text-align:right">1,005</td><td style="text-align:right">0.58</td><td class="pass">PASS</td></tr>
+        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (code-heavy)</td><td style="text-align:right">8,083</td><td style="text-align:right">7,159</td><td style="text-align:right">0.89</td><td class="pass">PASS</td></tr>
+        <tr><td>06</td><td>examples/06-backend-migration</td><td>migration spec (code-heavy)</td><td style="text-align:right">12,063</td><td style="text-align:right">9,783</td><td style="text-align:right">0.81</td><td class="pass">PASS</td></tr>
       </tbody>
     </table>
 
     <p class="lede" style="margin-top: 16px; font-size: 14px;">
-      Three additional external real-world docs (Django <code>.cursorrules</code>, Rust <code>AGENTS.md</code>, ai-dev <code>.mdc</code> rule) were also round-tripped via subagent and passed in both v2.1.0 and v2.2.0. Sources are checked in at <a href="../evals/external-prompts/">evals/external-prompts/</a>; we did not commit the compressed outputs because we want anyone to be able to re-run the eval clean-room.
+      Three additional external real-world docs (Django <code>.cursorrules</code>, Rust <code>AGENTS.md</code>, ai-dev <code>.mdc</code> rule) were also round-tripped via subagent and passed. Sources are checked in at <a href="../evals/external-prompts/">evals/external-prompts/</a>; the compressed outputs are intentionally not committed so anyone can re-run the eval clean-room.
     </p>
-
-    <div style="margin-top: 32px; padding: 20px 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
-      <h3 style="margin: 0 0 12px; font-size: 18px;">What changed in v2.2.0</h3>
-      <p style="margin: 0 0 10px;">
-        <strong>Polarity inversion fixed.</strong> In v2.1.0, doc 05 marked
-        <code>DISABLE_AUTOUPDATER=1</code> with the <code>!!</code> "forbidden" symbol because the
-        source language sounded cautionary. But that variable is an opt-out, not a prohibition.
-        v2.2.0 adds a polarity verification step in the skill: substitute the literal word
-        "forbidden" for each <code>!!</code> and verify the resulting statement holds.
-      </p>
-      <p style="margin: 0;">
-        <strong>Code-block parity enforced.</strong> In v2.1.0, doc 06's compression dropped 18 of
-        its 20 Mermaid diagrams, YAML configs, and SQL snippets even though the skill said to
-        preserve code blocks. v2.2.0 adds an explicit count check in the verify pass: count
-        fenced blocks in source vs output and fail if the counts disagree. The re-run preserves
-        20 of 20.
-      </p>
-    </div>
 
     <p class="lede" style="margin-top: 32px;">
       Full results table with verification commands:

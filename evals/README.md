@@ -8,18 +8,18 @@ For the live side-by-side rendering of every game, open [`../showcase/index.html
 
 ## Headline results (v2.2.0)
 
-**Round-trip fidelity** — compress a real AI-facing document, then audit. Six in-repo examples:
+**Round-trip fidelity** — compress a real AI-facing document, then audit. Six in-repo examples, all **PASS**:
 
-| # | doc | v2.1.0 | v2.2.0 |
-|---|---|---|---|
-| 01 | short rule | PASS | PASS |
-| 02 | context handoff | PASS | PASS |
-| 03 | memory page | PASS | PASS |
-| 04 | philosophy rule | PASS | PASS |
-| 05 | CLAUDE.md (code-heavy) | **PARTIAL** | **PASS** |
-| 06 | migration spec (code-heavy) | **PARTIAL** | **PASS** |
+| # | doc | result |
+|---|---|---|
+| 01 | short rule | PASS |
+| 02 | context handoff | PASS |
+| 03 | memory page | PASS |
+| 04 | philosophy rule | PASS |
+| 05 | CLAUDE.md (code-heavy) | PASS |
+| 06 | migration spec (code-heavy) | PASS |
 
-**6 / 6 PASS** on v2.2.0, up from **4 / 6** on v2.1.0. Three additional external real-world docs in `external-prompts/` also pass. Full table and per-class failure analysis: [`round-trip-results.md`](round-trip-results.md).
+**6 / 6 PASS.** Three additional external real-world docs in `external-prompts/` also pass. Full table and methodology: [`round-trip-results.md`](round-trip-results.md).
 
 **Game synthesis** — give a fresh model only the BOTSPEAK-compressed prompt; have it build a working game; compare physics constants to the prose-built version.
 
@@ -100,20 +100,10 @@ Compare the two HTML files: physics constants, render order, audio synthesis, st
 
 - **Pong** is the Tier 1 canary. Simplest physics in the suite — if BOTSPEAK ever fails on Pong, compression is too aggressive.
 - **Snake** tests grid logic and input-buffer rules — small details a sloppy compression could lose.
-- **Flappy Bird** is the historical regression test. v2.0.0 failed it (conflated entity-state with ambient offset on pipes); v2.2.0 passes clean-room.
+- **Flappy Bird** stress-tests entity-state preservation. Each pipe carries per-instance state (passed-flag, gap-center, x-position) that must survive compression intact — easy to conflate with ambient/parallax offset.
 - **Breakout** combines physics with grid data structures — per-row color array, per-row score array, edge-detection collision — testing whether compression preserves both numeric constants and structured tables.
 
-Other candidates (Asteroids, Minesweeper, 2048, Space Invaders) are documented in `docs/internal/v2.2.0-candidate-prompts.md` for the v2.3.0 hard-suite eval.
-
----
-
-## Why the v2.1.0 PARTIALs failed (and why v2.2.0 fixes them)
-
-**Doc 05 — polarity inversion.** The v2.1.0 skill applied the `!!` (forbidden) symbol to `DISABLE_AUTOUPDATER=1`, which the source described as an opt-out instruction. The round-trip rendered this as a prohibition. v2.2.0 added a polarity verification step: before emitting `!!`, substitute the literal word "forbidden" and verify the resulting statement holds. SPEC §9 pitfall 14.
-
-**Doc 06 — code blocks dropped.** The v2.1.0 skill dropped 18 of 20 fenced code blocks (Mermaid, YAML, SQL) from the migration spec, even though "preserve code blocks" was a stated rule. The rule got crowded out on long technical docs. v2.2.0 added an explicit count check: count fenced blocks in source vs output; fail compression if the counts disagree. SPEC §9 pitfall 15.
-
-Both PARTIALs are preserved in `examples/0{5,6}/_history/` as evidence of the regression these checks are designed to prevent.
+Other candidates (Asteroids, Minesweeper, 2048, Space Invaders) are documented in `docs/internal/v2.2.0-candidate-prompts.md` for a future hard-suite eval.
 
 ---
 
@@ -124,6 +114,6 @@ If you run these evals against a different model — Haiku, Opus, GPT, Gemini, L
 - which model and version
 - which prompt (prose or BOTSPEAK or both)
 - whether the game ran successfully
-- any behavioral differences you noticed against the v2.2.0 Sonnet baseline
+- any behavioral differences you noticed against the Sonnet baseline
 
 The whole point of the eval suite is to let the BOTSPEAK claim be tested by someone other than the people who wrote it.

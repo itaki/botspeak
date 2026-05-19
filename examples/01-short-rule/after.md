@@ -25,14 +25,14 @@ alwaysApply: true
 
 [ALWAYS] treat as SCOPE-SEPARATION (not "one more task on side")
 
-[ALWAYS] STOP · !! no edits until user chooses:
+[ALWAYS] STOP · !! edit until user chooses:
 
   A — same br · same PR: only if work truly belongs · restate how · proceed
   B — new br (this folder): user creates/switches · proceed that br only
   C — parallel work: recommend `git wt add` (sibling folder · second Cursor window)
       same repo + .cursor rules · no second clone · link: https://git-scm.com/docs/git-worktree
 
-[ALWAYS] !! wait for user selection · force if they just prompt-again
+[ALWAYS] !! edit even on prompt-again -> force user to pick A/B/C
 
 ## Red Flags (always trigger stop + options)
 

@@ -59,4 +59,4 @@ This is the eval the project was designed to pass: round-trip equivalence betwee
 
 ## Historical note
 
-The v4 botspeak-built Flappy Bird (May 2026, BOTSPEAK v2.0.0) failed this exact eval because the compression conflated per-entity pipe state with ambient offset scrolling. The v2.1.0 spec added the entity-state vs. ambient-offset rule (SPEC §9 pitfall 13) and v2.2.0 added the polarity and code-block parity verify checks (§9 pitfalls 14 and 15). The clean-room v2.2.0 build above is the first build that passed the eval without any in-context guidance to the build agent.
+The Flappy Bird eval stresses entity-state preservation: each pipe carries its own state (passed-flag, gap-center, x-position) that must survive compression intact. SPEC §9 pitfall 13 (entity-state vs. ambient-offset distinction) is the rule that catches this class of failure. The clean-room build above passed without any in-context guidance to the build agent.

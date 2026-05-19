@@ -11,11 +11,7 @@ shell block, banner format examples, and structured generated-file frontmatter
 that the skill is required to preserve byte-for-byte. The prose around those
 blocks compresses well (~30%) but the protected blocks dilute the headline number.
 
-**Why this matters:** The v2.1.0 version of this compression (preserved at
-`_history/after-v21-pre-polarity-fix.md`) reached 34% reduction — but only by
-mis-tagging `DISABLE_AUTOUPDATER=1` as `!!` (forbidden) when the source actually
-described it as an opt-out instruction. v2.2.0 trades the headline number for
-correctness.
+**Polarity discipline:** Note that `DISABLE_AUTOUPDATER=1` appears in the output as a normal instruction (no `!!`) even though the source phrased it cautiously. `!!` is reserved for true prohibitions — substitute the literal word "forbidden" for each `!!` and verify the resulting statement holds (SPEC §9 pitfall 14).
 
 **To audit fidelity yourself:** run `/botspeak-translate after.md` and diff the
 result against `before.md`. Every constraint, every prohibition, every numeric

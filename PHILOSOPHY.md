@@ -44,14 +44,14 @@ The documents out of scope: anything a human will read directly. README files. U
 
 ## What is in this repo
 
-- `SPEC.md` - the language specification, currently at v2.1.0
+- `SPEC.md` - the language specification, currently at v2.2.0
 - `skills/botspeak/SKILL.md` - the skill that compresses a prose AI-facing doc into BOTSPEAK
 - `skills/botspeak-translate/SKILL.md` - the skill that translates BOTSPEAK back into prose for human audit
 - `.cursor/rules/` - operational rules (when to use BOTSPEAK, README sync protocol, versioning protocol)
 - `examples/` - six before-and-after pairs across different document types
 - `evals/` - the eval suite, including round-trip evals on real AI-facing docs and stress-test evals on game synthesis
 
-The eval suite includes game-synthesis stress tests (Flappy Bird, Tetris, Snake) because those expose failures in the language's fidelity faster than round-trip evals do. They are diagnostic. They are not what the language is for.
+The eval suite includes game-synthesis stress tests (Flappy Bird, Snake, Pong, Breakout) because those expose failures in the language's fidelity faster than round-trip evals do. They are diagnostic. They are not what the language is for.
 
 ## How to know if BOTSPEAK is working
 

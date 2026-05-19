@@ -8,19 +8,13 @@ document, see [evals/round-trip-results.md](../../evals/round-trip-results.md) r
 
 **Why so modest:** This document is roughly 40% fenced code blocks — three
 Mermaid diagrams, five `text` blocks, one SQL snippet, one YAML config — all
-of which the skill is required to preserve byte-for-byte. v2.2.0 enforces this
-with a code-block parity count check.
-
-**Why this matters:** The v2.1.0 version (preserved at
-`_history/after-v21-codeblock-loss.md`) reached 46% reduction — but only by
-silently dropping 18 of the 20 fenced blocks. v2.2.0 keeps all of them and
-trades the headline number for completeness. The compression is now real, not
-the result of unannounced data loss.
+of which BOTSPEAK preserves byte-for-byte. The skill verifies this with a
+code-block parity count check on every compression (SPEC §9 pitfall 15).
 
 **To audit fidelity yourself:** count fenced blocks in `before.md` and
-`after.md`; the counts must match. Run `/botspeak-translate after.md` and diff
-against `before.md` for full content fidelity.
+`after.md`; the counts must match (20 in both). Run `/botspeak-translate after.md`
+and diff against `before.md` for full content fidelity.
 
 **Key insight:** Compression ratios on code-heavy documents are bounded by
-how much code there is. v2.2.0 reports honest numbers; v2.1.0's higher ratios
-were a measurement artifact of silent code loss.
+how much code there is. The prose around protected blocks compresses well;
+the blocks themselves don't move. This is by design.

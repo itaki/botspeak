@@ -25,15 +25,16 @@ A skill for AI coding agents:
 
 | Document type                                         | Before (tokens) | After (tokens) | Reduction | Example folder                                                   |
 | ----------------------------------------------------- | --------------- | -------------- | --------- | ---------------------------------------------------------------- |
-| Architecture migration plan (code-heavy)              | 12,063          | 6,529          | **46%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+| Context handoff (one session → next)                  | 1,019           | 624            | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
 | Project philosophy / manifesto rule                   | 1,748           | 1,005          | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Context handoff (one session → next)                  | 1,019           | 625            | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Long CLAUDE.md (the file your AI reads every session) | 8,083           | 5,324          | **34%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Wiki / memory page (Karpathy LLM-wiki style)          | 1,004           | 758            | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Short rule (branch guard)                             | 412             | 338            | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Wiki / memory page (Karpathy LLM-wiki style)          | 1,003           | 758            | **24%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Short rule (branch guard)                             | 411             | 337            | **18%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Long CLAUDE.md (the file your AI reads every session) | 8,083           | 7,159          | **11%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Architecture migration plan (code-heavy, 50% blocks)  | 12,063          | 9,783          | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
 
+*Token counts are character-count / 4, the standard GPT/Claude byte-pair-encoding approximation. Verify any row yourself: `wc -c examples/$N/before.md examples/$N/after.md`.*
 
-**The real unlock is each individual file.** A single well-compressed strategic doc (architecture plan, philosophy rule, or handoff) saves 4,000–6,000 tokens per session. Apply BOTSPEAK across your `CLAUDE.md`, rules, skills, memory pages, handoffs, and philosophy docs—each one compresses 18–46%, adding up fast. A repo that burned 30,000 tokens before you typed your first word might cost 20,000. That's the difference between starting a session clear and starting it already underwater.
+**The real unlock is each individual file.** A prose-heavy strategic doc (philosophy rule, handoff, branch guard) compresses 18–42%. Code-heavy docs (long `CLAUDE.md`, architecture plans) land 11–19% because BOTSPEAK preserves fenced code blocks verbatim. Apply BOTSPEAK across your `CLAUDE.md`, rules, skills, memory pages, handoffs, and philosophy docs and the savings stack: a repo that burned 30,000 tokens before you typed your first word might cost 24,000. That's the difference between starting a session clear and starting it already underwater.
 
 ---
 
@@ -280,29 +281,40 @@ BOTSPEAK is the only convention (not tool) for AI-facing document writing and co
 ```
 botspeak/
 ├── README.md                            ← you are here
+├── README-FOR-AI.md                     ← BOTSPEAK-compressed version of this README
+├── PHILOSOPHY.md                        ← the why — AI-to-AI communication thesis
 ├── SPEC.md                              ← language spec: symbols, aliases, grammar, pitfalls
-├── LICENSE                              ← MIT
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
+├── LICENSE                              ← MIT
 ├── CLAUDE.md, AGENTS.md, GEMINI.md      ← bootstrap files for AI agents working on this repo
 ├── install.sh                           ← one-line installer (skills only — rules install manually)
 ├── uninstall.sh                         ← removes skills from all detected agents
 ├── rules/                               ← always-on rule templates (manual install, see README)
 │   ├── botspeak-always-on.md            ← universal markdown (Claude · Windsurf · Cline · Copilot · etc.)
 │   └── botspeak-always-on.mdc           ← Cursor format (with alwaysApply frontmatter)
-├── .cursor/rules/botspeak.mdc           ← Cursor rule active in this repo (self-hosting)
+├── .cursor/rules/                       ← Cursor rules active in this repo (self-hosting)
 ├── skills/
-│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK (replaces in place; -bu to backup first; -c for chat)
-│   └── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → [filename].bst.md (-c for chat)
+│   ├── botspeak/SKILL.md                ← compress: file or directory → BOTSPEAK
+│   ├── botspeak-translate/SKILL.md      ← translate: BOTSPEAK → [filename].bst.md
+│   └── _archive/                        ← versioned history of every spec + skill
 ├── agents/
 │   └── botspeak-translator.md           ← bidirectional agent (for tools that load agent definitions)
-└── examples/                            ← six before/after pairs
-    ├── 01-short-rule/                   ← branch guard:                    412 →   338 (18%)
-    ├── 02-context-handoff/              ← session handoff:               1,019 →   625 (39%)
-    ├── 03-memory-page/                  ← Karpathy-style wiki page:      1,004 →   758 (25%)
-    ├── 04-philosophy-rule/              ← project manifesto:             1,748 → 1,005 (42%)
-    ├── 05-aliased-claude-md/            ← long CLAUDE.md example:        8,083 → 5,324 (34%)
-    └── 06-backend-migration/            ← arch migration plan (code-heavy): 12,063 → 6,529 (46%)
+├── examples/                            ← six before/after pairs
+│   ├── 01-short-rule/                   ← branch guard:                    411 →   337 (18%)
+│   ├── 02-context-handoff/              ← session handoff:               1,019 →   624 (39%)
+│   ├── 03-memory-page/                  ← Karpathy-style wiki page:      1,003 →   758 (24%)
+│   ├── 04-philosophy-rule/              ← project manifesto:             1,748 → 1,005 (42%)
+│   ├── 05-aliased-claude-md/            ← long CLAUDE.md (code-heavy):   8,083 → 7,159 (11%)
+│   └── 06-backend-migration/            ← arch migration plan (code-heavy): 12,063 → 9,783 (19%)
+├── showcase/index.html                  ← single-page eval rendering — open in browser to play
+├── evals/                               ← round-trip + game synthesis evidence
+│   ├── round-trip-results.md            ← canonical round-trip eval (v2.2.0)
+│   ├── external-prompts/                ← real-world docs for clean-room reproduction
+│   └── {game}-prompt/                   ← prose + BOTSPEAK + parity report per game
+└── docs/
+    ├── handoffs-archive/                ← historical investigation handoffs
+    └── internal/                        ← v2.2.0 release planning artifacts
 ```
 
 ---
@@ -321,7 +333,7 @@ See [examples/03-memory-page/](examples/03-memory-page/) for a concrete BOTSPEAK
 
 The release is gated on two evidence signals — see the [showcase page](showcase/index.html) for the live artifacts.
 
-**Round-trip fidelity** (the canonical eval) — compress 9 real AI-facing documents into BOTSPEAK, then audit. v2.2.0: **9 / 9 PASS** (up from 7 / 9 in v2.1.0). See [evals/round-trip-results.md](evals/round-trip-results.md).
+**Round-trip fidelity** (the canonical eval) — compress 6 real AI-facing documents into BOTSPEAK, then audit. v2.2.0: **6 / 6 PASS** (up from 4 / 6 in v2.1.0). Three additional external real-world docs also pass; their sources are checked in at [evals/external-prompts/](evals/external-prompts/) so you can re-run them yourself. See [evals/round-trip-results.md](evals/round-trip-results.md).
 
 **Game synthesis** (the stress test) — give a fresh model only the BOTSPEAK-compressed prompt and have it build a game. Compare the result to the prose-built version. Four games passed clean-room as of v2.2.0:
 
@@ -342,8 +354,8 @@ See [evals/README.md](evals/README.md) for methodology and how to run the evals 
 
 ## Notes & Caveats
 
-- **BOTSPEAK shines** on prose-heavy docs — rules, `CLAUDE.md`, memory pages, handoffs, philosophy manifestos. Expect 65–78% compression. This is its home turf.
-- **BOTSPEAK slouches** on already-dense content — Mermaid, SQL, numeric tables, code blocks, file trees. Code-heavy docs land around ~43%. Still worth it: `@defs` aliases and phase tags sharpen behavior even when byte savings are modest.
+- **BOTSPEAK shines** on prose-heavy docs — rules, philosophy manifestos, handoffs, branch guards. Real measured range across our six canonical examples: **18–42% token reduction**. Game-prompt evals (also prose-heavy): **31–44%**.
+- **BOTSPEAK slouches** on already-dense content — Mermaid diagrams, SQL, YAML configs, numeric tables, fenced code blocks, file trees. These get preserved byte-for-byte (verified by SPEC §9 pitfall 15). Code-heavy docs land **11–19%**. Still worth it: `@defs` aliases and phase tags sharpen agent behavior even when byte savings are modest.
 - **Go cheap on batch jobs.** Directory compression is mechanical; Haiku-class models nail it at a fraction of the cost.
 - **Timing:** Haiku clocks at ~~2 min / 50 KB (~~12.5K tokens). Rule of thumb: 200 KB ≈ 8 min. Thinking models (Sonnet, Opus) run 3–5× slower.
 - `**.gitignore`: add `*.bst.md` and `*.bu.*.md`** to keep translated files and backups out of your repo. They're disposable artifacts — read them, toss them.

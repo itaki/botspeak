@@ -1,12 +1,26 @@
 # Translated: 06-backend-migration
 
-**Note:** This translated.md file would be approximately 780 lines—longer than the original before.md (779 lines).
+**Note:** This stub is a placeholder; for the actual round-trip audit of this
+document, see [evals/round-trip-results.md](../../evals/round-trip-results.md) row 06.
 
-**Why it's larger:** The translation expands all 25+ @defs aliases inline (DAP, N8N, SPA, VRL, PG, EF, ORC, WKR, SFTP, HC, PP, DPS, DAG, etc.), expands all phase tags ([ALWAYS], [REFERENCE]), expands symbols (!!, ->, ·), converts tables to prose explanations, and adds "What this means in practice" context.
+**Source:** `before.md` (12,063 tokens) → BOTSPEAK `after.md` (9,783 tokens) =
+**19% token reduction**.
 
-**To see the full translation:**
-- Compare `before.md` (original 779 lines) to `after.md` (BOTSPEAK, 278 lines) 
-- The `after.md` is 46% smaller while preserving 98% semantic fidelity
-- A full prose translation would expand to ~780 lines (approximately equal to original, with more explanation)
+**Why so modest:** This document is roughly 40% fenced code blocks — three
+Mermaid diagrams, five `text` blocks, one SQL snippet, one YAML config — all
+of which the skill is required to preserve byte-for-byte. v2.2.0 enforces this
+with a code-block parity count check.
 
-**Key insight:** The BOTSPEAK version achieves 46% compression by encoding prose into symbols and structure. The translation back to full prose approximately recovers the original size but with different organization (phase tags replace prose headers, symbols replace conjunctions, etc.).
+**Why this matters:** The v2.1.0 version (preserved at
+`_history/after-v21-codeblock-loss.md`) reached 46% reduction — but only by
+silently dropping 18 of the 20 fenced blocks. v2.2.0 keeps all of them and
+trades the headline number for completeness. The compression is now real, not
+the result of unannounced data loss.
+
+**To audit fidelity yourself:** count fenced blocks in `before.md` and
+`after.md`; the counts must match. Run `/botspeak-translate after.md` and diff
+against `before.md` for full content fidelity.
+
+**Key insight:** Compression ratios on code-heavy documents are bounded by
+how much code there is. v2.2.0 reports honest numbers; v2.1.0's higher ratios
+were a measurement artifact of silent code loss.

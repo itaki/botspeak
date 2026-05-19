@@ -142,7 +142,7 @@
   }
   .iframe-box .iframe-label .src { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
   .iframe-box iframe {
-    width: 100%; height: 540px; border: 0; display: block; background: #000;
+    width: 100%; height: 700px; border: 0; display: block; background: #000;
   }
 
   .links { padding: 12px 28px 24px; color: var(--text-muted); font-size: 13px; }
@@ -173,7 +173,7 @@
   @media (max-width: 900px) {
     .stats { grid-template-columns: 1fr 1fr; }
     .iframes { grid-template-columns: 1fr; }
-    .iframe-box iframe { height: 480px; }
+    .iframe-box iframe { height: 700px; }
   }
 
   /* Footer */
@@ -232,8 +232,8 @@
       </div>
       <div class="iframes">
         <div class="iframe-box">
-          <div class="iframe-label"><span>Prose build</span><span class="src">flappy-prose.html</span></div>
-          <iframe src="../evals/game-prompt/results/flappy-prose.html" loading="lazy"></iframe>
+          <div class="iframe-label"><span>Prose build</span><span class="src">prose-sonnet.html</span></div>
+          <iframe src="../evals/game-prompt/results/prose-sonnet.html" loading="lazy"></iframe>
         </div>
         <div class="iframe-box">
           <div class="iframe-label"><span>BOTSPEAK build</span><span class="src">botspeak-sonnet-v22.html</span></div>
@@ -347,31 +347,37 @@
       target — internal AI-to-AI documents — rather than downstream code synthesis.
     </p>
 
+    <p class="lede" style="margin-bottom: 16px;">
+      Token counts below use the standard <code>chars / 4</code> BPE approximation. Reproduce any row yourself:
+      <code>wc -c examples/$N/before.md examples/$N/after.md</code>.
+    </p>
+
     <table>
       <thead>
         <tr>
           <th>#</th>
           <th>Document</th>
           <th>Type</th>
-          <th style="text-align:right">Source words</th>
-          <th style="text-align:right">Compressed</th>
+          <th style="text-align:right">Source (tok)</th>
+          <th style="text-align:right">v2.2.0 (tok)</th>
           <th style="text-align:right">Ratio</th>
           <th>v2.1.0</th>
           <th>v2.2.0</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">~257</td><td style="text-align:right">~140</td><td style="text-align:right">0.54</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">~560</td><td style="text-align:right">~155</td><td style="text-align:right">0.28</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">~est</td><td style="text-align:right">~est</td><td style="text-align:right">~0.53</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">~est</td><td style="text-align:right">~est</td><td style="text-align:right">~0.56</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (long)</td><td style="text-align:right">~4,506</td><td style="text-align:right">~680</td><td style="text-align:right">0.15</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
-        <tr><td>06</td><td>examples/06-backend-migration</td><td>tech migration spec</td><td style="text-align:right">~6,375</td><td style="text-align:right">~1,480</td><td style="text-align:right">0.23</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
-        <tr><td>E-01</td><td>external/django-cursorrules</td><td>.cursorrules</td><td style="text-align:right">~380</td><td style="text-align:right">~195</td><td style="text-align:right">0.51</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>E-02</td><td>external/rust-agents-md</td><td>AGENTS.md</td><td style="text-align:right">~560</td><td style="text-align:right">~255</td><td style="text-align:right">0.46</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>E-03</td><td>external/ai-dev-mdc</td><td>.mdc rule</td><td style="text-align:right">~460</td><td style="text-align:right">~220</td><td style="text-align:right">0.44</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">411</td><td style="text-align:right">337</td><td style="text-align:right">0.82</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">1,019</td><td style="text-align:right">624</td><td style="text-align:right">0.61</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">1,003</td><td style="text-align:right">758</td><td style="text-align:right">0.76</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">1,748</td><td style="text-align:right">1,005</td><td style="text-align:right">0.58</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (code-heavy)</td><td style="text-align:right">8,083</td><td style="text-align:right">7,159</td><td style="text-align:right">0.89</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
+        <tr><td>06</td><td>examples/06-backend-migration</td><td>migration spec (code-heavy)</td><td style="text-align:right">12,063</td><td style="text-align:right">9,783</td><td style="text-align:right">0.81</td><td class="partial">PARTIAL</td><td class="fixed">PASS ✓ fixed</td></tr>
       </tbody>
     </table>
+
+    <p class="lede" style="margin-top: 16px; font-size: 14px;">
+      Three additional external real-world docs (Django <code>.cursorrules</code>, Rust <code>AGENTS.md</code>, ai-dev <code>.mdc</code> rule) were also round-tripped via subagent and passed in both v2.1.0 and v2.2.0. Sources are checked in at <a href="../evals/external-prompts/">evals/external-prompts/</a>; we did not commit the compressed outputs because we want anyone to be able to re-run the eval clean-room.
+    </p>
 
     <div style="margin-top: 32px; padding: 20px 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
       <h3 style="margin: 0 0 12px; font-size: 18px;">What changed in v2.2.0</h3>

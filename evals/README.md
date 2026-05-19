@@ -1,100 +1,129 @@
 # BOTSPEAK Evals
 
-Two experiments that test whether BOTSPEAK actually works.
+Two evidence signals gate every BOTSPEAK release: round-trip fidelity and game synthesis. This directory holds the canonical sources, the v2.2.0 outputs, and the reproducibility scripts.
+
+For the live side-by-side rendering of every game, open [`../showcase/index.html`](../showcase/index.html).
 
 ---
 
-## 1. Round-Trip Fidelity (`round-trip/`)
+## Headline results (v2.2.0)
 
-**The question:** Does BOTSPEAK drift like a telephone game, or does it converge and stabilize?
+**Round-trip fidelity** — compress a real AI-facing document, then audit. Six in-repo examples:
 
-**The test:** Compress a document into BOTSPEAK, translate it back to prose, compress again, translate again — repeat N times. Compare the first version to the last.
+| # | doc | v2.1.0 | v2.2.0 |
+|---|---|---|---|
+| 01 | short rule | PASS | PASS |
+| 02 | context handoff | PASS | PASS |
+| 03 | memory page | PASS | PASS |
+| 04 | philosophy rule | PASS | PASS |
+| 05 | CLAUDE.md (code-heavy) | **PARTIAL** | **PASS** |
+| 06 | migration spec (code-heavy) | **PARTIAL** | **PASS** |
 
-**What we expect:** The document should stabilize after 2-3 iterations. The first compress cuts heavily. Translate adds back prose structure. Second compress is nearly identical to the first because there's little left to remove. After that it flatlines. That convergence is the proof that BOTSPEAK is lossless.
+**6 / 6 PASS** on v2.2.0, up from **4 / 6** on v2.1.0. Three additional external real-world docs in `external-prompts/` also pass. Full table and per-class failure analysis: [`round-trip-results.md`](round-trip-results.md).
 
-**Run it:**
+**Game synthesis** — give a fresh model only the BOTSPEAK-compressed prompt; have it build a working game; compare physics constants to the prose-built version.
 
-```bash
-# requires claude CLI with /botspeak and /botspeak-translate skills installed
-./round-trip/run.sh game-prompt/source.md 10
+| game | compression | constants matched | parity report |
+|---|---|---|---|
+| Flappy Bird | 31% | 15 / 15 | [`game-prompt/parity-report.md`](game-prompt/parity-report.md) |
+| Snake | 35% | 10 / 10 | [`snake-prompt/parity-report.md`](snake-prompt/parity-report.md) |
+| Pong | 39% | 14 / 14 | [`pong-prompt/parity-report.md`](pong-prompt/parity-report.md) |
+| Breakout | 44% | 21 / 21 | [`breakout-prompt/parity-report.md`](breakout-prompt/parity-report.md) |
+
+---
+
+## What's in this directory
+
+```
+evals/
+├── README.md                    ← you are here
+├── round-trip-results.md        ← canonical round-trip eval (v2.2.0)
+├── external-prompts/            ← 3 real-world AI-facing docs as round-trip sources
+├── game-prompt/                 ← Flappy Bird (prose + BOTSPEAK + parity)
+├── snake-prompt/                ← Snake
+├── pong-prompt/                 ← Pong
+├── breakout-prompt/             ← Breakout
+├── round-trip/                  ← N-iteration round-trip reproducibility framework
+└── _deferred/                   ← games not in the v2.2.0 showcase (e.g. Tetris)
 ```
 
-Outputs one file per iteration to `round-trip/results/` plus a CSV of word counts at each step. Visually, word count should look like a sawtooth wave (compress drops, translate rises) with the valleys getting shallower each cycle until they flatline.
+Each `{game}-prompt/` directory contains:
+
+- `source.md` — the original prose specification
+- `source-botspeak-v22.md` — the v2.2.0 BOTSPEAK compression
+- `results/prose-sonnet.html` — clean-room build from the prose
+- `results/botspeak-sonnet-v22.html` — clean-room build from the BOTSPEAK
+- `parity-report.md` — physics-constant diff between the two HTML builds
+
+All builds were done by fresh `generalPurpose` subagents with no shared context. Each subagent received only its declared inputs (the source file plus, for compressions, the v2.2.0 skill). The compression subagent never saw the build subagent's output, and vice versa.
 
 ---
 
-## 2. Functional Equivalence — The Flappy Bird Test (`game-prompt/`)
+## Reproduce any result
 
-**The question:** Does an AI produce the same working software from a BOTSPEAK-compressed prompt as from the original prose prompt?
+### Round-trip a single doc
 
-**The source:** `game-prompt/source.md` is a 900-word, fully-specified one-shot prompt for a complete Flappy Bird game in a single HTML file. It specifies exact physics values, visual design, game states, audio synthesis, collision margins, and technical requirements. This level of specificity is necessary — a vague prompt would let the AI fill in gaps differently each run, making the comparison meaningless.
+```bash
+# requires claude CLI with /botspeak and /botspeak-translate installed
+/botspeak @examples/05-aliased-claude-md/before.md  # writes after.md
+/botspeak-translate @examples/05-aliased-claude-md/after.md  # writes .bst.md
+diff examples/05-aliased-claude-md/before.md examples/05-aliased-claude-md/after.bst.md
+```
 
-**The test:**
-1. Run the original `source.md` → get `game-prompt/results/flappy-prose.html`
-2. Run `/botspeak` on `source.md` → get `game-prompt/source-botspeak.md`
-3. Run `source-botspeak.md` through the AI → get `game-prompt/results/flappy-botspeak.html`
-4. Compare: do both games run? Do they share the same physics, controls, visual design, and behavior?
+### Re-run the iteration framework
 
-**What to look for:**
-- Both files open in a browser and produce a playable game
-- Gravity (0.5px/frame²), flap velocity (-9px/frame), pipe speed (3px/frame) match in both
-- Pipe gap (150px), forgiveness margin (4px), pipe spawn interval (90 frames) match
-- Game states (menu/playing/dying/gameover) present in both
-- LocalStorage best score present in both
-- Web Audio API sounds present in both
-- Visual design (canvas size 480×640, ground, clouds, particle effects) match
+```bash
+# requires claude CLI authenticated; reproduces the N-pass convergence test
+./round-trip/run.sh game-prompt/source.md 5
+```
 
-**The hypothesis:** A sufficiently specific prompt is functionally equivalent in BOTSPEAK and prose form. The AI extracts the same constraints from structured notation as from verbose sentences.
+Output goes to `round-trip/results/` with one file per half-iteration plus a CSV of word counts. The expected pattern is a sawtooth wave (compress drops, translate rises) with the valleys getting shallower until they flatline — that flatline is the proof that BOTSPEAK is lossless.
 
-**Run it:**
+### Re-build a game from the BOTSPEAK source
 
 ```bash
 # Step 1: build from prose
-claude --print "$(cat game-prompt/source.md)" > game-prompt/results/flappy-prose.html
+claude --print "$(cat game-prompt/source.md)" > game-prompt/results/prose-{your-model}.html
 
-# Step 2: compress the prompt
-claude --print "/botspeak $(cat game-prompt/source.md)" > game-prompt/source-botspeak.md
+# Step 2: build from BOTSPEAK
+claude --print "$(cat game-prompt/source-botspeak-v22.md)" > game-prompt/results/botspeak-{your-model}.html
 
-# Step 3: build from BOTSPEAK
-claude --print "$(cat game-prompt/source-botspeak.md)" > game-prompt/results/flappy-botspeak.html
-
-# Step 4: open both
-open game-prompt/results/flappy-prose.html
-open game-prompt/results/flappy-botspeak.html
+# Step 3: open both
+open game-prompt/results/*.html
 ```
 
----
-
-## Why Flappy Bird?
-
-- **Binary pass/fail:** the game either runs or it doesn't.
-- **Specific physics:** exact numbers (gravity, velocity, gap size) make the outputs directly comparable without subjective judgment.
-- **Visual:** side-by-side screenshots are immediately convincing to anyone skeptical about BOTSPEAK.
-- **Shareable:** a working `.html` file can be dropped anywhere online without a build step.
-- **Well-understood:** every developer knows what Flappy Bird is supposed to feel like.
+Compare the two HTML files: physics constants, render order, audio synthesis, state machine. The parity reports in each game directory document exactly what to look for.
 
 ---
 
-## Results So Far
+## Why these games
 
-**Round-trip iteration 1 (manual, acted as /botspeak):**
+- **Pong** is the Tier 1 canary. Simplest physics in the suite — if BOTSPEAK ever fails on Pong, compression is too aggressive.
+- **Snake** tests grid logic and input-buffer rules — small details a sloppy compression could lose.
+- **Flappy Bird** is the historical regression test. v2.0.0 failed it (conflated entity-state with ambient offset on pipes); v2.2.0 passes clean-room.
+- **Breakout** combines physics with grid data structures — per-row color array, per-row score array, edge-detection collision — testing whether compression preserves both numeric constants and structured tables.
 
-| | Words |
-|---|---|
-| `source.md` (original prose) | 1,415 |
-| `source-botspeak-iter1.md` (BOTSPEAK) | 614 |
-| **Reduction** | **57%** |
-
-All exact values preserved verbatim: every hex color, every pixel dimension, every Hz value, every frame count. See `game-prompt/source-botspeak-iter1.md`.
-
-The working game (built from the prose spec): `game-prompt/results/flappy-prose.html` — open it in any browser.
+Other candidates (Asteroids, Minesweeper, 2048, Space Invaders) are documented in `docs/internal/v2.2.0-candidate-prompts.md` for the v2.3.0 hard-suite eval.
 
 ---
 
-## Contributing Results
+## Why the v2.1.0 PARTIALs failed (and why v2.2.0 fixes them)
 
-If you run these evals, open a PR with your results in `game-prompt/results/` and `round-trip/results/`. Include:
-- Which model you used
-- Word count at each round-trip iteration (paste the CSV)
-- Whether both Flappy Bird versions ran successfully
-- Any behavioral differences you noticed between the prose and BOTSPEAK builds
+**Doc 05 — polarity inversion.** The v2.1.0 skill applied the `!!` (forbidden) symbol to `DISABLE_AUTOUPDATER=1`, which the source described as an opt-out instruction. The round-trip rendered this as a prohibition. v2.2.0 added a polarity verification step: before emitting `!!`, substitute the literal word "forbidden" and verify the resulting statement holds. SPEC §9 pitfall 14.
+
+**Doc 06 — code blocks dropped.** The v2.1.0 skill dropped 18 of 20 fenced code blocks (Mermaid, YAML, SQL) from the migration spec, even though "preserve code blocks" was a stated rule. The rule got crowded out on long technical docs. v2.2.0 added an explicit count check: count fenced blocks in source vs output; fail compression if the counts disagree. SPEC §9 pitfall 15.
+
+Both PARTIALs are preserved in `examples/0{5,6}/_history/` as evidence of the regression these checks are designed to prevent.
+
+---
+
+## Contributing results
+
+If you run these evals against a different model — Haiku, Opus, GPT, Gemini, Llama — open a PR with your results in the appropriate `results/` subdirectory. Include:
+
+- which model and version
+- which prompt (prose or BOTSPEAK or both)
+- whether the game ran successfully
+- any behavioral differences you noticed against the v2.2.0 Sonnet baseline
+
+The whole point of the eval suite is to let the BOTSPEAK claim be tested by someone other than the people who wrote it.

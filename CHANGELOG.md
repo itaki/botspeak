@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 
 - **SPEC §4 keep-list** explicitly names "all fenced code blocks — verbatim, no exceptions."
-- **Round-trip eval score: 9/9 PASS** (was 7/9 PASS · 2/9 PARTIAL in v2.1.0). The two PARTIALs (doc 05 polarity inversion on `DISABLE_AUTOUPDATER=1`; doc 06 Mermaid + YAML dropped) both now PASS.
+- **Round-trip eval score: 6/6 PASS** on the in-repo examples (was 4/6 PASS · 2/6 PARTIAL in v2.1.0). The two PARTIALs (doc 05 polarity inversion on `DISABLE_AUTOUPDATER=1`; doc 06 Mermaid + YAML dropped) both now PASS. Three additional external real-world docs (Django `.cursorrules`, Rust `AGENTS.md`, ai-dev `.mdc`) also pass; their sources are checked in at `evals/external-prompts/` for clean-room reproduction.
 - **Repo hygiene.** Old handoff files moved to `docs/handoffs-archive/`. Historical `evals/game-prompt/` artifacts (v3/v4/v5/v6 iterations, audit doc, prior demo HTML) moved to `evals/game-prompt/_history/`. Repo root now contains only canonical documents.
 - **README.md** lead with the philosophy framing instead of compression numbers. Links prominently to PHILOSOPHY.md and showcase.
 

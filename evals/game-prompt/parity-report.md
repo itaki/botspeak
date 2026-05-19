@@ -2,7 +2,7 @@
 
 Comparison of physics constants between the prose-built and BOTSPEAK-built HTML for Flappy Bird.
 
-- **Prose build:** `results/flappy-prose.html` (built from `source.md` by Claude)
+- **Prose build:** `results/prose-sonnet.html` (built from `source.md` by Claude Sonnet)
 - **BOTSPEAK build:** `results/botspeak-sonnet-v22.html` (built clean-room from `source-botspeak-v22.md` by Claude Sonnet 4.6, with no other context)
 
 The BOTSPEAK source `source-botspeak-v22.md` was itself produced clean-room from `source.md` by Claude Sonnet 4.6 using the v2.2.0 skill, with no prior context about earlier compressions.

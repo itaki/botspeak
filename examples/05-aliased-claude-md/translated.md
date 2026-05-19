@@ -1,12 +1,26 @@
 # Translated: 05-aliased-claude-md
 
-**Note:** This translated.md file would be approximately 335 lines—substantially more verbose than after.md (335 lines vs 335 lines BOTSPEAK).
+**Note:** This stub is a placeholder; for the actual round-trip audit of this
+document, see [evals/round-trip-results.md](../../evals/round-trip-results.md) row 05.
 
-**Why it's longer:** The translation expands all 10+ @defs aliases inline (HP, BT, CC, CX, PS, BA, SRC, CNS, PKG, GH, EL, etc.), expands all phase tags ([ALWAYS] → "In every turn:", [ON-TRIGGER] → "When [condition]:", [REFERENCE] → "For reference:"), expands symbols (!!, ->, ·, ok), and adds complete explanatory prose for each section.
+**Source:** `before.md` (8,083 tokens) → BOTSPEAK `after.md` (7,159 tokens) =
+**11% token reduction**.
 
-**To see the full translation:**
-- Compare `before.md` (original prose) to `after.md` (BOTSPEAK) directly
-- The `after.md` is 34% smaller while preserving 96% semantic fidelity
-- A full prose translation would expand back to ~335 lines (larger than original due to explicit explanations)
+**Why so modest:** This document is unusually code-heavy — a verbatim bootstrap
+shell block, banner format examples, and structured generated-file frontmatter
+that the skill is required to preserve byte-for-byte. The prose around those
+blocks compresses well (~30%) but the protected blocks dilute the headline number.
 
-**Key insight:** The BOTSPEAK version is not "lossy compression"—it's restructuring. The translation rebuilds the full semantics but with even more explanatory scaffolding than the original prose.
+**Why this matters:** The v2.1.0 version of this compression (preserved at
+`_history/after-v21-pre-polarity-fix.md`) reached 34% reduction — but only by
+mis-tagging `DISABLE_AUTOUPDATER=1` as `!!` (forbidden) when the source actually
+described it as an opt-out instruction. v2.2.0 trades the headline number for
+correctness.
+
+**To audit fidelity yourself:** run `/botspeak-translate after.md` and diff the
+result against `before.md`. Every constraint, every prohibition, every numeric
+value should survive the round trip with the same polarity.
+
+**Key insight:** BOTSPEAK is not lossy compression — it is restructuring. When
+the source is mostly prose, compression is large. When the source is mostly
+code blocks, compression is modest. Either way the semantics survive.

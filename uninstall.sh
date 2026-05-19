@@ -65,16 +65,42 @@ else
 fi
 remove_skills_for "Generic (~/.agents)" "$HOME/.agents/skills"
 
+# Remove the always-on rule block install.sh injected into Claude's global CLAUDE.md.
+remove_claude_global_rule() {
+  local target="$HOME/.claude/CLAUDE.md"
+  local start_marker='<!-- BOTSPEAK-ALWAYS-ON:START - managed by install.sh -->'
+  local end_marker='<!-- BOTSPEAK-ALWAYS-ON:END -->'
+  if [ ! -f "$target" ]; then
+    skip "Claude global rule (~/.claude/CLAUDE.md not present)"
+    return
+  fi
+  if ! grep -qF "$start_marker" "$target"; then
+    skip "Claude global rule (no managed block found in CLAUDE.md)"
+    return
+  fi
+  local tmp
+  tmp="$(mktemp)"
+  awk -v start="$start_marker" -v end="$end_marker" '
+    $0 == start { in_block=1; next }
+    $0 == end   { in_block=0; next }
+    !in_block   { print }
+  ' "$target" > "$tmp"
+  mv "$tmp" "$target"
+  ok "removed managed block from $target"
+}
+
+header "Always-on rule (global)"
+remove_claude_global_rule
+
 cat <<'DONE'
 
 done.
 
-⚠  always-on rule: not auto-removed (rules are installed manually per IDE).
-   Remove it yourself from wherever you put it:
+⚠  per-project / manually-installed rules are not auto-removed.
+   Remove them yourself from wherever you put them:
 
    Cursor (project)  →  .cursor/rules/botspeak-always-on.mdc
    Cursor (global)   →  Cursor Settings → Rules → User Rules
-   Claude Code       →  your CLAUDE.md or ~/.claude/CLAUDE.md
    Windsurf          →  .windsurf/rules/botspeak-always-on.md
    Cline             →  .clinerules/botspeak-always-on.md
    Copilot           →  .github/copilot-instructions.md

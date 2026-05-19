@@ -14,7 +14,17 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 ![Two bots chatting in BOTSPEAK](images/two-bots-chatting.png)
 
-Human view: [README.md](README.md) · Bot view: you are here · Why: [PHILOSOPHY.md](PHILOSOPHY.md) · **Live evals: [showcase](showcase/index.html)** · [MIT](LICENSE)
+- Human view: [README.md](README.md)
+- Bot view: you are here
+- Deep understanding: [PHILOSOPHY.md](PHILOSOPHY.md)
+
+<h2 align="center">
+
+→ [Open the live showcase](showcase/index.html) ←
+
+</h2>
+
+<p align="center"><em>4 games · 2 builds · identical physics</em></p>
 
 ---
 
@@ -145,36 +155,32 @@ Anything in triple-backtick fences (Mermaid · SQL · YAML · regex · JSON · s
 
 ---
 
-## Install
-
-### Step 1 — Skills (one line)
+## Install — one line
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-Drops 2 skills into every detected agent (Claude Code · Cursor · Codex · Gemini CLI · anything in `~/.agents`):
+This single command does 3 things:
 
-- `/botspeak` — compress file or directory -> BT. File ref = replace in place. Pasted text = create new file. Flags: `-bu` backup · `-c` chat output.
-- `BST` — render BT -> human prose -> `[filename].bst.md`. `-c` = chat instead.
+1. **Skills** -> every detected agent (Claude Code · Cursor · Codex · Gemini CLI · `~/.agents`):
+   - `/botspeak` — compress file or directory -> BT. File ref = replace in place. Pasted text = create new file. Flags: `-bu` backup · `-c` chat output.
+   - `BST` — render BT -> human prose -> `[filename].bst.md`. `-c` = chat instead.
+2. **AOR global for Claude Code** -> writes managed block into `~/.claude/CLAUDE.md` · idempotent · re-run anytime to refresh.
+3. **Paste-ready paths printed** for IDEs whose rules are per-project or UI-only:
 
-Opt-in: nothing changes until invoked. For automatic primary mode -> also install AOR (Step 2).
+| IDE                 | AOR location                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cursor (project)**| Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) -> `.cursor/rules/`.                                                                             |
+| **Cursor (global)** | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> Cursor Settings → Rules → User Rules. UI-only · no file path.                                  |
+| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.windsurf/rules/`.                                                                             |
+| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.clinerules/`.                                                                                 |
+| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.github/copilot-instructions.md`.                                                            |
+| **Codex / generic** | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `AGENTS.md`.                                                                                 |
 
-### Step 2 — AOR (manual, by design)
+AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
-Makes every new AI-facing doc come out in BT by default. Manual because IDE rule systems vary · won't touch what you've already written.
-
-| IDE                 | What to do                                                                                                                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cursor**          | Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) -> `.cursor/rules/`. All projects -> Cursor Settings → Rules → User Rules. |
-| **Claude Code**     | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).                                                                                       |
-| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.windsurf/rules/`.                                                                                                                                        |
-| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.clinerules/`.                                                                                                                                            |
-| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.github/copilot-instructions.md`.                                                                                                                       |
-| **Codex / generic** | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `AGENTS.md`.                                                                                                                                               |
-| **Anything else**   | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) wherever harness keeps always-on instructions.                                                                                                               |
-
-Don't see your IDE? [Add it](CONTRIBUTING.md).
+> **2 things · 1 command.** Skills = called explicitly (`/botspeak @file`). AOR = always-on so agent writes in BT by default · no prompting. Skills install globally; AOR lives wherever IDE keeps rules. Installer handles both where possible · prints clear paste paths for the rest.
 
 ---
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# BOTSPEAK installer
-# installs skills into all detected agents
-# rules are install-by-hand; see README.md for per-IDE paths
+# BOTSPEAK installer — skills + always-on rule, one command
+# - skills go global into every detected agent
+# - the always-on rule goes into Claude Code's global CLAUDE.md (file-based, idempotent)
+# - paste-ready next steps printed for Cursor User Rules and per-project rules
 
 set -e
 
@@ -21,11 +22,13 @@ fi
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BOLD='\033[1m'
 RESET='\033[0m'
 
 ok()    { echo -e "  ${GREEN}✓${RESET} $1"; }
 skip()  { echo -e "  ${YELLOW}-${RESET} $1 (not detected)"; }
-header(){ echo -e "\n${GREEN}$1${RESET}"; }
+warn()  { echo -e "  ${YELLOW}!${RESET} $1"; }
+header(){ echo -e "\n${BOLD}${GREEN}$1${RESET}"; }
 
 # Write one SKILL.md — copy from local repo if available, else fetch from GitHub.
 write_skill_file() {
@@ -70,14 +73,84 @@ install_skills_for() {
   fi
 }
 
+# Fetch the always-on rule contents to a variable.
+# Echoes the rule body on stdout, returns 1 if it cannot be fetched.
+fetch_rule_body() {
+  if [ -n "$REPO_DIR" ] && [ -f "$REPO_DIR/rules/botspeak-always-on.md" ]; then
+    cat "$REPO_DIR/rules/botspeak-always-on.md"
+  elif command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$RAW_BASE/rules/botspeak-always-on.md"
+  else
+    return 1
+  fi
+}
+
+# Install the always-on rule globally into Claude Code (~/.claude/CLAUDE.md).
+# Idempotent: marker comments delimit our block, replaced on each re-run.
+install_claude_global_rule() {
+  local target="$HOME/.claude/CLAUDE.md"
+  local parent="$HOME/.claude"
+  if [ ! -d "$parent" ]; then
+    skip "Claude Code global rule (~/.claude not detected)"
+    return 1
+  fi
+
+  local body
+  if ! body="$(fetch_rule_body)"; then
+    warn "Claude global rule: could not fetch rule body"
+    return 1
+  fi
+
+  local start_marker='<!-- BOTSPEAK-ALWAYS-ON:START - managed by install.sh -->'
+  local end_marker='<!-- BOTSPEAK-ALWAYS-ON:END -->'
+
+  mkdir -p "$parent"
+  if [ ! -f "$target" ]; then
+    {
+      echo "$start_marker"
+      echo "$body"
+      echo "$end_marker"
+    } > "$target"
+    ok "always-on rule -> $target (created)"
+    return 0
+  fi
+
+  if grep -qF "$start_marker" "$target"; then
+    # Strip existing managed block, then append a fresh one.
+    local stripped
+    stripped="$(mktemp)"
+    awk -v start="$start_marker" -v end="$end_marker" '
+      $0 == start { in_block=1; next }
+      $0 == end   { in_block=0; next }
+      !in_block   { print }
+    ' "$target" > "$stripped"
+    {
+      cat "$stripped"
+      echo "$start_marker"
+      echo "$body"
+      echo "$end_marker"
+    } > "$target"
+    rm -f "$stripped"
+    ok "always-on rule -> $target (refreshed)"
+  else
+    {
+      echo ""
+      echo "$start_marker"
+      echo "$body"
+      echo "$end_marker"
+    } >> "$target"
+    ok "always-on rule -> $target (appended)"
+  fi
+}
+
 cat <<'BANNER'
 ┌─────────────────────────────────────────┐
 │   BOTSPEAK — bots talking to bots       │
-│   installing skills                     │
+│   installing skills + always-on rule    │
 └─────────────────────────────────────────┘
 BANNER
 
-header "Skills"
+header "1/3 — Skills (global, per agent)"
 install_skills_for "Claude Code" "$HOME/.claude/skills"
 install_skills_for "Cursor"      "$HOME/.cursor/skills-cursor"
 # Codex: only install if the binary is present (a ~/.codex dir alone is not enough)
@@ -104,30 +177,38 @@ else
 fi
 install_skills_for "Generic (~/.agents)" "$HOME/.agents/skills"
 
-header "Agent definition"
-if [ -n "$REPO_DIR" ]; then
-  ok "available at: $REPO_DIR/agents/botspeak-translator.md"
-else
-  ok "available at: $RAW_BASE/agents/botspeak-translator.md"
-fi
-ok "import into your agent system as needed"
+header "2/3 — Always-on rule (global, where possible)"
+install_claude_global_rule || true
+
+header "3/3 — Manual rule paths"
+cat <<MANUAL
+  Most IDEs keep rules per-project. The always-on rule lives at:
+    $RAW_BASE/rules/botspeak-always-on.md      (universal markdown)
+    $RAW_BASE/rules/botspeak-always-on.mdc     (Cursor with alwaysApply frontmatter)
+
+  Per-IDE one-liners (from a project root):
+    Cursor       cp <repo>/rules/botspeak-always-on.mdc .cursor/rules/
+                 (or paste rules/botspeak-always-on.md into Cursor → Settings → Rules → User Rules)
+    Windsurf     cp <repo>/rules/botspeak-always-on.md .windsurf/rules/
+    Cline        cp <repo>/rules/botspeak-always-on.md .clinerules/
+    Copilot      cat <repo>/rules/botspeak-always-on.md >> .github/copilot-instructions.md
+    Codex / any  cat <repo>/rules/botspeak-always-on.md >> AGENTS.md
+
+  The rule itself is small — print it any time with:
+    curl -fsSL $RAW_BASE/rules/botspeak-always-on.md
+MANUAL
 
 cat <<'DONE'
 
 done.
 
-triggers:
+triggers (skills):
   /botspeak           - compress an existing AI-facing doc (file or directory)
   /botspeak-translate - render BOTSPEAK back to human prose (audit safety net)
 
 or just say:
   "botspeak this"
   "translate this for me"
-
-always-on rule (manual install — recommended):
-  See README.md "Install" section for per-IDE rule paths.
-  TL;DR: copy rules/botspeak-always-on.md (or .mdc for Cursor) into your IDE's
-  rules folder so every new AI-facing doc gets written in BOTSPEAK by default.
 
 reference: SPEC.md, examples/, README.md
 

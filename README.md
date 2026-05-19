@@ -4,7 +4,17 @@
 
 ![Two bots chatting in BOTSPEAK](images/two-bots-chatting.png)
 
-Human view: you are here  ·  Bot view: [README-FOR-AI.md](README-FOR-AI.md)  ·  Why: [PHILOSOPHY.md](PHILOSOPHY.md)  ·  **Live evals: [open the showcase](showcase/index.html)**  ·  [MIT](LICENSE)
+- **You are here** (human view)
+- For bots: [README-FOR-AI.md](README-FOR-AI.md)
+- Deep understanding: [PHILOSOPHY.md](PHILOSOPHY.md)
+
+<h2 align="center">
+
+→ [Open the live showcase](showcase/index.html) ←
+
+</h2>
+
+<p align="center"><em>The real magic — four games, built two ways, identical physics. See for yourself.</em></p>
 
 ---
 
@@ -26,13 +36,11 @@ BOTSPEAK is a writing convention for documents whose primary reader is AI. It re
 
 ---
 
-## See it work — the real magic is here
+## Side by side: prose-built vs BOTSPEAK-built
 
 [![BOTSPEAK showcase preview: prose-built Breakout next to BOTSPEAK-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
 
-**→ [Open the live showcase](showcase/index.html)**
-
-Four games — Flappy Bird, Snake, Pong, Breakout — built two ways, head to head. The left iframe is the game built from a prose specification by one model. The right iframe is the same game built from the BOTSPEAK-compressed version of that same spec by a different fresh model with no shared context. **They play identically.** Every physics constant matches.
+Four games — Flappy Bird, Snake, Pong, Breakout — built two ways. The left iframe is the game built from a prose specification by one model. The right iframe is the same game built from the BOTSPEAK-compressed version of that same spec by a different fresh model with no shared context. **They play identically.** Every physics constant matches.
 
 | Game | Prose words | BOTSPEAK words | Compression | Physics matched |
 |---|---:|---:|---:|---:|
@@ -138,36 +146,32 @@ Anything inside triple-backtick fences — Mermaid, SQL, YAML, regex, JSON, shel
 
 ---
 
-## Install
-
-### Step 1 — Install the skills (one line)
+## Install — one line
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
 
-Drops two skills into every AI agent we detect (Claude Code, Cursor, Codex, Gemini CLI, anything in `~/.agents`):
+This single command:
 
-- `/botspeak` — compress a file or directory into BOTSPEAK. File ref replaces in place. Pasted text creates a new file. Flags: `-bu` backup first · `-c` output to chat.
-- `/botspeak-translate` — render BOTSPEAK → human prose into `[filename].bst.md`. `-c` puts it in chat instead.
+1. **Drops both skills** into every AI agent we detect — Claude Code, Cursor, Codex, Gemini CLI, anything under `~/.agents`.
+   - `/botspeak` — compress a file or directory into BOTSPEAK. File ref replaces in place; pasted text creates a new file. Flags: `-bu` backup first · `-c` output to chat.
+   - `/botspeak-translate` — render BOTSPEAK → human prose as `[filename].bst.md`. `-c` puts it in chat instead.
+2. **Installs the always-on rule globally for Claude Code** by writing a managed block into `~/.claude/CLAUDE.md` (idempotent — re-run anytime to refresh). After install, every new AI-facing doc Claude writes comes out in BOTSPEAK by default.
+3. **Prints paste-ready paths** for IDEs whose rules are per-project or live in a settings UI (Cursor, Windsurf, Cline, Copilot, Codex). Pick the one you use:
 
-Opt-in: nothing changes until you invoke a skill. For automatic primary mode, also install the always-on rule below.
+| IDE                 | Where the always-on rule goes                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cursor (project)**| Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) into `.cursor/rules/` in your project root.                                                          |
+| **Cursor (global)** | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) into Cursor Settings → Rules → User Rules. (UI-only — no file path.)                                  |
+| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.windsurf/rules/`.                                                                                 |
+| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.clinerules/`.                                                                                     |
+| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.github/copilot-instructions.md`.                                                                |
+| **Codex / generic** | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `AGENTS.md` in your project root.                                                                 |
 
-### Step 2 — Install the always-on rule (manual, by design)
+The rule itself is 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
-Makes every new AI-facing doc come out in BOTSPEAK by default. Manual because IDE rule systems vary and we won't touch what you've already written.
-
-| IDE                 | What to do                                                                                                                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cursor**          | Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) into `.cursor/rules/` in your project root. (For all projects, paste into Cursor Settings → Rules → User Rules.) |
-| **Claude Code**     | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to your project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).                                                                                   |
-| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.windsurf/rules/` in your project root.                                                                                                                    |
-| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.clinerules/` in your project root.                                                                                                                        |
-| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) to `.github/copilot-instructions.md`.                                                                                                                        |
-| **Codex / generic** | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) into `AGENTS.md` in your project root.                                                                                                                         |
-| **Anything else**   | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) wherever your harness keeps always-on instructions.                                                                                                           |
-
-Don't see your IDE? [Add it](CONTRIBUTING.md).
+> **Two things, one command.** BOTSPEAK ships *skills* (called explicitly, like `/botspeak @CLAUDE.md`) and an *always-on rule* (so the agent writes in BOTSPEAK by default without prompting). Skills install globally; rules live wherever your IDE keeps them. The installer handles both wherever it can and prints clear paste paths for the rest.
 
 ---
 

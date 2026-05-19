@@ -43,6 +43,37 @@ secondary mode: compress existing prose docs on demand · file or directory
 
 ---
 
+## Install — one line
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
+```
+
+This single command does 3 things:
+
+1. **Skills** -> every detected agent (Claude Code · Cursor · Codex · Gemini CLI · `~/.agents`):
+   - `/botspeak` — compress file or directory -> BT. File ref = replace in place. Pasted text = create new file. Flags: `-bu` backup · `-c` chat output.
+   - `BST` — render BT -> human prose -> `[filename].bst.md`. `-c` = chat instead.
+2. **AOR global for Claude Code** -> writes managed block into `~/.claude/CLAUDE.md` · idempotent · re-run anytime to refresh.
+3. **Paste-ready paths printed** for IDEs whose rules are per-project or UI-only:
+
+| IDE                 | AOR location                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cursor (project)**| Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) -> `.cursor/rules/`.                                                                             |
+| **Cursor (global)** | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> Cursor Settings → Rules → User Rules. UI-only · no file path.                                  |
+| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.windsurf/rules/`.                                                                             |
+| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.clinerules/`.                                                                                 |
+| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.github/copilot-instructions.md`.                                                            |
+| **Codex / generic** | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `AGENTS.md`.                                                                                 |
+
+AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
+
+> **2 things · 1 command.** Skills = called explicitly (`/botspeak @file`). AOR = always-on so agent writes in BT by default · no prompting. Skills install globally; AOR lives wherever IDE keeps rules. Installer handles both where possible · prints clear paste paths for the rest.
+
+Keep reading below for proof · side-by-side game builds · real before/after compressions · 5 mechanisms that do the work.
+
+---
+
 ## See it work — primary public proof
 
 [![BT showcase preview: prose-built Breakout next to BT-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
@@ -152,35 +183,6 @@ XML tags > markdown headings for model reliability in long files. Claude · GPT 
 ### 5. Fenced code blocks preserved verbatim
 
 Anything in triple-backtick fences (Mermaid · SQL · YAML · regex · JSON · shell · file trees) = already dense -> BT never rewrites it. Block count in source == output · byte-for-byte. Why code-heavy docs still compress 11–19%: prose around blocks shrinks · blocks themselves don't.
-
----
-
-## Install — one line
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
-```
-
-This single command does 3 things:
-
-1. **Skills** -> every detected agent (Claude Code · Cursor · Codex · Gemini CLI · `~/.agents`):
-   - `/botspeak` — compress file or directory -> BT. File ref = replace in place. Pasted text = create new file. Flags: `-bu` backup · `-c` chat output.
-   - `BST` — render BT -> human prose -> `[filename].bst.md`. `-c` = chat instead.
-2. **AOR global for Claude Code** -> writes managed block into `~/.claude/CLAUDE.md` · idempotent · re-run anytime to refresh.
-3. **Paste-ready paths printed** for IDEs whose rules are per-project or UI-only:
-
-| IDE                 | AOR location                                                                                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cursor (project)**| Copy [rules/botspeak-always-on.mdc](rules/botspeak-always-on.mdc) -> `.cursor/rules/`.                                                                             |
-| **Cursor (global)** | Paste [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> Cursor Settings → Rules → User Rules. UI-only · no file path.                                  |
-| **Windsurf**        | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.windsurf/rules/`.                                                                             |
-| **Cline**           | Copy [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.clinerules/`.                                                                                 |
-| **Copilot**         | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `.github/copilot-instructions.md`.                                                            |
-| **Codex / generic** | Append [rules/botspeak-always-on.md](rules/botspeak-always-on.md) -> `AGENTS.md`.                                                                                 |
-
-AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
-
-> **2 things · 1 command.** Skills = called explicitly (`/botspeak @file`). AOR = always-on so agent writes in BT by default · no prompting. Skills install globally; AOR lives wherever IDE keeps rules. Installer handles both where possible · prints clear paste paths for the rest.
 
 ---
 

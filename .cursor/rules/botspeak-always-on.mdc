@@ -13,7 +13,7 @@ alwaysApply: true
 [ALWAYS] BT only in AI-facing docs (rules · skills · CLAUDE.md · AGENTS.md · memory · handoffs)
 [ALWAYS] chat replies to USER = full human prose · !! zero BT
 [NEW-CHAT] NEW AI-facing docs -> write in BT · EXISTING docs -> refactor only when user explicitly asks
-[ON-TRIGGER] user requests prose ("write this in prose" || "make this readable" || "no botspeak" || "-bs") -> render in human prose · skip BT for this output
+[ON-TRIGGER] user requests prose ("write this in prose" || "make this readable" || "no botspeak" || "-p") -> render in human prose · skip BT for this output
 
 # skills
 !! writing new BT docs -> load /botspeak skill for grammar · symbols · write order

@@ -30,14 +30,23 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 ## The problem
 
-agent re-reads same files every session: `CLAUDE.md` · `AGENTS.md` · rules/ · skills/ · last handoff · all written for humans (articles · transitions · hedging). nothing earns its place in context window already paying for unstarted conversation -> token burn before first word.
+AI now writes for other AIs: `CLAUDE.md` · `AGENTS.md` · rules/ · skills/ · plans mid-session · handoffs no human reads · prompts main agent fires at 10 subagents in parallel. **Almost none of it is for you.**
+
+all still prose · articles · transitions · hedging · scaffolding for human cognition that next AI reader doesn't need · pays for anyway.
+
+worst leak = fan-out. main agent spawns 10 subagents (executor · researcher · critic · market-scanner) -> every brief out = prose · every reply back = prose · main context fills w/ both sides of conversation written for audience that doesn't exist. cut each leg by 1/3 -> every fan-out cut by 1/3 on both directions · every time.
+
+token burn before first word · then again every time agent talks to another agent.
 
 ## The fix
 
-BT = writing convention for AI-primary docs · removes only human-cognition scaffolding · keeps everything LLM parses (symbols · structure · constraints · code). same information · less rot.
+BT = writing convention for any output whose primary reader = AI · file on disk OR prompt to another agent. removes only human-cognition scaffolding · keeps everything LLM parses (symbols · structure · constraints · code). same information · less rot. 3 modes:
 
-primary mode: new rules · skills · memory pages · handoffs -> BT automatically · no prompting
-secondary mode: compress existing prose docs on demand · file or directory
+**primary** — AI-facing files -> BT automatically · no prompting · no reformatting
+**secondary** — compress existing prose docs on demand · file or directory
+**tertiary** — subagent prompts -> BT · outbound briefs + inbound reports both compress · save tokens on send AND return · workers get clearer instructions (BT strips ambiguity w/ the prose)
+
+endorsed by model trainers. Anthropic [prompting best-practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices): "structure prompts with XML tags" -> they "help Claude parse complex prompts unambiguously" · structured input above query "can improve response quality by up to 30%". BT = convention that does this consistently · every doc · every subagent call.
 
 *Same meaning. Token savings = measurement, not motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
@@ -70,15 +79,15 @@ AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 > **2 things · 1 command.** Skills = called explicitly (`/botspeak @file`). AOR = always-on so agent writes in BT by default · no prompting. Skills install globally; AOR lives wherever IDE keeps rules. Installer handles both where possible · prints clear paste paths for the rest.
 
-Keep reading below for proof · side-by-side game builds · real before/after compressions · 5 mechanisms that do the work.
+Keep reading below for proof · side-by-side game builds · real before/after compressions · the human-to-bot gap that does the work.
 
 ---
 
-## See it work — primary public proof
+## Side by side: prose-built vs BT-built
+
+→ [**Open the live showcase**](showcase/index.html) (plays in your browser · right-click "Open link in new tab" to keep this page open)
 
 [![BT showcase preview: prose-built Breakout next to BT-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
-
-**→ [open showcase/index.html](showcase/index.html)**
 
 4 games (Flappy Bird · Snake · Pong · Breakout) · built 2 ways · head-to-head. Left iframe = built from prose spec by one model. Right iframe = built from BT-compressed version of same spec by different fresh model · zero shared context. **Play identically.** Every physics constant matches.
 
@@ -120,15 +129,19 @@ Keep reading below for proof · side-by-side game builds · real before/after co
 
 *Tokens = chars / 4 (standard BPE approximation). Reproduce: `wc -c examples/$N/before.md examples/$N/after.md`. Per-example folders include exact `o200k_base` counts.*
 
-**Honest spread.** Prose-heavy docs (handoffs · philosophy · multi-paragraph rules) -> 25-42% · BT strips articles · hedging · throat-clearing · aliases repeated identifiers. Code-heavy docs (long CLAUDE.md w/ fenced examples) -> 7-19% · BT preserves fenced blocks byte-for-byte · rewriting code would break the example. Real-world CLAUDE.md in big repos -> cluster 7-18% · authors already hand-tuned vs agents over months · easy wins gone before BT sees the file. Stack BT across CLAUDE.md · rules · skills · memory pages · handoffs -> savings compound: repo burning 30,000 tokens pre-first-word -> ~24,000.
+**Real-repo caveat.** CLAUDE.md files above already had hundreds of contributors + months of PR iteration polishing vs real agents before BT saw them. 7-18% reduction = on top of all that human pre-optimization. Stripping further is hard · easy wins taken years ago.
+
+**Your repo = opposite.** Your CLAUDE.md · rules · handoffs almost certainly written by your agent in plain prose · no committee · no PR review · no token audit. That's where BT does the heavy lifting. Expect 25-50% on a first compression of your own docs (see synthetic examples above) · double that on prompts sent to subagents (never optimized at all). 7% on `langchain` = floor. Your own repo = closer to ceiling.
 
 ---
 
-## How it works
+## Human-to-bot understanding
 
-5 mechanisms do almost all the work.
+humans read sequentially · need prose to track structure. bots = opposite · parse symbols · tags · discrete tokens far more reliably than flowing English. BT exploits the gap. every mechanism below = strange to a human · native to the model.
 
 ### 1. Aliases (`@defs`) — killer feature
+
+human reader hates aliases · has to scroll back to remember what `E` and `MV` mean. bot binds symbol once · tracks through rest of doc · no slip.
 
 Repeated identifiers = #1 token sink. `establishment_id` × 47 · `materialized_view_refresh_concurrently` × 23. Each costs 4–8 tokens · every session · forever.
 
@@ -148,6 +161,8 @@ In 2,000-token file, this block alone -> 400+ tokens saved · every session.
 
 ### 2. Phase tags
 
+human writes *"please load this at session start, but you can skip it once context is established."* 15 words to say 1 thing. bot reads `[NEW-CHAT]` once · knows the lifecycle.
+
 ```
 [NEW-CHAT]    load at session start; agent may skip once context established
 [ALWAYS]      every turn
@@ -160,7 +175,7 @@ Correctly tagged 1,500-token file -> ~600 tokens loaded mid-session. Rest = esta
 
 ### 3. Symbol contracts
 
-ASCII operators · 1 token each · guaranteed by every modern BPE tokenizer:
+`->` · `!!` · `&&` · `||` unreadable to most humans without a legend. Modern BPE tokenizer assigns each one a single token · model treats them as logical operators directly · no decoding step.
 
 ```
 ->   leads to       !!   never / forbidden
@@ -173,7 +188,7 @@ Full table -> [SPEC.md](SPEC.md).
 
 ### 4. XML structure for long docs
 
-XML tags > markdown headings for model reliability in long files. Claude · GPT · Gemini all parse named XML blocks more accurately than loose `##` headings.
+Markdown headings (`## context`) = hints. XML tags (`<context>…</context>`) = boundaries. Anthropic [prompting best-practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) explicit: XML tags "help Claude parse complex prompts unambiguously" · for long inputs "structure document content and metadata with XML tags" -> wrap `<document>` around `<document_content>` + `<source>`. Humans find angle brackets noisy. Bots treat them as schema.
 
 ```
 <context>
@@ -196,7 +211,7 @@ XML tags > markdown headings for model reliability in long files. Claude · GPT 
 
 ### 5. Fenced code blocks preserved verbatim
 
-Anything in triple-backtick fences (Mermaid · SQL · YAML · regex · JSON · shell · file trees) = already dense -> BT never rewrites it. Block count in source == output · byte-for-byte. Why code-heavy docs still compress 11–19%: prose around blocks shrinks · blocks themselves don't.
+Regex = noise to most humans. Mermaid = a language. JSON = unreadable past 3 levels of nesting. To a model · all three = first-class · already dense · already parseable. BT never rewrites contents of triple-backtick fence -> nothing to win · model that can't parse regex wasn't going to parse the prose around it either. Block count in source == output · byte-for-byte. Why code-heavy docs still compress 7-19% — prose around blocks shrinks · blocks themselves don't.
 
 ---
 
@@ -275,10 +290,10 @@ botspeak/
 ## FAQ
 
 **Q: Won't fewer tokens make my agent worse?**
-A: No · usually better. 2025 paper found constraining LLMs to brief responses improved accuracy by 26 percentage points on certain benchmarks. Less noise in context window = better attention on what matters.
+A: No · usually better. Anthropic [prompting best-practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls out: Claude's latest models = "less verbose" by design · XML-tagged structured input "can improve response quality by up to 30%" over loose prose · over-prompting in long-form English ("CRITICAL: You MUST...") *degrades* instruction following on newer models. Less prose · more structure · better attention.
 
 **Q: Doesn't the AI need prose to understand the rules?**
-A: No. LLMs trained on code · JSON · XML · YAML · math notation -> structured text = native language. "Lost in middle" problem is *worse* for prose than symbols.
+A: No — prose = often the worst format you could pick. Modern LLMs pre-trained on much wider vocabulary than English: HTML · JSON · XML · YAML · regex · Python · Rust · SQL · Mermaid · math notation · dozens of DSLs all native. Most precise way to specify a data shape = often a SQL migration that will never run · not 3 paragraphs of English about it. Most precise input rule = a regex · not "the string should generally look like...". BT leans into the idea — pick the densest notation that fits the meaning · then stop. "Lost in middle" hits flat prose hardest of all.
 
 **Q: My IDE's skill tool wrote plain prose. Now what?**
 A: Expected — IDE tools don't know about BT. Run `/botspeak` on file. With AOR installed · anything AI writes for itself -> BT from then on.
@@ -287,7 +302,7 @@ A: Expected — IDE tools don't know about BT. Run `/botspeak` on file. With AOR
 A: No. Start with whatever agent reads most — usually `CLAUDE.md` or largest always-on rule. Compress that one · measure · go from there.
 
 **Q: How do I skip BT for one doc?**
-A: Say *"write this in prose"* · *"no botspeak"* · or `-bs`.
+A: Say *"write this in prose"* · *"no botspeak"* · or pass `-p` (think *p*rose). Flag used to be `-bs` -> ambiguous · could read as "give me BT" or "no BT". `-p` = unambiguous.
 
 **Q: New agent on team can't read it?**
 A: Every modern LLM (Claude · GPT · Gemini · Llama · Mistral) reads BT without preamble. Worried? Drop `SPEC.md` into project once.

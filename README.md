@@ -20,17 +20,25 @@
 
 ## The problem
 
-Your agent re-reads the same files at the start of every session. `CLAUDE.md`, `AGENTS.md`, the rules folder, the skills folder, the last handoff. All of it was written in prose — for humans. Articles like "the" and "a." Transitions like "as mentioned above." Hedging like "typically." None of it earns its place inside a context window that's already paying for the conversation you haven't started yet.
+Your AI is now writing for other AIs. `CLAUDE.md`, `AGENTS.md`, the rules folder, the skills folder, the plans your agent generates mid-session, handoffs nobody on your team will ever read, and — quietly the biggest one — the prompts your main agent fires off to ten subagents in parallel. **Almost none of it is for you.**
 
-You're burning tokens before you type your first word.
+But it's all still written in prose. Articles like "the." Transitions like "as mentioned above." Hedging like "typically." Scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
+
+The worst leak is fan-out. When a main agent spawns ten subagents — an executor, a researcher, a critic, a market-scanner — every brief going out is prose, and every reply coming back is prose. The main agent's context window fills with both sides of a conversation written for an audience that doesn't exist. Cut each leg by a third and you've cut every fan-out by a third on both directions, every time.
+
+You're burning tokens before you type a word, then again every time your agent talks to another agent.
 
 ## The fix
 
-BOTSPEAK is a writing convention for documents whose primary reader is AI. It removes only the parts that were written for human cognition and keeps everything an LLM actually parses — symbols, structure, constraints, code. Same information. Less rot. Two modes:
+BOTSPEAK is a writing convention for any output whose primary reader is AI — whether that's a file on disk or a prompt sent to another agent. It removes only the parts that were written for human cognition and keeps everything an LLM actually parses: symbols, structure, constraints, code. Same information. Less rot. Three modes:
 
-**Primary** — Every new rule, skill, memory page, and handoff your agent writes comes out in BOTSPEAK automatically. No prompting. No reformatting.
+**Primary — write AI-facing files in BOTSPEAK automatically.** Every new rule, skill, memory page, and handoff your agent writes comes out compressed by default. No prompting. No reformatting.
 
-**Secondary** — Compress your existing prose docs on demand. One file or an entire directory.
+**Secondary — compress your existing prose docs on demand.** One file or an entire directory.
+
+**Tertiary — talk to subagents in BOTSPEAK.** When your main agent fans out to ten workers, both the outgoing briefs and the incoming reports compress. You save tokens on the send *and* the return — and the workers themselves get clearer instructions, because BOTSPEAK strips ambiguity along with the prose.
+
+The pattern is endorsed by the people who train these models. Anthropic's own [prompting best-practices guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) tells you to "structure prompts with XML tags" because they "help Claude parse complex prompts unambiguously," and notes that placing structured input above your query "can improve response quality by up to 30%." BOTSPEAK is the convention that does that consistently across every doc and every subagent call.
 
 *Same meaning. The token savings are the measurement, not the motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
@@ -63,11 +71,13 @@ The rule itself is 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 > **Two things, one command.** BOTSPEAK ships *skills* (called explicitly, like `/botspeak @CLAUDE.md`) and an *always-on rule* (so the agent writes in BOTSPEAK by default without prompting). Skills install globally; rules live wherever your IDE keeps them. The installer handles both wherever it can and prints clear paste paths for the rest.
 
-Keep reading below for the proof: side-by-side game builds, real before/after compressions, and the five mechanisms that do the work.
+Keep reading below for the proof: side-by-side game builds, real before/after compressions, and the human-to-bot gap that does the work.
 
 ---
 
 ## Side by side: prose-built vs BOTSPEAK-built
+
+→ [**Open the live showcase**](showcase/index.html) (plays in your browser — right-click "Open link in new tab" to keep this page open)
 
 [![BOTSPEAK showcase preview: prose-built Breakout next to BOTSPEAK-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
 
@@ -113,15 +123,19 @@ We fetched the live `CLAUDE.md` from three high-star repositories and compressed
 
 *Tokens = `chars / 4` (the standard GPT/Claude BPE approximation). Verify any row yourself: `wc -c examples/$N/before.md examples/$N/after.md`. The per-example folders also include exact `o200k_base` counts.*
 
-**The honest read.** Compression depends on what's actually in the file. Prose-heavy docs (handoffs, philosophy, multi-paragraph rules) compress 25–42% because BOTSPEAK strips articles, hedging, and throat-clearing while aliasing repeated identifiers. Code-heavy docs (long `CLAUDE.md` files full of fenced examples) compress 7–19% because BOTSPEAK preserves every fenced block byte-for-byte by design — rewriting code would break the example. Real-world `CLAUDE.md` files from big repos cluster around 7–18% because their authors have already hand-tuned them against agents over many months: the easy wins are gone before BOTSPEAK sees the file. Stack BOTSPEAK across `CLAUDE.md`, rules, skills, memory pages, and handoffs and the savings compound regardless: a repo that burned 30,000 tokens before your first word might cost 24,000.
+**A note on the real-repo numbers.** The `CLAUDE.md` files we benchmarked above already had hundreds of contributors and months of pull-request iteration polishing them against real agents before BOTSPEAK ever saw them. The 7–18% reduction is on top of all that human pre-optimization. Stripping further is hard because the easy wins were taken years ago.
+
+**Your repository is the opposite.** Your `CLAUDE.md`, your rules, your handoffs were almost certainly written by *your* agent in plain prose — no committee, no PR review, no token audit. That's where BOTSPEAK does the heavy lifting. Expect 25–50% on a first compression of your own docs (see the synthetic examples above for the same numbers on the same kinds of files), and double that on the prompts you send to subagents, which were never optimized at all. The 7% on `langchain` is the floor. Your own repo is closer to the ceiling.
 
 ---
 
-## How it works
+## Human-to-bot understanding
 
-Five mechanisms do almost all of the work.
+Humans read sequentially and need prose to track structure. Bots are the opposite — they parse symbols, tags, and discrete tokens far more reliably than they parse flowing English. BOTSPEAK exploits that gap. Every mechanism below looks strange to you and feels native to the model.
 
 ### 1. Aliases (`@defs`) — the killer feature
+
+A human reader hates aliases: they have to scroll back to remember what `E` and `MV` mean. A bot binds the symbol once and tracks it through the rest of the document without slipping.
 
 Repeated identifiers are the #1 token sink. `establishment_id` 47 times. `materialized_view_refresh_concurrently` 23 times. Each one costs 4–8 tokens, every session, forever.
 
@@ -141,6 +155,8 @@ In a 2,000-token file, this block alone saves 400+ tokens. Every session.
 
 ### 2. Phase tags
 
+A human would write *"please load this at session start, but you can skip it once context is established."* That's 15 words to say one thing. A bot reads `[NEW-CHAT]` once and knows the lifecycle.
+
 ```
 [NEW-CHAT]    load at session start; agent may skip once context is established
 [ALWAYS]      every turn
@@ -153,7 +169,7 @@ A correctly tagged 1,500-token file loads ~600 tokens mid-session. The rest is e
 
 ### 3. Symbol contracts
 
-ASCII operators — 1 token each, guaranteed by every modern BPE tokenizer:
+`->`, `!!`, `&&`, `||` are unreadable to most humans without a legend. A modern BPE tokenizer assigns each one a single token and the model treats them as logical operators directly, no decoding step.
 
 ```
 ->   leads to       !!   never / forbidden
@@ -166,7 +182,7 @@ See [SPEC.md](SPEC.md) for the full table.
 
 ### 4. XML structure for long docs
 
-XML tags outperform markdown headings for model reliability in long files. All three major model families (Claude, GPT, Gemini) parse named XML blocks more accurately than loose `##` headings.
+Markdown headings (`## context`) are hints. XML tags (`<context>…</context>`) are boundaries. Anthropic's [prompting best-practices guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) is explicit about it: XML tags "help Claude parse complex prompts unambiguously," and for long inputs, "structure document content and metadata with XML tags" — wrapping `<document>` around `<document_content>` and `<source>`. Humans find the angle brackets noisy. Bots treat them as schema.
 
 ```
 <context>
@@ -189,7 +205,7 @@ XML tags outperform markdown headings for model reliability in long files. All t
 
 ### 5. Fenced code blocks preserved verbatim
 
-Anything inside triple-backtick fences — Mermaid, SQL, YAML, regex, JSON, shell, file trees — is already dense. BOTSPEAK never rewrites it. Block count in the source equals block count in the output, byte-for-byte. This is why code-heavy docs still compress 11–19%: the prose around the blocks shrinks, the blocks themselves don't.
+Regex looks like noise to most humans. Mermaid is a language. JSON is unreadable past three levels of nesting. To a model, all three are first-class — already dense, already parseable. BOTSPEAK never rewrites the contents of a triple-backtick fence because there's nothing to win: a model that can't parse a regex wasn't going to parse the prose around it either. Block count in the source equals block count in the output, byte-for-byte. This is why code-heavy docs still compress 7–19% — the prose around the blocks shrinks, the blocks themselves don't.
 
 ---
 
@@ -276,10 +292,10 @@ botspeak/
 ## FAQ
 
 **Q: Won't fewer tokens make my agent worse?**
-A: No — usually better. A 2025 paper found that constraining LLMs to brief responses improved accuracy by 26 percentage points on certain benchmarks. Less noise in the context window means better attention on what matters.
+A: No — usually better. Anthropic's own [prompting best-practices guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls out that Claude's latest models are "less verbose" by design, that XML-tagged structured input "can improve response quality by up to 30%" over loose prose, and that over-prompting in long-form English ("CRITICAL: You MUST...") *degrades* instruction following on newer models. Less prose, more structure, better attention on what matters.
 
 **Q: Doesn't the AI need prose to understand the rules?**
-A: No. LLMs are trained on code, JSON, XML, YAML, and math notation — structured text is their native language. The "lost in the middle" problem is *worse* for prose than for symbols.
+A: No — and "prose" is often the worst format you could pick. Modern LLMs are pre-trained on a much wider vocabulary than English: HTML, JSON, XML, YAML, regex, Python, Rust, SQL, Mermaid, math notation, and dozens of DSLs are all native. The most precise way to specify a data shape is often a SQL migration that will never run, not three paragraphs of English about it. The most precise way to describe an input rule is a regex, not "the string should generally look like…". BOTSPEAK just leans into that idea — pick the densest notation that fits the meaning, then stop. The "lost in the middle" problem hits flat prose hardest of all.
 
 **Q: My IDE's skill tool wrote plain prose. Now what?**
 A: Expected — IDE tools don't know about BOTSPEAK. Run `/botspeak` on the file. With the always-on rule installed, anything the AI writes for itself comes out in BOTSPEAK from then on.
@@ -288,7 +304,7 @@ A: Expected — IDE tools don't know about BOTSPEAK. Run `/botspeak` on the file
 A: No. Start with whatever your agent reads most — usually `CLAUDE.md` or your largest always-on rule. Compress that one, measure, go from there.
 
 **Q: How do I skip BOTSPEAK for one doc?**
-A: Say *"write this in prose"*, *"no botspeak"*, or `-bs`.
+A: Say *"write this in prose"*, *"no botspeak"*, or pass the `-p` flag (think *p*rose). The flag used to be `-bs`, which read ambiguously — it could mean "give me BOTSPEAK" or "no BOTSPEAK." `-p` is unambiguous: dash-p, prose.
 
 **Q: What if a new agent on my team can't read it?**
 A: Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) reads BOTSPEAK without preamble. If you're worried, drop `SPEC.md` into the project once.

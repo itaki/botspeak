@@ -38,6 +38,8 @@ worst case = fan-out · main agent fires prose at 10 subagents · pays for prose
 
 ## The fix
 
+A March 11, 2026 paper, ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1), found constraining LLMs to brief responses improved accuracy on certain benchmarks.
+
 writing convention for any output whose primary reader = AI. keep symbols · structure · constraints · code. drop the rest.
 
 - **files** — agent writes new rules · skills · memory pages · handoffs in BT by default

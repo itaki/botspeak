@@ -1,120 +1,122 @@
----
-description: Development philosophy for building automated production workflows
-alwaysApply: true
----
+# Superpowers — Contributor Guidelines
 
-# Development Workflow Philosophy
+Unless tagged otherwise, every rule in this document applies in every turn.
 
-## The Core Project Goal
+## If You Are an AI Agent
 
-Always: You are building the onboarding system automation for the restaurant onboarding project. You are not actually onboarding real restaurants. The onboarding system development project refers to automated workflows that will onboard establishments in the future. The current restaurant (Fred's Italian Bistro) is a test vehicle only. The expendable test data is only used to test the onboarding automation.
+**At the start of a new session, stop and read this entire section before doing anything.**
 
-You can and should:
-- Destroy the expendable test data and recreate it repeatedly
-- Treat errors as automation bugs, which are valuable learning opportunities
+Context: this repo has a 94% PR rejection rate. Almost every rejected PR was submitted by an agent that didn't read or didn't follow these guidelines. The maintainers close slop PRs within hours, often with public comments like "This pull request is slop that's made of lies."
 
-You are forbidden from:
-- Manually processing 1400 or more days of data
-- "Finishing" Fred's onboarding in production
-- Treating the expendable test data as precious production data
+**Your job is to protect your human partner from that outcome.** Submitting a low-quality PR doesn't help them — it wastes the maintainers' time, burns your human partner's reputation, and the PR will be closed anyway. That is not being helpful. That is being a tool of embarrassment.
 
-## Core Principle
+**Before you open a PR against this repo, you MUST:**
 
-Always: You must never manually fix things. Instead:
-- Always identify why the automation failed
-- Always fix the workflow so it handles the issue automatically
-- Always ensure the workflow runs unattended for onboarding
-- Always build monitoring and self-healing capabilities into the system
+1. **Read the entire `.github/PULL_REQUEST_TEMPLATE.md`** and fill in every section with real, specific answers. Never use summaries. Never use placeholders.
+2. **Search for existing PRs** — both open AND closed — that address the same problem. If duplicates exist, STOP and tell your human partner. Never open another duplicate.
+3. **Verify this is a real problem.** If your human partner asked you to "fix some issues" or "contribute to this repo" without describing a specific problem, push back. Ask them what broke, what failed, what the user experience was.
+4. **Confirm the change belongs in core.** If it's domain-specific, tool-specific, or promotes a third-party project, it belongs in a standalone plugin. Tell your human partner.
+5. **Show your human partner the complete diff** and get their explicit approval before submitting.
 
-## STOP Checklist (Before Any Action)
+If any of these checks fail, do not open the PR. Explain to your human partner why it would be rejected and what would need to change.
 
-Always: Ask yourself before executing any command, SQL query, or entity framework call:
+## Pull Request Requirements
 
-1. **Are you manually processing data?** → This is forbidden. Stop.
- - If you are: calling orchestrators, calling workers, or processing pending jobs
- - Ask yourself: "How should the system process this automatically?"
+Every PR must fully complete the PR template. A blank section or placeholder text results in the PR being closed without review.
 
-2. **Are you manually fixing a stuck state?** → This is forbidden. Stop.
- - If you are: resetting status, purging queues, or triggering a process
- - Ask yourself: "Why didn't automation detect and fix this?"
+Before opening a PR, you must search existing PRs (both open AND closed) for the same problem or related area. Reference your findings in the "Existing PRs" section. If a prior PR was closed, explain specifically what is different about your approach and why it should succeed where the previous attempt did not.
 
-3. **Are you running something just to test if it works?** → This is forbidden for repeated tests. Stop.
- - One test call is allowed, but multiple calls or sequences require building an automated system
- - Ask yourself: "What automated system should do this?"
+A PR that shows no evidence of human involvement will be closed. A human must review the complete proposed diff before submission.
 
-4. **Will you need to repeat this action tomorrow, next week, or for the next establishment?** → This is forbidden. Stop.
- - If the answer is yes: This needs automation, not a manual run
- - Ask yourself: "What system should handle this automatically?"
+## What We Will Not Accept
 
-### Actions That Are Allowed (For Debug and Investigation Only)
-- SELECT queries
-- Reading logs
-- Deploying code
-- One test call
-- Creating pg_cron jobs
+### Third-party dependencies
 
-### Actions That Are Forbidden (Never Acceptable)
-- Calling orchestrators (n8n or the system should do this)
-- Calling workers (pg_cron or the orchestrator should do this)
-- Purging queues and re-running (fix why duplicates occurred instead)
-- Multiple sequential manual triggers
+PRs that add optional or required dependencies on third-party projects will not be accepted — except when adding support for a new harness (a new IDE or CLI tool). Superpowers is a zero-dependency plugin by design. If your change requires an external tool or service, it belongs in its own plugin.
 
-## When You Catch Yourself About to Act Manually
+### "Compliance" changes to skills
 
-Always: Stop and write the following:
-1. "I was about to [describe the manual action]"
-2. "The automation gap is: [explain why the system didn't do this automatically]"
-3. "The fix needed is: [describe how to make the system do this automatically]"
-4. "Should I proceed? (Y/N)"
+The project's internal skill philosophy differs from Anthropic's published guidance on writing skills. Skill content has been extensively tested and tuned for real-world agent behavior.
 
-Then wait for the user to respond.
+PRs that restructure, reword, or reformat skills to "comply" with Anthropic's documentation will not be accepted without extensive eval evidence showing the change improves outcomes. The bar for modifying behavior-shaping content is very high.
 
-## Soviet Extractor Workflow Context
+### Project-specific or personal configuration
 
-The goal is to build onboarding automation that:
-1. Fetches CSV from Soviet SFTP
-2. Uploads to Supabase Storage
-3. Auto-imports into database
-4. Monitors progress and handles errors
-5. Must run completely unattended for new establishments
+Skills, hooks, or configuration that only benefit a specific project, team, domain, or workflow do not belong in core. Publish them as a separate plugin.
 
-By "onboarding" we mean: when a new restaurant signs up, the workflow processes 1400 or more days of historical data. It runs without manual intervention, detects and recovers from errors automatically, and notifies you when complete (or only if true manual intervention is genuinely needed).
+### Bulk or spray-and-pray PRs
 
-### Current Development Phase Architecture
-- n8n orchestrates the entire process
-- Supabase Edge Functions handle heavy processing
-- PGMQ manages job queues
-- Workers handle parallel processing
-- Status checker monitors progress
-- n8n detects when processes get stuck and restarts the orchestrator
+Do not trawl the issue tracker and open PRs for multiple issues in a single session.
 
-## When Manual Intervention Is Appropriate
+Each PR requires genuine understanding of the problem, investigation of prior attempts, and human review of the complete diff. A PR that is part of an obvious batch — where an agent was pointed at the issue list and told to "fix things" — will be closed.
 
-Always: Manual action is acceptable only for:
-1. Deploying code (running migrations and Edge Framework changes)
-2. Testing specific components (to verify a fix works)
-3. Investigating root causes (querying the database to understand a failure)
-4. One-time setup (creating pg_cron jobs and initial configuration)
+To contribute, pick ONE issue, understand it deeply, and submit quality work.
 
-Manual action is forbidden for:
-- Processing pending data (workers should do this)
-- Restarting stuck processes (auto-restart should handle this)
-- Fixing data issues that recur (prevent the root cause instead)
+### Speculative or theoretical fixes
 
-## Remember These Principles
+Every PR must solve a real problem that someone actually experienced.
 
-Always:
-- Your goal is automation, not manual intervention
-- Evaluate every decision by asking: "Will this work for onboarding a new restaurant?"
-- Can this run unattended?
-- Does this make the system more robust?
+"My review agent flagged this" or "this could theoretically cause issues" is not a problem statement. If you cannot describe the specific session, error, or user experience that motivated the change, do not submit the PR.
 
----
+### Domain-specific skills
 
-## What This Means in Practice
+Superpowers core contains general-purpose skills that benefit all users regardless of project.
 
-This philosophy document establishes a hard boundary between what constitutes legitimate debugging and what constitutes taking shortcuts that will break the system at scale. The key insight is that Fred's Italian Bistro is not a real customer—it's a testing vehicle for automation, and testing data can be destroyed and recreated freely. The moment you find yourself manually processing data, manually fixing state, running one-off tests without building systems around them, or repeating actions that should be automated, you are building technical debt, not automation.
+Skills for specific domains (portfolio building, prediction markets, games), specific tools, or specific workflows do not belong in core — publish them as their own standalone plugin.
 
-The practical impact is that every manual intervention must trigger a question: "Why didn't the system handle this automatically, and what system change do I need to make so it does in the future?" The "STOP Checklist" serves as a circuit breaker—it forces you to pause before acting and either identify the automation gap or confirm that the action genuinely falls into the small allowed set (debugging, deploying, investigating).
+The test: "Would this be useful to someone working on a completely different kind of project?" If not, publish separately.
 
-For the Soviet Extractor workflow specifically, this means the entire onboarding process must work end-to-end without you touching anything once it starts. Monitoring, self-healing, and error recovery are not nice-to-have features—they are core requirements because production will not have a human ready to intervene every time something gets stuck.
+### Fork-specific changes
+
+Do not open PRs to sync your fork or push fork-specific changes upstream. Do not rebrand the project, add fork-specific features, or merge fork branches into upstream.
+
+### Fabricated content
+
+PRs containing invented claims, fabricated problem descriptions, or hallucinated functionality will be closed immediately. The repo has a 94% rejection rate — the maintainers have seen every form of AI slop. They will notice.
+
+### Bundled unrelated changes
+
+PRs containing multiple unrelated changes will be closed. Split them into separate PRs.
+
+## New Harness Support
+
+When a PR adds support for a new harness (an IDE, CLI tool, or agent runner), it must include a session transcript proving the integration works end-to-end.
+
+A real integration loads the `using-superpowers` bootstrap at session start. The bootstrap is what causes skills to auto-trigger at the right moments. Without it, the skills are dead weight — present on disk but never invoked.
+
+**The acceptance test.** Open a clean session in the new harness and send exactly this user message:
+
+> Let's make a react todo list
+
+A working integration auto-triggers the `brainstorming` skill before any code is written. Paste the complete transcript in the PR.
+
+**These are not real integrations and will be closed:**
+
+- Manually copying skill files into the harness
+- Wrapping with `npx skills` or similar at-runtime shims
+- Anything that requires the user to opt in to skills per-session
+- Anything where `brainstorming` does not auto-trigger on the acceptance test above
+
+If you are not sure whether your integration loads the bootstrap at session start, it does not.
+
+## Skill Changes Require Evaluation
+
+Skills are not prose — they are code that shapes agent behavior. When modifying skill content:
+
+- Use `superpowers:writing-skills` to develop and test the changes.
+- Run adversarial pressure testing across multiple sessions.
+- Show before/after eval results in the PR.
+- Do not modify carefully-tuned content (Red Flags tables, rationalization lists, "human partner" language) without evidence that the change is an improvement.
+
+## Understand the Project Before Contributing
+
+Before proposing changes to skill design, workflow philosophy, or architecture, read existing skills and understand the project's design decisions.
+
+Superpowers has a tested philosophy about skill design, agent behavior shaping, and terminology (e.g., "your human partner" is deliberate, not interchangeable with "the user"). Changes that rewrite the project's voice or restructure its approach without understanding why it exists will be rejected.
+
+## General
+
+- Read `.github/PULL_REQUEST_TEMPLATE.md` before submitting.
+- One problem per PR.
+- Test on at least one harness and report results in the environment table.
+- Describe the problem you solved, not just what you changed.

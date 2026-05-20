@@ -5,8 +5,8 @@ This is the live `CLAUDE.md` file from [`BerriAI/litellm`](https://github.com/Be
 | File | Tokens (o200k_base) | Words | Fenced code blocks |
 |---|---:|---:|---:|
 | `before.md` (verbatim from GitHub) | 3,565 | 2,166 | 0 |
-| `after.md` (BOTSPEAK-compressed) | 3,335 | 2,029 | 0 |
-| **Reduction** | **6.5%** | **6.3%** | unchanged |
+| `after.md` (BOTSPEAK-compressed) | 3,338 | 2,029 | 0 |
+| **Reduction** | **6.4%** | **6.3%** | unchanged |
 
 ## Why the compression is modest (and an honest observation)
 
@@ -23,7 +23,7 @@ The compression number (~6%) understates the **structural** win: every prohibiti
 
 ## What this example demonstrates
 
-Real-world `CLAUDE.md` files in large repos compress in a 4–13% band when they're code-heavy or already-terse. The 30-40% numbers in the repo's prose-heavy examples (handoffs, philosophy docs in examples 02 and 04) are not exaggerations — they apply to a different class of document. BOTSPEAK's value is structural consistency across both classes, with token savings as a bonus.
+Real-world `CLAUDE.md` files in large repos compress in a 4–13% band when they're code-heavy or already-terse. The ~30% number in example 02 (context handoff, prose-heavy) is not an exaggeration — it applies to a different class of document. BOTSPEAK's value is structural consistency across both classes, with token savings as a bonus.
 
 ## Provenance
 

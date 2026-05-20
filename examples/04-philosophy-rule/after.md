@@ -1,123 +1,181 @@
----
-description: Development philosophy for building automated production workflows
-alwaysApply: true
----
+<!-- BOTSPEAK v2.2.0 · compressed by claude-opus-4-7 · 2026-05-19 -->
 
 @defs
-  proj = onboarding system development project (NOT actual restaurant onboarding)
-  dta = expendable test data (can destroy + recreate repeatedly)
-  dev = development phase (building automation · not production work)
-  WIP = work-in-progress (multiple manual runs)
+  HP  = human partner
+  PRT = .github/PULL_REQUEST_TEMPLATE.md
 @end
 
-default-phase: [ALWAYS]
+default-phase: ALWAYS
 
-# Development Workflow Philosophy
+# Superpowers — Contributor Guidelines
 
-## !! PROJECT GOAL
+## If You Are an AI Agent
 
-[ALWAYS]
-  !! WE ARE BUILDING THE ONBOARDING SYSTEM · NOT ONBOARDING RESTAURANTS
-  proj = automated workflows that will onboard establishments in future
-  current-restaurant (Fred's Italian Bistro) = test-vehicle only
-  dta = only to test onboarding automation
-  
-  can (and should):
-    destroy dta + recreate repeatedly
-    treat errors as automation-bugs (valuable)
-  
-  !! cannot:
-    manually process 1400+ days data
-    "finish" Fred's onboarding in production
-    treat dta as precious production data
+[NEW-CHAT] STOP · read entire section before any action
 
-## Core Principle
+context:
+  repo = 94% PR rejection rate
+  almost every rejected PR <- agent that didn't read || didn't follow these guidelines
+  maintainers close slop PRs within hours
+  sample comment: "This pull request is slop that's made of lies."
 
-[ALWAYS] !! NEVER manually fix things
-  [ALWAYS] identify WHY automation failed
-  [ALWAYS] fix workflow so it handles issue automatically
-  [ALWAYS] ensure workflow runs unattended for onboarding
-  [ALWAYS] build monitoring + self-healing into system
+your job = protect HP from that outcome
+  low-quality PR != helpful
+  -> wastes maintainer time
+  -> burns HP reputation
+  -> PR closed anyway
+  = tool of embarrassment
 
-## STOP Checklist (before ANY action)
+[ON-TRIGGER] before opening PR -> MUST:
+  1. read entire PRT
+     -> fill every section · real specific answers
+     !! summaries · !! placeholders
+  2. search existing PRs (open && closed) for same problem
+     duplicates exist -> STOP · tell HP · !! open another duplicate
+  3. verify problem is real
+     HP asked "fix some issues" || "contribute" without specific problem
+       -> push back · ask: what broke · what failed · what was UX
+  4. confirm change belongs in core
+     domain-specific || tool-specific || promotes 3rd-party -> standalone plugin · tell HP
+  5. show HP complete diff · get explicit approval before submit
 
-[ALWAYS] ask before executing command · SQL query · EF call:
+any check fails -> !! open PR
+  -> explain to HP why it would be rejected · what would need to change
 
-  1. manually processing data? -> !! STOP
-    if: calling orchestrators · workers · processing pending-jobs
-    ask: "how should system process this automatically?"
+## Pull Request Requirements
 
-  2. manually fixing stuck-state? -> !! STOP
-    if: resetting status · purging queue · triggering process
-    ask: "why didn't automation detect + fix this?"
+every PR -> fully complete PRT
+  blank section || placeholder text -> closed without review
 
-  3. running to test if something works? -> !! STOP
-    one-test ok · multiple calls || sequence -> build automated system
-    ask: "what automated system should do this?"
+[ON-TRIGGER] before opening PR -> MUST search existing PRs (open && closed) for same problem || related area
+  -> reference findings in "Existing PRs" section
+  prior PR closed -> explain specifically what is different · why this approach should succeed
 
-  4. will repeat tomorrow/next-week/next-establishment? -> !! STOP
-    if: yes -> needs automation · not manual run
-    ask: "what system should handle this automatically?"
+PR shows no evidence of human involvement -> closed
+  -> human MUST review complete proposed diff before submission
 
-allowed-manual (debug/investigation only):
-  ok: SELECT queries · reading logs · deploying code · one test-call · creating pg_cron jobs
+## What We Will Not Accept
 
-forbidden-manual:
-  !! calling orchestrators (n8n or system should do)
-  !! calling workers (pg_cron or ORC should do)
-  !! purging queues + re-running (fix why duplicates occurred)
-  !! multiple sequential manual triggers
+### Third-party dependencies
 
-## When Caught About to Act Manually
+!! PR adds optional || required dependencies on 3rd-party projects
+  exception: adding new harness support (e.g. new IDE || CLI tool)
+  Superpowers = zero-dependency plugin by design
+  external tool || service required -> own plugin
 
-[ALWAYS] STOP + write:
-  1. "I was about to [manual-action]"
-  2. "The automation-gap is: [why system didn't do this]"
-  3. "The fix needed is: [how to make system do this]"
-  4. "Should I proceed? (Y/N)"
-  
-  then WAIT for user response
+### "Compliance" changes to skills
 
-## Soviet Extractor Workflow Context
+context:
+  internal skill philosophy != Anthropic's published guidance on writing skills
+  skill content extensively tested + tuned for real-world agent behavior
 
-goal: build onboarding that:
-  1. fetches CSV from Soviet SFTP
-  2. uploads to SPA Storage
-  3. auto-imports into database
-  4. monitors progress · handles errors
-  5. !! runs completely unattended for new establishments
+!! restructure || reword || reformat skills to "comply" with Anthropic's docs
+  exception: extensive eval evidence change improves outcomes
+  bar for modifying behavior-shaping content = very high
 
-"onboarding" meaning: when new restaurant signs up
-  -> workflow processes 1400+ historical-days
-  -> runs without manual intervention
-  -> detects + recovers from errors automatically
-  -> notifies when complete (or if true manual-intervention needed)
+### Project-specific or personal configuration
 
-current-phase (dev):
-  n8n = orchestrates entire process
-  SPA EF = heavy processing
-  PGMQ = job queues
-  workers = parallel processing
-  status-checker = monitors progress
-  n8n = detects stuck + restarts ORC
+!! skills · hooks · config in core when benefits only specific project · team · domain · workflow
+  -> publish as separate plugin
 
-## Manual Intervention Appropriate Only
+### Bulk or spray-and-pray PRs
 
-[ALWAYS] manual ok:
-  1. deploying code (migrations · EF)
-  2. testing specific components (verify fix)
-  3. investigating root-causes (query DB · understand failure)
-  4. one-time setup (pg_cron · initial config)
+!! trawl issue tracker · open PRs for multiple issues in one session
 
-!! not for:
-  processing pending-data (workers should do)
-  restarting stuck-processes (auto-restart)
-  fixing data-issues that recur (prevent root-cause)
+each PR requires:
+  genuine understanding of problem
+  investigation of prior attempts
+  human review of complete diff
 
-## Remember
+PR is part of obvious batch (agent pointed at issue list · told to "fix things") -> closed
 
-[ALWAYS]
-  goal = automation · not manual-intervention
-  evaluate every decision: "will this work for onboarding new restaurant?"
-  can this run unattended?
-  does this make system more robust?
+contribute = pick ONE issue · understand deeply · submit quality work
+
+### Speculative or theoretical fixes
+
+every PR -> must solve real problem someone actually experienced
+
+"my review agent flagged this" || "could theoretically cause issues" != problem statement
+
+cannot describe specific session · error · UX motivating change -> !! submit
+
+### Domain-specific skills
+
+Superpowers core = general-purpose skills for all users regardless of project
+
+!! domain-specific (portfolio building · prediction markets · games) || tool-specific || workflow-specific skills in core
+  -> own standalone plugin
+
+test: "would this be useful to someone working on completely different kind of project?"
+  no -> publish separately
+
+### Fork-specific changes
+
+!! open PR to sync fork || push fork-specific changes upstream
+!! rebrand project · add fork-specific features · merge fork branches
+
+### Fabricated content
+
+!! PR with invented claims · fabricated problem descriptions · hallucinated functionality
+  -> closed immediately
+context: 94% rejection rate · maintainers have seen every form of AI slop · they will notice
+
+### Bundled unrelated changes
+
+!! PR with multiple unrelated changes
+  -> split into separate PRs
+
+## New Harness Support
+
+[ON-TRIGGER] PR adds support for new harness (IDE · CLI tool · agent runner)
+  -> MUST include session transcript proving integration works end-to-end
+
+real integration:
+  loads `using-superpowers` bootstrap at session start
+  bootstrap = what causes skills to auto-trigger at right moments
+  no bootstrap -> skills = dead weight (present on disk · never invoked)
+
+acceptance test: open clean session in new harness · send exact user message:
+
+> Let's make a react todo list
+
+  working integration -> auto-triggers `brainstorming` skill before any code written
+  -> paste complete transcript in PR
+
+not real integrations · will be closed:
+  - manually copying skill files into harness
+  - wrapping with `npx skills` || similar at-runtime shims
+  - anything requiring user opt-in to skills per-session
+  - anything where `brainstorming` does not auto-trigger on acceptance test
+
+unsure if integration loads bootstrap at session start -> it does not
+
+## Skill Changes Require Evaluation
+
+skills != prose · skills = code that shapes agent behavior
+
+[ON-TRIGGER] modifying skill content:
+  use `superpowers:writing-skills` to develop + test changes
+  run adversarial pressure testing across multiple sessions
+  show before/after eval results in PR
+  !! modify carefully-tuned content (Red Flags tables · rationalization lists · "human partner" language) without evidence change is improvement
+
+## Understand the Project Before Contributing
+
+[ON-TRIGGER] before proposing changes to skill design · workflow philosophy · architecture
+  -> read existing skills · understand project's design decisions
+
+Superpowers has tested philosophy about:
+  skill design
+  agent behavior shaping
+  terminology (e.g. "your HP" deliberate · != "the user")
+
+!! rewrite project's voice || restructure approach without understanding why
+  -> rejected
+
+## General
+
+- read PRT before submitting
+- one problem per PR
+- test on at least one harness · report results in environment table
+- describe problem you solved · not just what you changed

@@ -16,6 +16,8 @@
 
 <p align="center"><em>Four games, two builds, identical physics.</em></p>
 
+<p align="center"><sub>Local clone: <code>python3 -m http.server</code> from the repo root, then open <a href="http://localhost:8000/showcase/index.html"><code>http://localhost:8000/showcase/index.html</code></a> — most browsers block cross-file iframe loading from <code>file://</code>.</sub></p>
+
 ---
 
 ## The problem
@@ -69,14 +71,16 @@ Rule is 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 [![BOTSPEAK showcase preview: prose-built Breakout next to BOTSPEAK-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
 
-Four games. Left iframe built from a prose spec by one model. Right iframe built from the BOTSPEAK-compressed version by a different fresh model with no shared context. They play identically.
+Four games. Left iframe built from a prose spec by a clean-room Claude Sonnet 4.6 subagent. Right iframe built from the BOTSPEAK-compressed version by a separate clean-room Sonnet 4.6 subagent. Neither subagent saw the other's prompt or output. Same model, isolated sessions — that's what these runs test. They play identically.
 
-| Game | Prose words | BOTSPEAK words | Compression | Physics matched |
+| Game | Prose tokens | BOTSPEAK tokens | Reduction | Constants matched |
 |---|---:|---:|---:|---:|
-| Flappy Bird | 1,415 | 974 | **31%** | 15 / 15 |
-| Snake | 851 | 549 | **35%** | 10 / 10 |
-| Pong | 1,350 | 820 | **39%** | 14 / 14 |
-| Breakout | 1,499 | 838 | **44%** | 21 / 21 |
+| Flappy Bird | 1,934 | 1,729 | **11%** | 15 / 15 |
+| Snake | 1,192 | 895 | **25%** | 10 / 10 |
+| Pong | 1,892 | 1,461 | **23%** | 14 / 14 |
+| Breakout | 2,175 | 1,603 | **26%** | 21 / 21 |
+
+Token counts are `o200k_base` (GPT/Claude family). Word counts are also tracked in `evals/scripts/token-counts.json` if you prefer them — words reduce more (31–44%) because prose has more articles and connectives than tokens do. Constants match is the count of physics constants (gravity, paddle speed, brick layout, etc.) that an [automated parity script](evals/scripts/parity_check.py) confirmed are present in both HTML builds.
 
 → [**Open the showcase**](showcase/index.html) to play either column.
 
@@ -84,32 +88,35 @@ Four games. Left iframe built from a prose spec by one model. Right iframe built
 
 ## Before / After
 
-### Synthetic (six document types we round-trip)
+All token counts on this page are `o200k_base` (the GPT/Claude family tokenizer). Reproduce any row by running `python3 evals/scripts/count_tokens.py` from the repo root.
 
-| Document type                                         | Before | After | Reduction | Folder                                                           |
-| ----------------------------------------------------- | ------:| -----:| ---------:| ---------------------------------------------------------------- |
-| Short rule (branch guard)                             | 410    | 331   | **19%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
-| Context handoff                                       | 1,017  | 619   | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Wiki / memory page                                    | 1,003  | 754   | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Project philosophy rule                               | 1,731  | 1,000 | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Long CLAUDE.md (restaurant ops)                       | 8,055  | 7,101 | **12%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Architecture migration plan                           | 12,001 | 9,709 | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+### Real `CLAUDE.md` from popular repos (lead with these — externally authored, hard to game)
 
-### Real `CLAUDE.md` from popular repos
+| Repository (stars)                          | Before tok | After tok | Reduction | Folder                                                                       |
+| ------------------------------------------- | ----------:| ---------:| ---------:| ---------------------------------------------------------------------------- |
+| [`obra/superpowers`][sp] (198K ★)           | 1,533      | 1,377     | **10%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)                 |
+| [`langchain-ai/langchain`][lc] (137K ★)     | 2,934      | 2,810     | **4%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
+| [`browser-use/browser-use`][bu] (94K ★)     | 2,495      | 2,179     | **13%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
+| [`BerriAI/litellm`][ll] (47K ★)             | 3,565      | 3,338     | **6%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
 
-| Repository (stars)                          | Before | After  | Reduction | Folder                                                                       |
-| ------------------------------------------- | ------:| ------:| ---------:| ---------------------------------------------------------------------------- |
-| [`langchain-ai/langchain`][lc] (137K ★)     | 3,236  | 2,997  | **7%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
-| [`browser-use/browser-use`][bu] (94K ★)     | 2,787  | 2,275  | **18%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
-| [`BerriAI/litellm`][ll] (47K ★)             | 3,767  | 3,469  | **8%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
-
+[sp]: https://github.com/obra/superpowers
 [lc]: https://github.com/langchain-ai/langchain
 [bu]: https://github.com/browser-use/browser-use
 [ll]: https://github.com/BerriAI/litellm
 
-Big-repo `CLAUDE.md` files already had hundreds of contributors tuning them — 7–18% is on top of that pre-optimization. Your own docs (written by your agent, never optimized) land 25–50% on first compression. The 7% is the floor.
+These files were already hand-tuned by hundreds of contributors. 4–13% reduction is on top of that pre-optimization. Every constraint, every prohibition, every code block survives — verified by the [round-trip audit](evals/round-trip-results.md).
 
-*Tokens ≈ `chars / 4`. Per-example folders carry exact `o200k_base` counts.*
+### Synthetic before/after (five document types we audit end-to-end)
+
+| Document type                                         | Before tok | After tok | Reduction | Folder                                                           |
+| ----------------------------------------------------- | ----------:| ---------:| ---------:| ---------------------------------------------------------------- |
+| Short rule (branch guard)                             | 381        | 352       | **8%**    | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Context handoff                                       | 807        | 567       | **30%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Wiki / memory page                                    | 892        | 763       | **14%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Long CLAUDE.md (restaurant ops)                       | 7,807      | 7,081     | **9%**    | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Architecture migration plan                           | 11,777     | 9,937     | **16%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+
+Lower numbers than you'd see on a first naive pass — that's the point. SPEC v2.2.0 preserves fenced code blocks verbatim (§4), refuses to drop named constraints (§9 pitfall 12), and verifies polarity (§9 pitfall 14). Compression is what survives those checks, not what an aggressive rewrite would produce.
 
 ---
 
@@ -163,7 +170,7 @@ XML tags "help Claude parse complex prompts unambiguously" ([Anthropic prompting
 
 ### Fenced code blocks preserved verbatim
 
-Regex, Mermaid, JSON, SQL — already dense, already native to LLMs. BOTSPEAK never rewrites the inside of a triple-backtick fence. The prose around shrinks; the blocks don't. That's why code-heavy docs cap at ~7–19%.
+Regex, Mermaid, JSON, SQL — already dense, already native to LLMs. BOTSPEAK never rewrites the inside of a triple-backtick fence. The prose around shrinks; the blocks don't. That's why code-heavy docs cap at single-digit percentage reductions, and that's correct: the code is the highest-value content in those docs, and the SPEC §9 pitfall 15 check enforces it.
 
 ---
 
@@ -181,8 +188,8 @@ Then ask your agent to save the next handoff. With the always-on rule installed,
 
 ## Evals
 
-- **Round-trip fidelity** — 6 AI-facing docs compressed to BOTSPEAK, every constraint / polarity / code block audited. **6 / 6 PASS**. Plus three external real-world docs ([evals/round-trip-results.md](evals/round-trip-results.md)).
-- **Game synthesis** — fresh model gets only the BOTSPEAK prompt, builds the game, parity-checked against the prose build. Four games pass clean-room (table above; methodology in [evals/README.md](evals/README.md)).
+- **Constraint-preservation audit** — 9 AI-facing docs compressed to BOTSPEAK (5 synthetic, 4 real-world CLAUDE.md from 47K–198K-star repos), audited for polarity (SPEC §9 pitfall 14), code-block parity (§9 pitfall 15), alias hygiene (§9 pitfall 12), and constraint preservation. **9 / 9 PASS**. Methodology and per-row evidence: [evals/round-trip-results.md](evals/round-trip-results.md). Plus three external docs (Django `.cursorrules`, Rust `AGENTS.md`, ai-dev `.mdc`) that pass when re-run clean-room from `evals/external-prompts/`.
+- **Game synthesis** — a Sonnet 4.6 subagent gets only the BOTSPEAK prompt and no prior context, builds the game; a separate Sonnet 4.6 subagent builds from the prose spec. An [automated parity script](evals/scripts/parity_check.py) extracts numeric constants from both HTML builds and confirms they match. Four games pass clean-room (table above; full methodology in [evals/README.md](evals/README.md)). Same model, isolated sessions — that's what these runs validate. Cross-model parity is a v2.3 target, not a v2.2 claim.
 
 ---
 

@@ -26,6 +26,8 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 <p align="center"><em>4 games · 2 builds · identical physics</em></p>
 
+<p align="center"><sub>local clone -> <code>python3 -m http.server</code> from repo root -> open <a href="http://localhost:8000/showcase/index.html"><code>http://localhost:8000/showcase/index.html</code></a> · most browsers block cross-file iframe loading from <code>file://</code></sub></p>
+
 ---
 
 ## The problem
@@ -79,14 +81,16 @@ AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 [![BT showcase preview: prose-built Breakout next to BT-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
 
-4 games. Left iframe = built from prose spec by one model. Right iframe = built from BT-compressed version by different fresh model · zero shared context. Play identically.
+4 games. Left iframe = built from prose spec by clean-room Sonnet 4.6 subagent. Right iframe = built from BT-compressed version by separate clean-room Sonnet 4.6 subagent. Same model · isolated sessions · zero shared context. Play identically.
 
-| Game | Prose words | BT words | Compression | Physics matched |
+| Game | Prose tok | BT tok | Reduction | Constants matched |
 |---|---:|---:|---:|---:|
-| Flappy Bird | 1,415 | 974 | **31%** | 15 / 15 |
-| Snake | 851 | 549 | **35%** | 10 / 10 |
-| Pong | 1,350 | 820 | **39%** | 14 / 14 |
-| Breakout | 1,499 | 838 | **44%** | 21 / 21 |
+| Flappy Bird | 1,934 | 1,729 | **11%** | 15 / 15 |
+| Snake | 1,192 | 895 | **25%** | 10 / 10 |
+| Pong | 1,892 | 1,461 | **23%** | 14 / 14 |
+| Breakout | 2,175 | 1,603 | **26%** | 21 / 21 |
+
+token counts = `o200k_base` (GPT/Claude family) · word counts in `evals/scripts/token-counts.json` (words reduce 31-44% · more articles & connectives than tokens) · constants matched = automated extraction confirmed by `evals/scripts/parity_check.py`
 
 → [**Open the showcase**](showcase/index.html) to play either column.
 
@@ -94,42 +98,45 @@ AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 ## Before / After
 
-### Synthetic (6 doc types we round-trip)
+all token counts on this page = `o200k_base` · reproduce any row -> `python3 evals/scripts/count_tokens.py` from repo root
 
-| Document type                                         | Before  | After  | Reduction | Folder                                                           |
-| ----------------------------------------------------- | -------:| ------:| ---------:| ---------------------------------------------------------------- |
-| Short rule (branch guard)                             | 410     | 331    | **19%**   | [examples/01-short-rule/](examples/01-short-rule/)               |
-| Context handoff                                       | 1,017   | 619    | **39%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
-| Wiki / memory page                                    | 1,003   | 754    | **25%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
-| Project philosophy rule                               | 1,731   | 1,000  | **42%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)     |
-| Long CLAUDE.md (restaurant ops)                       | 8,055   | 7,101  | **12%**   | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
-| Architecture migration plan                           | 12,001  | 9,709  | **19%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+### Real `CLAUDE.md` from popular repos (lead · externally authored · hard to game)
 
-### Real `CLAUDE.md` from popular repos
+| Repository (stars)                          | Before tok | After tok | Reduction | Folder                                                                       |
+| ------------------------------------------- | ----------:| ---------:| ---------:| ---------------------------------------------------------------------------- |
+| [`obra/superpowers`][sp] (198K ★)           | 1,533      | 1,377     | **10%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)                 |
+| [`langchain-ai/langchain`][lc] (137K ★)     | 2,934      | 2,810     | **4%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
+| [`browser-use/browser-use`][bu] (94K ★)     | 2,495      | 2,179     | **13%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
+| [`BerriAI/litellm`][ll] (47K ★)             | 3,565      | 3,338     | **6%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
 
-| Repository (stars)                          | Before | After  | Reduction | Folder                                                                       |
-| ------------------------------------------- | ------:| ------:| ---------:| ---------------------------------------------------------------------------- |
-| [`langchain-ai/langchain`][lc] (137K ★)     | 3,236  | 2,997  | **7%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
-| [`browser-use/browser-use`][bu] (94K ★)     | 2,787  | 2,275  | **18%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
-| [`BerriAI/litellm`][ll] (47K ★)             | 3,767  | 3,469  | **8%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
-
+[sp]: https://github.com/obra/superpowers
 [lc]: https://github.com/langchain-ai/langchain
 [bu]: https://github.com/browser-use/browser-use
 [ll]: https://github.com/BerriAI/litellm
 
-Big-repo `CLAUDE.md` files already had hundreds of contributors tuning them · 7-18% = on top of that pre-optimization. Your own docs (written by your agent · never optimized) -> 25-50% on first compression. 7% = floor.
+big-repo `CLAUDE.md` files already hand-tuned by hundreds of contributors · 4-13% reduction = on top of that pre-optimization · every constraint · every prohibition · every code block survives — verified by [round-trip audit](evals/round-trip-results.md)
 
-*Tokens ≈ chars / 4. Per-example folders carry exact `o200k_base` counts.*
+### Synthetic (5 doc types we audit end-to-end)
+
+| Document type                                         | Before tok | After tok | Reduction | Folder                                                           |
+| ----------------------------------------------------- | ----------:| ---------:| ---------:| ---------------------------------------------------------------- |
+| Short rule (branch guard)                             | 381        | 352       | **8%**    | [examples/01-short-rule/](examples/01-short-rule/)               |
+| Context handoff                                       | 807        | 567       | **30%**   | [examples/02-context-handoff/](examples/02-context-handoff/)     |
+| Wiki / memory page                                    | 892        | 763       | **14%**   | [examples/03-memory-page/](examples/03-memory-page/)             |
+| Long CLAUDE.md (restaurant ops)                       | 7,807      | 7,081     | **9%**    | [examples/05-aliased-claude-md/](examples/05-aliased-claude-md/) |
+| Architecture migration plan                           | 11,777     | 9,937     | **16%**   | [examples/06-backend-migration/](examples/06-backend-migration/) |
+
+lower numbers than naive first pass · that's the point · SPEC v2.2.0 preserves fenced code blocks verbatim (§4) · refuses to drop named constraints (§9 pitfall 12) · verifies polarity (§9 pitfall 14) · compression = what survives those checks
 
 ---
 
 ## Human-to-bot understanding
 
-5 mechanisms. each leans on something bots parse better than you do.
+5 mechanisms · each leans on something bots parse better than you do
 
 ### Aliases (`@defs`)
 
-repeat `establishment_id` × 47 -> repeat `E` × 47 -> ~280 tokens saved · every session.
+repeat `establishment_id` × 47 -> repeat `E` × 47 -> ~280 tokens saved · every session
 
 ```
 @defs
@@ -144,11 +151,11 @@ repeat `establishment_id` × 47 -> repeat `E` × 47 -> ~280 tokens saved · ever
 
 ### Phase tags
 
-`[NEW-CHAT]` · `[ALWAYS]` · `[ON-TRIGGER]` · `[REFERENCE]` · `[HANDOFF]` — agent knows what to load when · no English required. 1,500-token file -> ~600 loaded mid-session.
+`[NEW-CHAT]` · `[ALWAYS]` · `[ON-TRIGGER]` · `[REFERENCE]` · `[HANDOFF]` — agent knows what to load when · no English required · 1,500-token file -> ~600 loaded mid-session
 
 ### Symbol contracts
 
-ASCII operators · 1 token each on every modern BPE tokenizer.
+ASCII operators · 1 token each on every modern BPE tokenizer
 
 ```
 ->   leads to       !!   never
@@ -157,11 +164,11 @@ ASCII operators · 1 token each on every modern BPE tokenizer.
 ~~   warn           ok   allowed
 ```
 
-Full table -> [SPEC.md](SPEC.md).
+Full table -> [SPEC.md](SPEC.md)
 
 ### XML for long docs
 
-XML tags "help Claude parse complex prompts unambiguously" ([Anthropic prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)). markdown headings = hints · XML tags = boundaries.
+XML tags "help Claude parse complex prompts unambiguously" ([Anthropic prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)) · markdown headings = hints · XML tags = boundaries
 
 ```
 <context>
@@ -173,7 +180,7 @@ XML tags "help Claude parse complex prompts unambiguously" ([Anthropic prompting
 
 ### Fenced code blocks preserved verbatim
 
-regex · Mermaid · JSON · SQL = already dense · already native to LLMs. BT never rewrites contents of triple-backtick fence. prose around shrinks · blocks don't. Code-heavy docs cap at ~7-19%.
+regex · Mermaid · JSON · SQL = already dense · already native to LLMs · BT never rewrites contents of triple-backtick fence · prose around shrinks · blocks don't · code-heavy docs cap at single-digit % reductions · that's correct: code = highest-value content · SPEC §9 pitfall 15 check enforces it
 
 ---
 
@@ -185,14 +192,14 @@ BST @CLAUDE.md                   # read back in plain English
 /botspeak ~/.cursor/skills/      # compress folder; use cheap model
 ```
 
-Then ask agent to save next handoff. With AOR installed -> comes out in BT automatically · this is the main event.
+Then ask agent to save next handoff · with AOR installed -> comes out in BT automatically · this = main event
 
 ---
 
 ## Evals
 
-- **Round-trip fidelity** — 6 AI-facing docs -> BT · every constraint / polarity / code block audited. **6 / 6 PASS**. Plus 3 external real-world docs ([evals/round-trip-results.md](evals/round-trip-results.md)).
-- **Game synthesis** — fresh model gets only BT prompt · builds game · parity-checked vs prose build. 4 games pass clean-room (table above · methodology in [evals/README.md](evals/README.md)).
+- **Constraint-preservation audit** — 9 AI-facing docs compressed to BT (5 synthetic · 4 real-world CLAUDE.md from 47K-198K-star repos) · audited for polarity (SPEC §9 pitfall 14) · code-block parity (§9 pitfall 15) · alias hygiene (§9 pitfall 12) · constraint preservation · **9 / 9 PASS** · methodology + per-row evidence: [evals/round-trip-results.md](evals/round-trip-results.md) · plus 3 external docs that pass clean-room from `evals/external-prompts/`
+- **Game synthesis** — Sonnet 4.6 subagent gets only BT prompt + no prior context · builds game · separate Sonnet 4.6 subagent builds from prose spec · [automated parity script](evals/scripts/parity_check.py) extracts numeric constants from both HTML builds · confirms match · 4 games pass clean-room (table above · full methodology in [evals/README.md](evals/README.md)) · same model · isolated sessions · cross-model parity = v2.3 target · !! v2.2 claim
 
 ---
 
@@ -213,9 +220,10 @@ botspeak/
 │   ├── botspeak-translate/SKILL.md      ← translate: BT -> [filename].bst.md
 │   └── _archive/
 ├── agents/botspeak-translator.md
-├── examples/                            ← 9 before/after pairs (token-verified)
+├── examples/                            ← 9 before/after pairs (token-verified · o200k_base)
 ├── showcase/index.html                  ← single-page eval rendering
 ├── evals/
+│   └── scripts/                         ← count_tokens.py · parity_check.py
 └── docs/
 ```
 
@@ -224,28 +232,28 @@ botspeak/
 ## FAQ
 
 **Won't fewer tokens make my agent worse?**
-Usually better. Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls Claude's latest models "less verbose" by design · XML-tagged structured input "can improve response quality by up to 30%" over loose prose.
+Usually better · Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls Claude's latest models "less verbose" by design · XML-tagged structured input "can improve response quality by up to 30%" over loose prose
 
 **Doesn't the AI need prose?**
-No. LLMs native to HTML · JSON · XML · YAML · regex · Python · Rust · SQL · Mermaid · math · dozens of DSLs. SQL migration that will never run can spec a data shape more precisely than 3 paragraphs about it. Pick densest notation that fits.
+No · LLMs native to HTML · JSON · XML · YAML · regex · Python · Rust · SQL · Mermaid · math · dozens of DSLs · SQL migration that will never run can spec a data shape more precisely than 3 paragraphs about it · pick densest notation that fits
 
 **My IDE wrote plain prose · now what?**
-Run `/botspeak` on file. With AOR installed · new docs -> BT from then on.
+Run `/botspeak` on file · with AOR installed · new docs -> BT from then on
 
 **Should I rewrite everything now?**
-No. Start with whatever agent reads most — usually `CLAUDE.md`.
+No · start with whatever agent reads most — usually `CLAUDE.md`
 
 **Skip BT for one doc?**
-Pass `-p` (think *p*rose). Or just say "write this in prose."
+Pass `-p` (think *p*rose) · or just say "write this in prose"
 
 **New agent can't read it?**
-Every modern LLM (Claude · GPT · Gemini · Llama · Mistral) reads BT without preamble. Drop `SPEC.md` once if nervous.
+Every modern LLM (Claude · GPT · Gemini · Llama · Mistral) reads BT without preamble · drop `SPEC.md` once if nervous
 
 **vs Caveman?**
-Different layer. [Caveman](https://github.com/JuliusBrussee/caveman) shapes AI -> human output. BT shapes AI -> AI files. They compose.
+Different layer · [Caveman](https://github.com/JuliusBrussee/caveman) shapes AI -> human output · BT shapes AI -> AI files · they compose
 
 **vs CRUX-Compress · llm-min.txt · Compresr?**
-Those = post-hoc compressors. BT = writing convention · no compressor required.
+Those = post-hoc compressors · BT = writing convention · no compressor required
 
 **Uninstall**
 
@@ -257,9 +265,9 @@ curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/uninstall.sh | 
 
 ## Operational notes
 
-- `.gitignore` 2 patterns: `*.bst.md` (translations) + `*.bu.*.md` (backups). Both disposable.
-- `/botspeak` replaces in place. `-bu` = keep backup. Directory mode always asks first.
-- Batch jobs: cheap model (Haiku · GPT-4o-mini). Thinking models = 3-5× slower for no quality gain on mechanical compression.
+- `.gitignore` 2 patterns: `*.bst.md` (translations) + `*.bu.*.md` (backups) · both disposable
+- `/botspeak` replaces in place · `-bu` = keep backup · directory mode always asks first
+- batch jobs: cheap model (Haiku · GPT-4o-mini) · thinking models = 3-5× slower for no quality gain on mechanical compression
 
 ---
 

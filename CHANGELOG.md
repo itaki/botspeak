@@ -4,6 +4,39 @@ All notable changes to BOTSPEAK will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] — 2026-05-20 — Pre-release audit fixes
+
+PATCH bump — no SPEC rule or symbol changes; clarifications, bug fixes, and honesty
+improvements across docs, examples, installer, and the translate skill.
+
+### Fixed
+
+- **Translate skill no longer mandates synthetic content.** `skills/botspeak-translate/SKILL.md` step 5 used to say "add a 'What this means in practice' paragraph" — which directly contradicted its own step 7 ("do NOT add interpretation beyond what the BT content states"). The skill now produces a faithful 1:1 expansion only, with a `diff`-against-source verification target. All `translated.md` files regenerated accordingly.
+- **Cursor skills install path corrected** everywhere from the non-existent `~/.cursor/skills-cursor/` to the documented `~/.cursor/skills/` (`install.sh`, `uninstall.sh`, `.cursor/rules/botspeak-versioning.mdc`, `SPEC.md`). The uninstaller also cleans up legacy installs at the old path.
+- **Showcase model claim corrected.** README, README-FOR-AI, and showcase now say "isolated Sonnet 4.6 subagent sessions, neither saw the other's prompt or output." Cross-model parity is explicitly called a v2.3 target, not a v2.2 claim — `showcase/index.html` had already correctly named "Sonnet 4.6 (all builds)" but the README contradicted it.
+- **Example 01 (`examples/01-short-rule/after.md`).** Dropped the broken `br = git branch` and `wt = git worktree` aliases that expanded to `git git branch` inside command literals. Restored the missing `## Do not` section. Disambiguated previously-ambiguous `!!` polarity ("STOP all edits · wait for user to pick A/B/C" and "[ON-TRIGGER] user prompts again without picking A/B/C -> repeat the three options · !! proceed").
+- **Example 02 (`examples/02-context-handoff/after.md`).** Removed hallucinated `@defs` aliases (`SPA`, `EF`) — declared but never used in the body, violating SPEC §9 pitfall 12.
+- **Example 03 (`examples/03-memory-page/after.md`).** Restored YAML frontmatter (`tags: [react · hooks · …]` was invalid YAML) and restored fenced code-block contents verbatim — SPEC §4 explicitly forbids compressing inside fences.
+- **Installer hardening.** Claude global-rule strip refuses to run if the `END` marker is missing (previously would have silently truncated the file). `write_skill_file` no longer blindly overwrites a customized SKILL.md — it `cmp`s and writes a timestamped `.bu.<stamp>.md` backup if contents differ. Same defensive check in `uninstall.sh`.
+- **Showcase `file://` note.** README now includes the `python3 -m http.server` one-liner so cloners get working iframe loading.
+
+### Changed
+
+- **Example 04 replaced with a real-world `CLAUDE.md`.** The prior synthetic project-philosophy rule was padded with `🚨` headers, ALL-CAPS section restatements, and `✅`/`❌` emoji checklists — fairly called a strawman. Replaced with the live `CLAUDE.md` from [`obra/superpowers`](https://github.com/obra/superpowers) (198K stars, pinned to commit `e7a2d16`), which is an authentic manifesto-shaped doc. New `examples/04-philosophy-rule/README.md` documents provenance.
+- **All token counts switched to `o200k_base`** (the GPT/Claude family tokenizer) across README, README-FOR-AI, showcase, `evals/round-trip-results.md`, and per-example folder READMEs. Replaces the prior `chars / 4` approximation. Compression numbers are smaller and now reproducible from one command. README explicitly notes word-based numbers as a footnote for those who prefer them (the file `evals/scripts/token-counts.json` carries both).
+- **README leads with real CLAUDE.md examples** (07, 08, 09, plus the new 04 from `obra/superpowers`) before the synthetic ones — externally authored docs are harder to call self-serving.
+- **Round-trip eval table** in `evals/round-trip-results.md` expanded from 6 to 9 in-repo rows (added the four real-world CLAUDE.md as full audit rows). Headline updated from "6/6 PASS" to "9/9 PASS." New "How PASS is defined" section spells out the four programmatic checks the verification harness runs.
+- **`evals/round-trip/run.sh` rewritten** as a no-LLM verification harness. Runs four SPEC v2.2.0 checks (polarity, polarity-collision, code-block parity, alias hygiene) against committed iter files. Documents the manual LLM reproduction procedure in a heredoc at the top so reviewers can regenerate iter files from the actual shipped skills.
+- **`agents/botspeak-translator.md` rewritten** to v2.2.0 ASCII dialect (no `🔴` / `✅` / `→` glyphs) per SPEC §0 Tenet 4 ("don't use two different symbols for the same meaning"). Adds the v2.2.0 verify pass (polarity substitution, code-block parity, alias hygiene, entity-state form).
+- **`gemini-extension.json`** description corrected — removed the reference to the deprecated `/capture-botspeak` skill that was removed in v2.0.0. Bumped extension version to 2.2.0.
+- **Version stamps aligned** across `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.mdc`, `agents/botspeak-translator.md`, and `skills/botspeak-translate/SKILL.md`.
+
+### Added
+
+- **`evals/scripts/count_tokens.py`** — reproducible o200k_base token counts for every example pair and game prompt. Reviewers can re-run from the repo root.
+- **`evals/scripts/parity_check.py`** — extracts numeric constants from each game HTML pair and diffs by identifier name and normalized value. Exits 0 with zero shared-name mismatches across all four games. Surfaces honest data: most constants live in "only in one file" buckets because the two builds use different naming conventions (e.g. `CANVAS_WIDTH` vs `CW`), which the script reports plainly rather than papering over.
+- **CHANGELOG v0.1.0 annotation** explaining that the historical 41/78/71/74/56% reduction numbers were from a more aggressive earlier compressor and aren't directly comparable to current v2.x numbers — current numbers are lower by design (clarity over compression).
+
 ## [2.2.0] — 2026-05-18 — Polarity verification, code-block parity, size guidance
 
 ### Added
@@ -67,6 +100,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [0.1.0] — 2026-05-05 — Initial release
 
+> **Note on historical numbers:** the reduction percentages in this v0.1.0 entry
+> (41% / 78% / 71% / 74% / 56%) reflect the more aggressive compression of the
+> v0.1.0 skill. v2.x became deliberately more conservative — preserving fenced
+> code blocks verbatim, refusing to drop named constraints, and verifying
+> polarity — so current numbers for the same examples are lower (see the
+> v2.2.0 entry above and `evals/round-trip-results.md` for the audited figures).
+> The drop is intentional: clarity over compression.
+
 ### Added
 
 - **SPEC.md** — language specification covering symbol vocabulary (ASCII + Symbol dialects), `@defs` aliases with reliability bounds, phase tags, grammar rules, document structure patterns, frontmatter preservation rules, and pitfalls.
@@ -76,7 +117,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - `/translate-botspeak` — render any BOTSPEAK file into clear human prose (the round-trip safety net)
 - **Cursor rule** (`.cursor/rules/botspeak.mdc`) — always-on rule for users who want BOTSPEAK applied automatically to new AI-facing docs.
 - **Bidirectional agent** (`agents/botspeak-translator.md`) — auto-detects direction (BOTSPEAK ↔ prose) for tools that load agent definitions.
-- **Five before/after examples** demonstrating short rules (41% reduction), context handoffs (78%), Karpathy-style memory pages (71%), project manifestos (74%), and long aliased CLAUDE.md (56%).
+- **Five before/after examples** demonstrating short rules, context handoffs, Karpathy-style memory pages, project manifestos, and long aliased CLAUDE.md. See the note above on historical compression numbers.
 - **Bootstrap files** (CLAUDE.md, AGENTS.md) for host-tool discovery.
 - **install.sh** — installs skills into all detected agents (Claude Code, Cursor, Codex, Gemini CLI, generic AGENTS.md targets).
 

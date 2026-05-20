@@ -5,8 +5,6 @@
   env = Fred's Italian Bistro (test-vehicle only)
   dta = expendable test data
   br = feature/mv-refresh (current branch)
-  SPA = Supabase
-  EF = Edge Function
 @end
 
 [HANDOFF] new-agent-session pickup where previous left off

@@ -19,7 +19,7 @@ What BOTSPEAK still does:
 - Adds phase tags so the agent can skip parts of the doc once context is established (`[NEW-CHAT]`, `default-phase: ALWAYS`).
 - Converts narrative chains to causal arrows (`->`) and constraint markers (`!!` for prohibitions).
 
-The takeaway: when the source is already mostly code examples plus terse bullet lists (as most high-quality `CLAUDE.md` files in big repos are), the prose-stripping headroom is small. For prose-heavy AI-facing docs (handoffs, philosophy, multi-paragraph rules) the same machinery hits 30-40%. See examples 02 and 04.
+The takeaway: when the source is already mostly code examples plus terse bullet lists (as most high-quality `CLAUDE.md` files in big repos are), the prose-stripping headroom is small. For prose-heavy AI-facing docs (handoffs, multi-paragraph rules), the same machinery hits ~30%. See example 02 (context handoff, 30%).
 
 ## Provenance
 

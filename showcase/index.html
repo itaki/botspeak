@@ -214,8 +214,9 @@
     <p class="lede">
       Four games, four head-to-head comparisons. Each row shows the prose-built version on the
       left and the BOTSPEAK-built version on the right. The two were built independently by
-      different fresh model instances. Neither saw the other. Neither saw any prior context
-      about this project. Click in to play. Identical physics is the result.
+      separate clean-room Sonnet 4.6 subagent sessions. Same model, isolated sessions — neither
+      subagent saw the other's prompt or output, neither saw any prior context about this
+      project. Click in to play. Identical physics is the result.
     </p>
 
     <!-- Flappy Bird -->
@@ -225,10 +226,10 @@
         <p class="description">Physics-driven side-scroller. Per-entity pipe state. Particle death animation. localStorage best score. Stress-tests entity-state preservation under compression.</p>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">Prose words</div><div class="value">1,415</div></div>
-        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">974</div></div>
-        <div class="stat"><div class="label">Compression</div><div class="value">31%</div></div>
-        <div class="stat"><div class="label">Parity</div><div class="value pass">15 / 15</div></div>
+        <div class="stat"><div class="label">Prose tokens</div><div class="value">1,934</div></div>
+        <div class="stat"><div class="label">BOTSPEAK tokens</div><div class="value">1,729</div></div>
+        <div class="stat"><div class="label">Reduction</div><div class="value">11%</div></div>
+        <div class="stat"><div class="label">Constants</div><div class="value pass">15 / 15</div></div>
       </div>
       <div class="iframes">
         <div class="iframe-box">
@@ -254,10 +255,10 @@
         <p class="description">Grid logic, turn-based. Tests preservation of input-buffer rules and the no-reverse-direction constraint — small details a sloppy compression could lose.</p>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">Prose words</div><div class="value">851</div></div>
-        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">549</div></div>
-        <div class="stat"><div class="label">Compression</div><div class="value">35%</div></div>
-        <div class="stat"><div class="label">Parity</div><div class="value pass">10 / 10</div></div>
+        <div class="stat"><div class="label">Prose tokens</div><div class="value">1,192</div></div>
+        <div class="stat"><div class="label">BOTSPEAK tokens</div><div class="value">895</div></div>
+        <div class="stat"><div class="label">Reduction</div><div class="value">25%</div></div>
+        <div class="stat"><div class="label">Constants</div><div class="value pass">10 / 10</div></div>
       </div>
       <div class="iframes">
         <div class="iframe-box">
@@ -283,10 +284,10 @@
         <p class="description">Tier 1 canary game. Simplest one-shot in the suite — if BOTSPEAK ever fails on Pong, compression is too aggressive. Tests the bounce-angle formula and CPU AI.</p>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">Prose words</div><div class="value">1,350</div></div>
-        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">820</div></div>
-        <div class="stat"><div class="label">Compression</div><div class="value">39%</div></div>
-        <div class="stat"><div class="label">Parity</div><div class="value pass">14 / 14</div></div>
+        <div class="stat"><div class="label">Prose tokens</div><div class="value">1,892</div></div>
+        <div class="stat"><div class="label">BOTSPEAK tokens</div><div class="value">1,461</div></div>
+        <div class="stat"><div class="label">Reduction</div><div class="value">23%</div></div>
+        <div class="stat"><div class="label">Constants</div><div class="value pass">14 / 14</div></div>
       </div>
       <div class="iframes">
         <div class="iframe-box">
@@ -312,10 +313,10 @@
         <p class="description">Physics + grid data structure combined. Tests preservation of per-row color array, per-row score array, and edge-detection collision logic.</p>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">Prose words</div><div class="value">1,499</div></div>
-        <div class="stat"><div class="label">BOTSPEAK words</div><div class="value">838</div></div>
-        <div class="stat"><div class="label">Compression</div><div class="value">44%</div></div>
-        <div class="stat"><div class="label">Parity</div><div class="value pass">21 / 21</div></div>
+        <div class="stat"><div class="label">Prose tokens</div><div class="value">2,175</div></div>
+        <div class="stat"><div class="label">BOTSPEAK tokens</div><div class="value">1,603</div></div>
+        <div class="stat"><div class="label">Reduction</div><div class="value">26%</div></div>
+        <div class="stat"><div class="label">Constants</div><div class="value pass">21 / 21</div></div>
       </div>
       <div class="iframes">
         <div class="iframe-box">
@@ -348,8 +349,8 @@
     </p>
 
     <p class="lede" style="margin-bottom: 16px;">
-      Token counts below use the standard <code>chars / 4</code> BPE approximation. Reproduce any row yourself:
-      <code>wc -c examples/$N/before.md examples/$N/after.md</code>.
+      Token counts below use the GPT/Claude family tokenizer (<code>o200k_base</code>). Reproduce any row yourself:
+      <code>python3 evals/scripts/count_tokens.py</code>.
     </p>
 
     <table>
@@ -365,12 +366,12 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">411</td><td style="text-align:right">335</td><td style="text-align:right">0.81</td><td class="pass">PASS</td></tr>
-        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">1,019</td><td style="text-align:right">624</td><td style="text-align:right">0.61</td><td class="pass">PASS</td></tr>
-        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">1,003</td><td style="text-align:right">758</td><td style="text-align:right">0.76</td><td class="pass">PASS</td></tr>
-        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>philosophy rule</td><td style="text-align:right">1,748</td><td style="text-align:right">1,005</td><td style="text-align:right">0.58</td><td class="pass">PASS</td></tr>
-        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (code-heavy)</td><td style="text-align:right">8,083</td><td style="text-align:right">7,159</td><td style="text-align:right">0.89</td><td class="pass">PASS</td></tr>
-        <tr><td>06</td><td>examples/06-backend-migration</td><td>migration spec (code-heavy)</td><td style="text-align:right">12,063</td><td style="text-align:right">9,783</td><td style="text-align:right">0.81</td><td class="pass">PASS</td></tr>
+        <tr><td>01</td><td>examples/01-short-rule</td><td>short rule</td><td style="text-align:right">381</td><td style="text-align:right">352</td><td style="text-align:right">0.92</td><td class="pass">PASS</td></tr>
+        <tr><td>02</td><td>examples/02-context-handoff</td><td>context handoff</td><td style="text-align:right">807</td><td style="text-align:right">567</td><td style="text-align:right">0.70</td><td class="pass">PASS</td></tr>
+        <tr><td>03</td><td>examples/03-memory-page</td><td>memory page</td><td style="text-align:right">892</td><td style="text-align:right">763</td><td style="text-align:right">0.86</td><td class="pass">PASS</td></tr>
+        <tr><td>04</td><td>examples/04-philosophy-rule</td><td>obra/superpowers CLAUDE.md</td><td style="text-align:right">1,533</td><td style="text-align:right">1,377</td><td style="text-align:right">0.90</td><td class="pass">PASS</td></tr>
+        <tr><td>05</td><td>examples/05-aliased-claude-md</td><td>CLAUDE.md (code-heavy)</td><td style="text-align:right">7,807</td><td style="text-align:right">7,081</td><td style="text-align:right">0.91</td><td class="pass">PASS</td></tr>
+        <tr><td>06</td><td>examples/06-backend-migration</td><td>migration spec (code-heavy)</td><td style="text-align:right">11,777</td><td style="text-align:right">9,937</td><td style="text-align:right">0.84</td><td class="pass">PASS</td></tr>
       </tbody>
     </table>
 

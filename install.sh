@@ -31,22 +31,39 @@ warn()  { echo -e "  ${YELLOW}!${RESET} $1"; }
 header(){ echo -e "\n${BOLD}${GREEN}$1${RESET}"; }
 
 # Write one SKILL.md — copy from local repo if available, else fetch from GitHub.
+# If the destination already exists AND differs from the source, back it up
+# alongside the original (.bu.<timestamp>) instead of silently clobbering it.
 write_skill_file() {
   local dest="$1"        # full path to destination SKILL.md
   local repo_rel="$2"    # path relative to repo root, e.g. skills/botspeak/SKILL.md
-
-  # Remove any existing file or dangling symlink so cp/curl can write cleanly.
-  rm -f "$dest"
+  local tmp
+  tmp="$(mktemp)"
 
   if [ -n "$REPO_DIR" ] && [ -f "$REPO_DIR/$repo_rel" ]; then
-    cp "$REPO_DIR/$repo_rel" "$dest"
+    cp "$REPO_DIR/$repo_rel" "$tmp"
   else
     if ! command -v curl >/dev/null 2>&1; then
       echo "  error: curl required for remote install" >&2
+      rm -f "$tmp"
       return 1
     fi
-    curl -fsSL "$RAW_BASE/$repo_rel" -o "$dest"
+    if ! curl -fsSL "$RAW_BASE/$repo_rel" -o "$tmp"; then
+      rm -f "$tmp"
+      return 1
+    fi
   fi
+
+  # If a customized SKILL.md already exists, preserve it as a .bu backup.
+  if [ -e "$dest" ] && ! cmp -s "$tmp" "$dest"; then
+    local stamp
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    local backup="${dest}.bu.${stamp}.md"
+    cp "$dest" "$backup"
+    warn "preserved existing $(basename "$dest") as ${backup}"
+  fi
+
+  rm -f "$dest"
+  mv "$tmp" "$dest"
 }
 
 install_skill() {
@@ -116,6 +133,14 @@ install_claude_global_rule() {
   fi
 
   if grep -qF "$start_marker" "$target"; then
+    # Refuse to rewrite if the END marker is missing — without it, the awk
+    # strip below would drop everything after START. Tell the user how to fix.
+    if ! grep -qF "$end_marker" "$target"; then
+      warn "Claude global rule: START marker present but END marker missing in $target"
+      warn "  Refusing to rewrite (would truncate the file). Manually restore the"
+      warn "  END marker line ($end_marker) or delete the BOTSPEAK block, then re-run."
+      return 1
+    fi
     # Strip existing managed block, then append a fresh one.
     local stripped
     stripped="$(mktemp)"
@@ -152,7 +177,7 @@ BANNER
 
 header "1/3 — Skills (global, per agent)"
 install_skills_for "Claude Code" "$HOME/.claude/skills"
-install_skills_for "Cursor"      "$HOME/.cursor/skills-cursor"
+install_skills_for "Cursor"      "$HOME/.cursor/skills"
 # Codex: only install if the binary is present (a ~/.codex dir alone is not enough)
 if command -v codex >/dev/null 2>&1; then
   install_skills_for "Codex" "$HOME/.codex/skills"

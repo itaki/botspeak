@@ -4,6 +4,8 @@ description: Translate a BOTSPEAK document into clear human prose with all @defs
 triggers: ["translate botspeak", "explain this botspeak", "/botspeak-translate", "what does this rule say in english"]
 ---
 
+<!-- botspeak-version: 2.2.0 -->
+
 @defs
   BT  = BOTSPEAK
   HP  = human prose
@@ -120,28 +122,31 @@ note: BT files may use ASCII operators or emoji for the same concept · expand b
 1. read full BT doc · resolve aliases first
 2. expand all symbol notation -> natural-language phrases
 3. expand all phase tags -> labeled section headers
-4. write full prose: complete sentences · context · explanation
-5. add "What this means in practice" paragraph for complex rules
-6. flag ambiguities found during translation
-7. !! do NOT add interpretation beyond what the BT content states (tenet-1 mirror: faithful expansion · no invention)
+4. write full prose: complete sentences · context · faithful expansion only
+5. flag ambiguities found during translation
+6. !! do NOT add interpretation · examples · "practice" paragraphs · or any content not literally present in the BT source
+7. !! do NOT strengthen · weaken · or invent constraints (tenet-1: faithful expansion · zero invention)
 
 ## output format (HP)
 
+The translation mirrors the source structure 1:1. Preserve the source's headings, list shape, and section ordering. Expand aliases and symbols in place. The output should match the original prose's information content — no more, no less.
+
 ```markdown
-## [Document Title]
+## [Document Title from source frontmatter or H1]
 
-**[Phase tag expanded as section header]**
+[Preserve the source's section structure. Expand each block to faithful prose
+with aliases resolved and symbols expanded. Do not add sections that aren't
+in the source.]
 
-[Full prose expansion of each block, with all aliases expanded inline.]
-
-**What this means in practice:**
-[One paragraph describing how an agent — or person — should behave given these rules.]
-
-**Ambiguities or gaps noted:**
-[Any points where the BOTSPEAK was unclear or could be interpreted multiple ways. Omit this section if none found.]
+**Ambiguities noted during translation:** (omit if none)
+[List any points where the BOTSPEAK was genuinely ambiguous. Do not generate
+this section just to fill it — only include if the BT source had real
+ambiguity the translator could not resolve.]
 ```
+
+The output must round-trip cleanly: running `diff` between this output and the original prose should show only stylistic differences (sentence rhythm, joining phrases) — never content the source did not contain.
 
 ## completion message
 
 [ALWAYS] when translation completes · tell user (in HP):
-  "I've expanded all aliases, symbols, and phase tags to full prose. The result is more exhaustive than the original BOTSPEAK — every abbreviation spelled out, every constraint stated explicitly, every connection made clear. This verbosity proves that nothing was lost in the compression; it just got restructured. Compare it to the original BOTSPEAK to see exactly how the compression works."
+  "Translation complete. All aliases resolved, symbols expanded, phase tags rendered as section headers. The output is a faithful 1:1 expansion of the BOTSPEAK source — no added interpretation, no `practice` paragraphs, no invented examples. Run `diff` against the original prose to verify nothing was added or lost."

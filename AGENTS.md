@@ -1,4 +1,4 @@
-<!-- BOTSPEAK v2.1.0 · compressed by claude-sonnet-4-6 · 2026-05-08 -->
+<!-- BOTSPEAK v2.2.0 · compressed by claude-sonnet-4-6 · 2026-05-19 -->
 # BOTSPEAK
 
 @defs

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # BOTSPEAK uninstaller
-# removes skills from all detected agents
-# note: always-on rules must be removed manually (see below)
+# - removes skills from all detected agents
+# - strips the managed always-on rule block from ~/.claude/CLAUDE.md
+# - manually-installed per-IDE rules are listed at the end for cleanup
 
 set -e
 
@@ -46,7 +47,10 @@ BANNER
 
 header "Skills"
 remove_skills_for "Claude Code" "$HOME/.claude/skills"
-remove_skills_for "Cursor"      "$HOME/.cursor/skills-cursor"
+remove_skills_for "Cursor"      "$HOME/.cursor/skills"
+# Also clean up any legacy install in the wrong path (~/.cursor/skills-cursor/),
+# which earlier installer versions used by mistake.
+remove_skills_for "Cursor (legacy path)" "$HOME/.cursor/skills-cursor"
 if command -v codex >/dev/null 2>&1; then
   remove_skills_for "Codex" "$HOME/.codex/skills"
 else
@@ -76,6 +80,12 @@ remove_claude_global_rule() {
   fi
   if ! grep -qF "$start_marker" "$target"; then
     skip "Claude global rule (no managed block found in CLAUDE.md)"
+    return
+  fi
+  if ! grep -qF "$end_marker" "$target"; then
+    echo -e "  ${YELLOW}!${RESET} Claude global rule: START marker present but END marker missing in $target"
+    echo "    Refusing to strip (would truncate the file). Manually restore the"
+    echo "    END marker ($end_marker) and re-run, or remove the block by hand."
     return
   fi
   local tmp

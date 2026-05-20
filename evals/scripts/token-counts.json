@@ -1,0 +1,118 @@
+[
+  {
+    "category": "synthetic",
+    "id": "01-short-rule",
+    "name": "short rule (branch guard)",
+    "before_tokens": 381,
+    "after_tokens": 352,
+    "reduction_pct": 7.6
+  },
+  {
+    "category": "synthetic",
+    "id": "02-context-handoff",
+    "name": "context handoff",
+    "before_tokens": 807,
+    "after_tokens": 567,
+    "reduction_pct": 29.7
+  },
+  {
+    "category": "synthetic",
+    "id": "03-memory-page",
+    "name": "memory page (wiki)",
+    "before_tokens": 892,
+    "after_tokens": 763,
+    "reduction_pct": 14.5
+  },
+  {
+    "category": "synthetic",
+    "id": "04-philosophy-rule",
+    "name": "project philosophy rule",
+    "before_tokens": 1533,
+    "after_tokens": 1377,
+    "reduction_pct": 10.2
+  },
+  {
+    "category": "synthetic",
+    "id": "05-aliased-claude-md",
+    "name": "long CLAUDE.md (restaurant ops)",
+    "before_tokens": 7807,
+    "after_tokens": 7081,
+    "reduction_pct": 9.3
+  },
+  {
+    "category": "synthetic",
+    "id": "06-backend-migration",
+    "name": "architecture migration plan",
+    "before_tokens": 11777,
+    "after_tokens": 9937,
+    "reduction_pct": 15.6
+  },
+  {
+    "category": "real-world",
+    "id": "07-langchain-claude-md",
+    "name": "langchain-ai/langchain",
+    "before_tokens": 2934,
+    "after_tokens": 2810,
+    "reduction_pct": 4.2
+  },
+  {
+    "category": "real-world",
+    "id": "08-browser-use-claude-md",
+    "name": "browser-use/browser-use",
+    "before_tokens": 2495,
+    "after_tokens": 2179,
+    "reduction_pct": 12.7
+  },
+  {
+    "category": "real-world",
+    "id": "09-litellm-claude-md",
+    "name": "BerriAI/litellm",
+    "before_tokens": 3565,
+    "after_tokens": 3338,
+    "reduction_pct": 6.4
+  },
+  {
+    "category": "game",
+    "id": "game-prompt",
+    "name": "Flappy Bird",
+    "before_words": 1415,
+    "after_words": 974,
+    "before_tokens": 1934,
+    "after_tokens": 1729,
+    "reduction_pct_words": 31.2,
+    "reduction_pct_tokens": 10.6
+  },
+  {
+    "category": "game",
+    "id": "snake-prompt",
+    "name": "Snake",
+    "before_words": 851,
+    "after_words": 549,
+    "before_tokens": 1192,
+    "after_tokens": 895,
+    "reduction_pct_words": 35.5,
+    "reduction_pct_tokens": 24.9
+  },
+  {
+    "category": "game",
+    "id": "pong-prompt",
+    "name": "Pong",
+    "before_words": 1350,
+    "after_words": 820,
+    "before_tokens": 1892,
+    "after_tokens": 1461,
+    "reduction_pct_words": 39.3,
+    "reduction_pct_tokens": 22.8
+  },
+  {
+    "category": "game",
+    "id": "breakout-prompt",
+    "name": "Breakout",
+    "before_words": 1499,
+    "after_words": 838,
+    "before_tokens": 2175,
+    "after_tokens": 1603,
+    "reduction_pct_words": 44.1,
+    "reduction_pct_tokens": 26.3
+  }
+]

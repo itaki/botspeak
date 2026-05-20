@@ -649,7 +649,7 @@ BOTSPEAK uses semver (`MAJOR.MINOR.PATCH`):
 2. When the spec is stable and tested → publish a new skill:
    a. Update skills/botspeak/SKILL.md version comment (after frontmatter ---)
    b. Update the hardcoded version string in step 7 of SKILL.md
-   c. Copy skills/botspeak/SKILL.md → ~/.cursor/skills-cursor/botspeak/SKILL.md
+   c. Copy skills/botspeak/SKILL.md → ~/.cursor/skills/botspeak/SKILL.md
    d. Archive the old skill in skills/_archive/botspeak/ with naming:
       v<seq>-<YYYYMMDD>-<lines>L-<short-tag>.md
    e. Update skills/_archive/README.md table

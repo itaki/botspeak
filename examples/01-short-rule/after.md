@@ -3,40 +3,32 @@ description: One branch per focus; confirm git before coding; use worktrees for 
 alwaysApply: true
 ---
 
-@defs
-  br = git branch
-  wt = git worktree
-@end
+<!-- BOTSPEAK v2.2.0 · compressed by claude-sonnet-4-6 · 2026-05-19 -->
 
 # Branch and Worktree Guard
 
-## Why
+[ALWAYS] one checkout = one active branch
+[ALWAYS] parallel chats on unrelated features in one tree -> mixed commits · lost work · confused review
 
-[ALWAYS] parallel-chats on unrelated-features in one working-tree = mixed commits · lost work · confused review
-[ALWAYS] one checkout = one active br
+## Before edit
 
-## Before Implement or Edit
+[ALWAYS] run `git branch --show-current` && `git status -sb` (workspace root) · state branch name once in plain language
 
-[ALWAYS]
-  1. run: `git br --show-current` && `git status -sb` (workspace root)
-  2. state br-name once in plain language (e.g. "On `feature/mv-refresh`")
+## When user request != current branch
 
-## When User Request = Different Feature
+[ALWAYS] scope-separation (not "one more task on the side") -> STOP all edits · wait for A/B/C:
 
-[ALWAYS] treat as SCOPE-SEPARATION (not "one more task on side")
+  A — same branch · same PR: only if work belongs · restate fit · proceed
+  B — new branch in this folder: user switches · proceed on new branch only
+  C — parallel work: `git worktree add` (sibling folder · second editor window · same repo + .cursor rules · no second clone) · ref https://git-scm.com/docs/git-worktree
 
-[ALWAYS] STOP · !! edit until user chooses:
+[ON-TRIGGER] user prompts again without picking A/B/C -> repeat the three options · !! proceed
 
-  A — same br · same PR: only if work truly belongs · restate how · proceed
-  B — new br (this folder): user creates/switches · proceed that br only
-  C — parallel work: recommend `git wt add` (sibling folder · second Cursor window)
-      same repo + .cursor rules · no second clone · link: https://git-scm.com/docs/git-worktree
+## Red flags (trigger STOP + options)
 
-[ALWAYS] !! edit even on prompt-again -> force user to pick A/B/C
+[ALWAYS] trigger on: user jumps area (e.g. wine-report while branch=DB/MV/n8n) · "quick fix on something else" · multiple unrelated deliverables without one branch covering all
 
-## Red Flags (always trigger stop + options)
+## Do not
 
-[ALWAYS] trigger when:
-  user jumps another area (wine-report while br=DB/MV/n8n)
-  "quick fix on something else"
-  multiple unrelated deliverables without one br-name covering all
+!! silently work across unrelated features in one branch
+!! assume chat title = git branch name

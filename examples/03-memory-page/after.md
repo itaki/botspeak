@@ -1,8 +1,8 @@
 ---
 title: React Stale Closure Pattern
-tags: [react · hooks · debugging · performance]
+tags: [react, hooks, debugging, performance]
 updated: 2026-05-04
-source: claude-history-ingest / session 2026-04-12
+source: claude-history-ingest / DabaBase session 2026-04-12
 ---
 
 @defs
@@ -47,13 +47,16 @@ most-common (React):
 ```javascript
 function Counter() {
   const [count, setCount] = useState(0);
+  
   useEffect(() => {
     const interval = setInterval(() => {
-      // BUG: count always 0 · closure created when count=0
+      // BUG: count is always 0 here, no matter how many times setCount is called
+      // This is because the closure was created when count was 0
       console.log('Current count:', count);
     }, 1000);
+    
     return () => clearInterval(interval);
-  }, []); // Empty DA -> closure forever count=0
+  }, []); // Empty array → closure captures count=0 forever
 }
 ```
 
@@ -73,7 +76,7 @@ useEffect(() => {
     console.log('Current count:', count);
   }, 1000);
   return () => clearInterval(interval);
-}, [count]); // Correctly re-runs when count changes
+}, [count]); // Now correctly re-runs when count changes
 ```
 
 ### Option 2: Use Ref to Track Current Value
@@ -81,18 +84,19 @@ useEffect(() => {
 ```javascript
 const countRef = useRef(count);
 countRef.current = count;
+
 useEffect(() => {
   const interval = setInterval(() => {
     console.log('Current count:', countRef.current); // Always current
   }, 1000);
   return () => clearInterval(interval);
-}, []); // Safe · reading from ref · not closure
+}, []); // Safe because we're reading from ref, not closure
 ```
 
 ### Option 3: Functional Form of setState
 
 ```javascript
-setCount(currentCount => currentCount + 1); // Always uses latest
+setCount(currentCount => currentCount + 1); // Always uses latest value
 ```
 
 ## When to Suspect Stale Closure

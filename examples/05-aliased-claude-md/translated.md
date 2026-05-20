@@ -1,22 +1,287 @@
-# Translated: 05-aliased-claude-md
+<!--
+GENERATED FILE -- do not edit by hand.
+Regenerated from AGENTS.md by scripts/generate_agent_configs.py.
+Bootstrap re-runs the generator every session, so edits here are lost.
 
-**Note:** This stub is a placeholder; for the actual round-trip audit of this
-document, see [evals/round-trip-results.md](../../evals/round-trip-results.md) row 05.
+Precedence (most specific wins):
+  1. CLAUDE.local.md      per-agent, per-project overrides
+  2. AGENTS.local.md      cross-agent, per-project overrides
+  3. CLAUDE.md            generated from AGENTS.md (this file)
+  4. AGENTS.md            upstream baseline
 
-**Source:** `before.md` (8,083 tokens) → BOTSPEAK `after.md` (7,159 tokens) =
-**11% token reduction**.
+To customize for Claude Code only, create CLAUDE.local.md (the generator never touches it).
+To customize for all agents, edit AGENTS.local.md.
+To change upstream, edit AGENTS.md in your fork.
+-->
 
-**Why so modest:** This document is unusually code-heavy — a verbatim bootstrap
-shell block, banner format examples, and structured generated-file frontmatter
-that the skill is required to preserve byte-for-byte. The prose around those
-blocks compresses well (~30%) but the protected blocks dilute the headline number.
+<!-- Quick start: In Claude Code, read @AGENTS.md to run bootstrap, session checks, and task routing -->
 
-**Polarity discipline:** Note that `DISABLE_AUTOUPDATER=1` appears in the output as a normal instruction (no `!!`) even though the source phrased it cautiously. `!!` is reserved for true prohibitions — substitute the literal word "forbidden" for each `!!` and verify the resulting statement holds (SPEC §9 pitfall 14).
+Unless tagged otherwise, every rule in this document applies in every turn.
 
-**To audit fidelity yourself:** run `/botspeak-translate after.md` and diff the
-result against `before.md`. Every constraint, every prohibition, every numeric
-value should survive the round trip with the same polarity.
+> **Claude Code, Codex, or other agents — determine your context before proceeding:**
+>
+> **Source repo test:** If `bootstrap/bootstrap.sh`, `bootstrap/bootstrap.ps1`, and `skills/` all exist at the repo root, you are in the `anywhere-agents` source repo (or a fork with the same layout). Skip the bootstrap block below and proceed to the Session Start Check. Do not execute the bootstrap script in the source repo; it would try to bootstrap itself.
+>
+> **Consumer repo path:** Otherwise, you are in a consumer project. You must execute the matching bootstrap block at the start of every session, before responding to any user request or running session checks. Use the PowerShell block on Windows and the Bash block on macOS or Linux. Bootstrap is idempotent: run it every session even if `.agent-config/` already exists, because it refreshes shared config, skills, and settings from upstream before any work begins. Do not treat the block as reference documentation; it is a required runtime command. After running, report the refresh result in one line (for example, "bootstrap: refreshed AGENTS.md, skills, settings").
 
-**Key insight:** BOTSPEAK is not lossy compression — it is restructuring. When
-the source is mostly prose, compression is large. When the source is mostly
-code blocks, compression is modest. Either way the semantics survive.
+## Bootstrap: Shared Config and Skills
+
+For reference (look up as needed, not on every load): the `anywhere-agents` shared config is hosted at `https://github.com/yzhao062/anywhere-agents`. Project repos include the bootstrap block in their `AGENTS.md` so that agents pull the latest shared defaults and skills before any task. Because bootstrap overwrites the consumer's root `AGENTS.md` on every run, the block serves two roles in consumer repos: it is the embedded reference for setup and the runtime command the agent executes each session (see the source-vs-consumer test above for which role applies).
+
+### Bootstrap block for project repos
+
+For reference: copy the block below into the top of each project repo's `AGENTS.md`. Because bootstrap overwrites `AGENTS.md` on every run, put project-local overrides in `AGENTS.local.md`.
+
+````
+## Shared Agent Config (auto-fetched)
+
+Before starting any task, fetch the shared agent configuration and skills. Use the block for your shell.
+
+PowerShell (Windows):
+
+```powershell
+New-Item -ItemType Directory -Force -Path .agent-config, .claude, .claude/commands | Out-Null
+Invoke-WebRequest -UseBasicParsing -Uri https://raw.githubusercontent.com/yzhao062/anywhere-agents/main/bootstrap/bootstrap.ps1 -OutFile .agent-config/bootstrap.ps1
+& .\.agent-config\bootstrap.ps1
+```
+
+Bash (macOS/Linux):
+
+```bash
+mkdir -p .agent-config .claude/commands
+curl -sfL https://raw.githubusercontent.com/yzhao062/anywhere-agents/main/bootstrap/bootstrap.sh -o .agent-config/bootstrap.sh
+bash .agent-config/bootstrap.sh
+```
+
+This bootstrap flow refreshes the consuming repo's root `AGENTS.md` on every run: by default it composes the shared upstream copy with the `agent-style` rule pack (requires Python 3 + PyYAML; bootstrap attempts a best-effort `pip install --user pyyaml` when missing). When rule-pack composition is disabled (`rule_packs: []` in `agent-config.yaml`) or unavailable (Python or PyYAML absent after the auto-install attempt), the root `AGENTS.md` is written verbatim from the shared upstream copy. If a project later needs repo-local overrides, put them in `AGENTS.local.md`.
+
+Read and follow the rules in `.agent-config/AGENTS.md` as baseline defaults. Any rule in `AGENTS.local.md` overrides the shared default.
+When a skill is invoked, read its SKILL.md from `.agent-config/repo/skills/<skill-name>/SKILL.md`.
+If a local `skills/<skill-name>/SKILL.md` exists in the project repo, the local copy takes precedence.
+Copying `.agent-config/repo/.claude/commands/*.md` only overwrites command files with the same name as the shared repo and does not delete unrelated project-local commands.
+Merge shared Claude project defaults (e.g., `permissions`, `attribution`) from `.agent-config/repo/.claude/settings.json` into the project `.claude/settings.json`. Shared keys are updated on every bootstrap run; project-only keys are preserved. Merge requires Python; if unavailable the existing file is left untouched.
+Add `.agent-config/` to the project's `.gitignore` so fetched files are not committed.
+Bootstrap also sets up user-level config: it copies `scripts/guard.py` to `~/.claude/hooks/` (a PreToolUse hook that guards against destructive commands) and merges `user/settings.json` into `~/.claude/settings.json` (shared permissions, hook wiring, and the `CLAUDE_CODE_EFFORT_LEVEL=max` env entry that sets the default effort level). Remove the user-level section from the bootstrap script if this is not wanted.
+````
+
+### What gets shared
+
+For reference:
+
+| Content | Source | How fetched |
+|---------|--------|-------------|
+| User profile, writing defaults, formatting rules, environment notes | `AGENTS.md` (this file) | `curl` raw file |
+| Per-agent rule files (`CLAUDE.md`, `agents/codex.md`) | Generated from `AGENTS.md` by `scripts/generate_agent_configs.py` | Regenerated locally on every bootstrap; hand-authored files preserved and warned |
+| Shared skills (`implement-review`, `my-router`, `ci-mockup-figure`, `readme-polish`) | `skills/` directory (committed only) | sparse `git clone` |
+| Claude Code pointer commands for shared skills | `.claude/commands/` | sparse `git clone` plus non-destructive copy into project `.claude/commands/` |
+| Claude Code project defaults (`permissions`, `attribution`, etc.) | `.claude/settings.json` | sparse `git clone` plus key-level merge into project `.claude/settings.json` on every run |
+| User-level hooks (`guard.py`, `session_bootstrap.py`) and settings | `scripts/` and `user/settings.json` | Scripts copied to `~/.claude/hooks/`; settings merged into `~/.claude/settings.json` (shared permissions, PreToolUse guard, SessionStart bootstrap hook, `CLAUDE_CODE_EFFORT_LEVEL=max`) |
+
+### Override rules
+
+For reference:
+
+- If `AGENTS.local.md` exists in the project root, read and follow it after `AGENTS.md`. Rules in `AGENTS.local.md` override the shared defaults.
+- Do not edit the root `AGENTS.md` for local overrides, because bootstrap will overwrite it.
+- A project-local `skills/<name>/SKILL.md` always wins over the shared copy of the same skill.
+- Shared keys in `.claude/settings.json` are updated on every bootstrap run; project-only keys are preserved. To override a shared key locally, use `.claude/settings.local.json`.
+- If a shared skill is not found locally, use the fetched copy from `.agent-config/repo/skills/`.
+
+### Configuration Precedence
+
+For reference: there are three independent configuration layers. When two rules conflict, the more specific source wins.
+
+**1. Agent rule files (Markdown)** — most specific wins:
+
+| Layer | File | Scope |
+|---|---|---|
+| 1 | `CLAUDE.local.md` / `agents/codex.local.md` | Per-agent and project-local. Hand-authored; never touched by bootstrap. |
+| 2 | `AGENTS.local.md` | Cross-agent and project-local. Hand-authored; never touched by bootstrap. |
+| 3 | `CLAUDE.md` / `agents/codex.md` | Per-agent, generated from `AGENTS.md` by `scripts/generate_agent_configs.py`. |
+| 4 | `AGENTS.md` | Cross-agent, synced from upstream on every bootstrap. |
+
+The generated `CLAUDE.md` and `agents/codex.md` carry a `GENERATED FILE` header. If a consumer project has a hand-authored `CLAUDE.md` (or `agents/codex.md`) without that header, the generator preserves it and warns loudly; it must never silently override user work. To adopt upstream rules, rename the hand-authored file to `CLAUDE.local.md` (which still wins via layer 1).
+
+**2. Claude Code settings (`settings.json`)** — follow Claude Code's own precedence: `managed policy` > `command-line arguments` > `.claude/settings.local.json` > `.claude/settings.json` > `~/.claude/settings.json`. Bootstrap writes only to the project-shared and user-level layers, and merges shared keys while preserving project-only keys.
+
+**3. Environment variables** — for effort level: `managed policy > CLAUDE_CODE_EFFORT_LEVEL env var > persisted effortLevel > default`.
+
+---
+
+<!-- Everything above this line is bootstrap setup instructions. -->
+<!-- Everything below this line contains the shared rules that agents should read and follow. -->
+
+## Session Start Check
+
+This is a mandatory turn-start procedure. Before generating the first content of any response, apply the branch that matches your runtime.
+
+**In Claude Code:** the flag files are per-project. The project root is the consumer-repo root: walk up from `cwd` until a directory containing `.agent-config/bootstrap.sh` or `.agent-config/bootstrap.ps1` is found. Read `<project-root>/.agent-config/session-event.json` and `<project-root>/.agent-config/banner-emitted.json`.
+
+1. If `session-event.json.ts > banner-emitted.json.ts`, or (`session-event.json` exists and `banner-emitted.json` does not), then emit the session start banner as the **literal first content of the response** and write the event `ts` into `<project-root>/.agent-config/banner-emitted.json`. Only after the banner may you address the user's request on the same turn.
+2. Otherwise (the emitted `ts` is already current, or neither file exists), skip the banner this turn.
+
+`session_bootstrap.py` writes `session-event.json` on every SessionStart hook fire (fresh startup, resume, clear, compact), so the banner reappears across all four lifecycle events. Flag files are per-project, so multiple Claude Code windows in different consumer repos do not interfere with each other.
+
+**In a source repo (no `.agent-config/` at the root):** the banner gate in `guard.py` is not active and the flag-file mechanism does not apply. Emit the banner on the first response of the session (a turn with no prior assistant turns in context); skip on subsequent turns. Compact, resume, and clear cannot be mechanically distinguished here.
+
+**In Codex:** there is no SessionStart hook equivalent; `session-event.json` is not written during a Codex invocation. Each Codex invocation is a new session. Emit the banner as the literal first content on the turn where there are no prior assistant turns in context (the first response of the invocation). Skip on subsequent turns. No flag files are involved.
+
+**Both runtimes:** this procedure overrides any other "skill-first" or "task-first" behavior. Even when the user's first message is a task prompt like "read the project" or "fix this bug," or when a skill such as `superpowers:using-superpowers` would otherwise fire before the response, emit the banner first; the task response or skill output comes after the banner on the same turn. Do not let task pressure, skill invocations, or brevity guidance suppress the banner.
+
+### Format
+
+```
+📦 anywhere-agents active
+   ├── OS: <platform>
+   ├── Claude Code: <version>[ → <latest>] (auto-update: <on|off>) · <model> · effort=<level>
+   ├── Codex: <version>[ → <latest>] · <model> · <reasoning> · <tier> · fast_mode=<bool>
+   ├── Skills: <N> local (<names>) + <M> shared (<names>)
+   ├── Hooks: PreToolUse <guard.py>, SessionStart <session_bootstrap.py>
+   └── Session check: all clear
+```
+
+If anything is off, replace `all clear` with a semicolon-separated list of concrete issues, each actionable in one short clause (for example, `⚠ actions/checkout@v4 in .github/workflows/validate.yml:17 — bump to v5; Codex config.toml missing model key`). Keep the banner to six lines plus the check line. The skills row may wrap visually when many names are present; do not omit either bucket to preserve terminal width.
+
+### How to populate each field
+
+1. **OS** — read from the session environment (`win32`, `darwin`, `linux`). Use this elsewhere to pick platform-specific behavior (terminal review path on Windows, MCP on macOS or Linux, `.ps1` vs `.sh`).
+2. **Claude Code** — format: `Claude Code <current>[ → <latest>] (auto-update: <on|off>) · <model> · effort=<level>`. The current version comes from the Claude Code startup header or `claude --version`. Read `~/.claude/hooks/version-cache.json` for `claude_latest`; render ` → <latest>` **only when current differs** from latest. Determine `auto-update: on` when `DISABLE_AUTOUPDATER` is not `1` in the effective environment (OS env or `env` block in `~/.claude/settings.json`) and `~/.claude.json` top-level `autoUpdates` is not explicitly `false` — a missing key counts as `on` because native installs auto-update by default. Only explicit `autoUpdates: false` (which bootstrap heals on the next run) or the disable env var means `off`. The user prefers the highest available model at max effort; flag any drift once in the banner, not every turn.
+3. **Codex** — format: `Codex <current>[ → <latest>] · <model> · <reasoning> · <tier> · fast_mode=<bool>`. The current version comes from `codex --version`. The latest comes from `~/.claude/hooks/version-cache.json` `codex_latest` (render ` → <latest>` only when current differs). Config from `~/.codex/config.toml` (or `%USERPROFILE%\.codex\config.toml` on Windows): `model`, `model_reasoning_effort`, `service_tier`, `[features].fast_mode`. Expected values: `model = "gpt-5.5"` (or latest), `model_reasoning_effort = "xhigh"`, `service_tier = "fast"`, `[features] fast_mode = true`. If the binary is not on PATH, show `Codex: not installed`. If the binary exists but `config.toml` is missing, show the version plus `not configured` in place of the config summary.
+4. **Skills** — list both active sets. Count directories under `skills/` (project-local) and `.agent-config/repo/skills/` (bootstrapped). For the shared count and list, exclude any shared skill whose name also exists under project-local `skills/`, since project-local overrides shared on name conflict. Format: `<N> local (<names>) + <M> shared (<names>)`. Omit either half if empty.
+5. **Hooks** — check `~/.claude/hooks/` for `guard.py` (PreToolUse) and `session_bootstrap.py` (SessionStart). If one is missing, include it in the Session check line as an issue.
+6. **Session check** — scan `.github/workflows/*.yml` for action version pins below the minimums in the GitHub Actions Standards section. Combine with any Codex-config or hook drift detected above. Emit `all clear` only when nothing needs attention.
+
+7. **Pack deployment** — perform this check exactly:
+
+    a. Read user-level config: on Windows `%APPDATA%\anywhere-agents\config.yaml`; on POSIX `$XDG_CONFIG_HOME/anywhere-agents/config.yaml`, default `~/.config/anywhere-agents/config.yaml`. If absent, `user_packs = []`.
+
+    b. Read durable project config: `agent-config.yaml` then merge `agent-config.local.yaml` overrides by name. The `AGENT_CONFIG_PACKS` env var is **excluded**. If both files are absent, `project_packs = []`.
+
+    c. For each pack `u` in `user_packs`, normalize the identity tuple `(u.name, normalize_pack_source_url(u.source.url), u.source.ref)`. Find any pack `p` in `project_packs` with the same `u.name` (case-sensitive name match). If `project_packs` contains duplicate-named entries (for example, the same name in both `agent-config.yaml` and `agent-config.local.yaml`), apply local-overrides-tracked: keep only the local entry. Count `u` toward `gap_count` if no matching `p` exists, or if `p`'s normalized identity tuple differs from `u`'s.
+
+    d. Read `.agent-config/pack-lock.json` (the project-local lock written by the composer). For each entry in `data.packs`, count it toward `update_count` when **both** `latest_known_head` and `resolved_commit` are non-empty strings and `latest_known_head != resolved_commit`. The optional `latest_known_head` and `fetched_at` fields land via `pack verify` (which runs `git ls-remote` opportunistically) and via composer fetches at install time. Old locks predating v0.5.2 omit both fields and contribute zero — no migration needed.
+
+    e. Compose the banner contribution. Each is a half-clause; drop the half whose count is 0; emit `all clear` only when both are 0:
+
+       - `gap_count > 0` → ``⚠ <gap_count> user-level pack(s) not deployed (run `anywhere-agents pack verify --fix`)``
+       - `update_count > 0` → ``ℹ <update_count> pack update(s) available (run `anywhere-agents pack verify --fix`)``
+
+       Append the surviving half-clauses to the Session check line, semicolon-separated. The CLI command differs from v0.5.1: v0.5.2 collapses the verify-then-bootstrap dance into `anywhere-agents pack verify --fix`, which now invokes the composer subprocess after writing config rows.
+
+## User Profile
+
+- These are user-level defaults reusable across projects unless a local repo rule or task-specific instruction is stricter.
+- **Customize this section in your fork of `anywhere-agents`** to describe your role, domain, and common task types. Agents read this to tailor their work (for example, a researcher, a backend engineer, and a data scientist get different defaults).
+- If your fork serves multiple use cases, keep the description general ("developer working on infrastructure and research tooling") rather than overspecifying.
+
+## Agent Roles
+
+- **Claude Code** is the primary workhorse: drafting, implementation, research, and heavy-lifting tasks.
+- **Codex** is the gatekeeper: review, feedback, and quality checks on work produced by Claude Code or the user.
+- When both agents are available, default to this division of labor unless the user overrides it.
+
+## Task Routing
+
+- Before starting a task, read the router skill to determine which domain skill to use. Look in this order: `skills/my-router/SKILL.md` (repo-local), then `.agent-config/repo/skills/my-router/SKILL.md` (bootstrapped from shared config).
+- The router inspects prompt keywords, file types, and project structure to dispatch automatically. Do not ask the user which skill to use when the routing table provides a clear match.
+- If the `superpowers` plugin is active, the router operates during the execution phase. Superpowers handles the outer workflow (brainstorm, plan, execute, verify); the router handles inner dispatch to the right domain skill.
+- If routing is ambiguous (multiple skills could apply), state the detected context and proposed skill, then ask the user to confirm.
+
+## Writing Defaults
+
+- Use scientifically accessible language.
+- Do not oversimplify unless the user asks.
+- Keep meaningful technical detail.
+- Keep factual accuracy and clarity high in scientific contexts.
+- Use consistent terms. If an abbreviation is defined once, do not define it again later.
+- When citing papers, verify they exist.
+- When paper citations are requested, provide BibTeX entries that can be copied into a `.bib` file.
+- Provide code only when necessary. Confirm the code is correct and can run as written.
+- Avoid the following words and close variants unless the user explicitly asks for them (a default AI-tell list; trim or extend in your fork): `encompass`, `burgeoning`, `pivotal`, `realm`, `keen`, `adept`, `endeavor`, `uphold`, `imperative`, `profound`, `ponder`, `cultivate`, `hone`, `delve`, `embrace`, `pave`, `embark`, `monumental`, `scrutinize`, `vast`, `versatile`, `paramount`, `foster`, `necessitates`, `provenance`, `multifaceted`, `nuance`, `obliterate`, `articulate`, `acquire`, `underpin`, `underscore`, `harmonize`, `garner`, `undermine`, `gauge`, `facet`, `bolster`, `groundbreaking`, `game-changing`, `reimagine`, `turnkey`, `intricate`, `trailblazing`, `unprecedented`.
+
+## Formatting Defaults
+
+- Preserve the original format when the input is in LaTeX, Markdown, or reStructuredText.
+- Do not convert paragraphs into bullet points unless the user asks for that format.
+- Prefer full forms like `it is` and `he would` over contractions.
+- `e.g.,` and `i.e.,` are fine when appropriate.
+- Do not use Unicode character `U+202F`.
+- Do not use em dashes (`—`) or en dashes (`–`) as casual sentence punctuation. Prefer commas, semicolons, colons, or parentheses instead. En dashes in numeric ranges (for example, `1–3`, `2020–2025`), paired names, or citations are fine. Normal hyphenation in compound words and technical terms (for example, `command-line`, `co-PI`, `zero-shot`) is fine and should not be avoided.
+- Break extremely long or complex sentences into shorter, more readable ones. If a sentence has multiple clauses or nested qualifications, split it.
+- Vary sentence length and structure. Prefer not to start several consecutive sentences with the same word or phrase. Avoid overusing transition words like "Additionally" or "Furthermore." Not every paragraph needs a tidy summary sentence at the end. Mix short, direct sentences with longer ones to keep writing natural.
+
+## Git Safety
+
+- Never run `git commit` or `git push` without explicit user approval. Always show the proposed action and ask for confirmation before executing.
+- This rule is non-negotiable and applies to all projects that consume this shared config.
+- This includes any variant: `git commit -m`, `git commit --amend`, `git push`, `git push --force`, `gh pr create` (which pushes), etc.
+
+## Mechanical Enforcement
+
+Bootstrap deploys `guard.py` to `~/.claude/hooks/guard.py` and wires it as a `PreToolUse` hook in `~/.claude/settings.json`. The hook runs before every tool call and mechanically enforces the following:
+
+| Gate | Tool scope | Trigger | Action |
+|---|---|---|---|
+| Writing-style | `Write`, `Edit`, `MultiEdit` on `.md` / `.tex` / `.rst` / `.txt` | Outgoing content contains a banned AI-tell word (see Writing Defaults list) | **deny** with hit list |
+| Banner emission | Any tool except `Read`, `Grep`, `Glob`, `Skill`, `Task`, `TodoWrite`, `BashOutput`, `WebFetch`, `WebSearch`, `ToolSearch`, `LS`, `NotebookRead`; plus `Write`/`Edit`/`MultiEdit` whose target path exactly equals `<project-root>/.agent-config/banner-emitted.json` after absolute-path normalization and Windows case folding | `<project-root>/.agent-config/session-event.json.ts > <project-root>/.agent-config/banner-emitted.json.ts`. The project root is found by walking up from `cwd` until `.agent-config/bootstrap.{sh,ps1}` is present. Source repos (no `.agent-config/`) and unrelated directories skip the gate entirely | **deny** with instruction to emit banner plus write acknowledgment to the per-project ack file |
+| Compound `cd` | `Bash` | Command contains `cd <path> && <cmd>` or `cd <path>; <cmd>` | **deny** with suggestion to use `git -C` or path arguments |
+| Destructive git | `Bash` | `git push`, `git commit`, `git merge`, `git rebase`, `git reset --hard`, `git clean`, `git branch -d/-D`, `git tag -d`, `git stash drop/clear` | **ask** (user confirms) |
+| Destructive gh | `Bash` | `gh pr create`, `gh pr merge`, `gh pr close`, `gh repo delete` | **ask** (user confirms) |
+
+**Escape hatch:** set the env var `AGENT_CONFIG_GATES=off` (or `0`, `disabled`, `false`) via the `env` block in `~/.claude/settings.json` to disable the writing-style and banner gates. The compound-cd, destructive-git, and destructive-gh checks remain active regardless; they guard muscle-memory mistakes that do not tolerate false positives.
+
+Setting the escape hatch is right when a legitimate write has a banned word in meta-discussion context (for example, a style-guide quoting banned words as examples of what to avoid), or when a prompt-layer failure is blocking legitimate work. Fix the false positive, then remove the override.
+
+## Shell Command Style
+
+- **Avoid compound `cd <path> && <command>` chains.** Claude Code's hardcoded compound-command protection prompts for approval on these even when both commands are individually allowed. Use alternatives:
+  - For git in another repo, use `git -C <path> <subcommand>` instead of `cd <path> && git <subcommand>`.
+  - For non-git commands, pass the target path as an argument (for example, `ls <path>`, `python <path>/script.py`) or use separate tool calls.
+- Read-only invocations that should not require approval: `git status`, `git diff`, `git log`, `git branch` (no flags), `git show`, `git stash list`, `git remote -v`, `git submodule status`, `git ls-files`, `git tag --list`. Filesystem reads (`ls`, `cat`) and benign local operations (`mkdir`) are also fine.
+- Invocations that always require explicit approval: `git commit`, `git push`, `git reset`, `git checkout`, `git rebase`, `git merge`, `git branch -d`, `git remote add/remove`, `git tag <name>` (creating or deleting), `git stash drop`.
+- `cp` and `mv` are fine for scratch and temporary files. Moves or renames of git-tracked files should be reviewed before executing.
+- **Avoid inline Python with `#` comments in quoted arguments.** Claude Code flags "newline followed by `#` inside a quoted argument" as a path-hiding risk and prompts for approval. Instead, write code to a `.py` file and run `python <script>.py`.
+
+## GitHub Actions Standards
+
+For reference: GitHub is deprecating Node.js 20 actions. Runners begin using Node.js 24 by default on June 2, 2026; Node.js 20 removal will happen later in fall 2026. Keep workflow action pins at or above the first Node.js 24 major for GitHub-maintained actions:
+
+| Action | Minimum version (Node.js 24) | Replaces |
+|--------|------------------------------|----------|
+| `actions/checkout` | **v5** | v3, v4 |
+| `actions/setup-python` | **v6** | v5 |
+| `actions/setup-node` | **v5** | v4 |
+| `actions/upload-artifact` | **v6** | v4, v5 |
+| `actions/download-artifact` | **v7** | v4, v5, v6 |
+
+When the session start check detects older versions, list the affected files and suggest the minimum Node.js 24 version from the table. If a repo intentionally wants the latest major instead of the minimum compatible major, flag it as a separate manual upgrade (later majors can include behavior changes). If a workflow pins a SHA instead of a tag, flag it for manual review rather than auto-suggesting a tag. For self-hosted runners, remind the user that these Node.js 24 actions require an Actions Runner version that supports Node.js 24.
+
+## Environment Notes
+
+- Do not conclude that Python is unavailable just because `python`, `python3`, or `py` fails in PATH — those may resolve to shims, store aliases, or the wrong interpreter. Inspect common environment managers (Miniforge/Conda, pyenv, uv, venv) before reporting Python as missing.
+- If the user's fork sets a preferred Python interpreter path in `AGENTS.local.md`, use that first.
+- GitHub CLI (`gh`) is used for PR and issue workflows. If `gh` is not found, remind the user to install it (`winget install GitHub.cli` on Windows, `brew install gh` on macOS, `gh` from the distro package manager on Linux) and authenticate with `gh auth login`.
+- **Claude Code installation:** prefer the **native installer**. Migrate off npm and winget when possible.
+  - macOS: `curl -fsSL https://claude.ai/install.sh | sh`
+  - Windows (PowerShell, no admin): `irm https://claude.ai/install.ps1 | iex` (requires Git for Windows)
+  - To migrate from npm: `npm uninstall -g @anthropic-ai/claude-code` first. From winget: `winget uninstall Anthropic.ClaudeCode` first.
+  - Native installs auto-update in the background by default. Use `/config` inside Claude Code to set the release channel (`latest` or `stable`). Run `claude doctor` to inspect updater status; `claude update` to force an immediate update check.
+  - To disable auto-updates, set `DISABLE_AUTOUPDATER=1` in the environment or add `"env": {"DISABLE_AUTOUPDATER": "1"}` to `~/.claude/settings.json`. The env var takes precedence regardless of other flags. **Caveat:** if you migrated from npm or winget, an earlier install may have left `"autoUpdates": false` at the top level of `~/.claude.json`. The observed behavior is that the native updater daemon never spawns when the flag was already false at launch, even with `autoUpdatesProtectedForNative: true`. Bootstrap heals this by flipping the stale flag to `true` on every run, so the env-var path is the only supported way to opt out.
+- **Claude Code effort level:** as of Claude Code v2.1.111, the `/effort` slider exposes five levels: `low`, `medium`, `high`, `xhigh`, `max`. The persisted `effortLevel` key in `settings.json` accepts `low`, `medium`, `high`, `xhigh` (v2.1.111 added `xhigh` as a valid persisted value). `max` remains session-only: selecting `max` via `/effort` silently does not persist. To get `max` as a persistent default, set the env var `CLAUDE_CODE_EFFORT_LEVEL=max` in `~/.claude/settings.json` under `"env"`. The shared `user/settings.json` in this repo sets the env var; bootstrap merges it into `~/.claude/settings.json`, so running bootstrap once on any consuming project lands the user-level default. Runtime precedence: managed policy > `CLAUDE_CODE_EFFORT_LEVEL` env var > persisted `effortLevel` (local > project > user) > Claude Code's built-in default. When the env var is set, it outranks `--effort` at launch and `/effort` inside a session; the slash command prints a warning that the env var is overriding the live effort. When the env var is unset, `--effort <level>` at launch is a session-only override; `/effort low|medium|high|xhigh` updates the persisted user setting; `/effort max` is session-only.
+
+## Local Skills Precedence
+
+- If the workspace contains a `skills/` directory, treat repo-local skills as the default source of truth for that project.
+- When a task matches a skill name and both `skills/<skill-name>/SKILL.md` and an installed global skill exist, prefer the repo-local skill.
+- When using a repo-local skill, read `skills/<skill-name>/SKILL.md` and its local `references/`, `scripts/`, and `assets/` before falling back to the globally installed copy.
+- Do not modify a globally installed skill when a repo-local skill of the same name exists, unless the user explicitly asks to update the global copy.
+- When a repo-local skill overrides a global skill, state briefly that the local project copy is being used.
+
+## Cross-Tool Skill Sharing
+
+- Skills under `skills/` are shared between Claude Code, Codex, and any future agent.
+- `skills/<skill-name>/SKILL.md` is the single source of truth for each skill. Agent-specific config files (for example, `agents/openai.yaml`) are thin wrappers and must not duplicate or override logic in `SKILL.md`.
+- Claude Code accesses these skills via pointer commands in `.claude/commands/`. Each pointer file references the corresponding `SKILL.md` rather than duplicating its content.
+- Bootstrap sync copies only the shared repo's `.claude/commands/*.md` files into the project `.claude/commands/` and does not delete unrelated project-local commands.
+- When editing a skill, modify `SKILL.md` and its `references/` or `scripts/` directly. Do not create agent-specific forks of the same content.
+- When a new skill is added, create both the `skills/<skill-name>/SKILL.md` structure and a matching `.claude/commands/<skill-name>.md` pointer so both agents can use it immediately.

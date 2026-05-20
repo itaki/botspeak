@@ -1,6 +1,6 @@
 # BOTSPEAK Round-Trip Eval Results — v2.2.0
 
-<!-- run date: 2026-05-19 · skill version: v2.2.0 -->
+<!-- run date: 2026-05-20 · skill version: v2.2.0 · 9/9 translated.md files present -->
 
 ## Summary table
 
@@ -33,7 +33,19 @@ PASS means a compression survives all four v2.2.0 verify checks:
 3. **Alias hygiene (SPEC §9 pitfall 12).** Every alias defined in `@defs` must appear in the body; every alias used in the body must be defined. No hallucinated aliases, no dead alias definitions.
 4. **Constraint preservation (manual audit).** Every "do not", "must not", "never", "do" rule in the source must be present in the output. No silent drops.
 
-PASS is **not** the same as a full prose round-trip diff. For the 9 in-repo examples, `translated.md` files demonstrate the prose form for examples 01-04 (audited against `before.md` for any added or lost content); examples 05-06 use audit summaries in this file instead of full prose translations because of their size; examples 07-09 use the per-folder README as the audit summary.
+PASS is **not** the same as a full prose round-trip diff, but all 9 in-repo examples now ship with a full `translated.md` produced by the `/botspeak-translate` skill, so a reader can do that diff manually. The per-row totals below for examples 07-09 (length, token count, code-block parity) came from those translations.
+
+| # | translated.md lines | translated.md tokens (`o200k_base`) | code-block parity vs after.md |
+|---|---|---|---|
+| 01 | 34  | (audited inline) | ok |
+| 02 | 66  | (audited inline) | ok |
+| 03 | 110 | (audited inline) | ok |
+| 04 | 122 | (audited inline) | ok |
+| 05 | 287 | 7,617  | exact |
+| 06 | 741 | 10,496 | 20/20 fences |
+| 07 | 291 | 2,922  | 18/18 fences |
+| 08 | 165 | 2,508  | 4/4 fences |
+| 09 | 184 | 3,585  | 0/0 (no code blocks) |
 
 ---
 

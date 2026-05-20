@@ -1,4 +1,4 @@
-<!-- BOTSPEAK v2.2.0 · compressed by claude-opus-4-7 · 2026-05-19 -->
+<!-- BOTSPEAK v2.2.0 · compressed by claude-opus-4-7 · 2026-05-20 -->
 
 # BOTSPEAK
 
@@ -20,13 +20,13 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 <h2 align="center">
 
-→ [Open the live showcase](showcase/index.html) ←
+→ [Open the live showcase](https://itaki.github.io/botspeak/showcase/) ←
 
 </h2>
 
 <p align="center"><em>4 games · 2 builds · identical physics</em></p>
 
-<p align="center"><sub>local clone -> <code>python3 -m http.server</code> from repo root -> open <a href="http://localhost:8000/showcase/index.html"><code>http://localhost:8000/showcase/index.html</code></a> · most browsers block cross-file iframe loading from <code>file://</code></sub></p>
+<p align="center"><sub>hosted on GitHub Pages · offline -> <code>python3 -m http.server</code> from clone · open <code>http://localhost:8000/showcase/index.html</code> · browsers block iframe loading from <code>file://</code></sub></p>
 
 ---
 
@@ -79,7 +79,7 @@ AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 ## Side by side
 
-[![BT showcase preview: prose-built Breakout next to BT-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
+[![BT showcase preview: prose-built Breakout next to BT-built Breakout, identical](images/showcase-preview.png)](https://itaki.github.io/botspeak/showcase/)
 
 4 games. Left iframe = built from prose spec by clean-room Sonnet 4.6 subagent. Right iframe = built from BT-compressed version by separate clean-room Sonnet 4.6 subagent. Same model · isolated sessions · zero shared context. Play identically.
 
@@ -92,7 +92,7 @@ AOR = 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 token counts = `o200k_base` (GPT/Claude family) · word counts in `evals/scripts/token-counts.json` (words reduce 31-44% · more articles & connectives than tokens) · constants matched = automated extraction confirmed by `evals/scripts/parity_check.py`
 
-→ [**Open the showcase**](showcase/index.html) to play either column.
+→ [**Open the showcase**](https://itaki.github.io/botspeak/showcase/) to play either column.
 
 ---
 

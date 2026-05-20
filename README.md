@@ -10,13 +10,13 @@
 
 <h2 align="center">
 
-→ [Open the live showcase](showcase/index.html) ←
+→ [Open the live showcase](https://itaki.github.io/botspeak/showcase/) ←
 
 </h2>
 
 <p align="center"><em>Four games, two builds, identical physics.</em></p>
 
-<p align="center"><sub>Local clone: <code>python3 -m http.server</code> from the repo root, then open <a href="http://localhost:8000/showcase/index.html"><code>http://localhost:8000/showcase/index.html</code></a> — most browsers block cross-file iframe loading from <code>file://</code>.</sub></p>
+<p align="center"><sub>Hosted on GitHub Pages. Offline? Run <code>python3 -m http.server</code> from a clone and open <code>http://localhost:8000/showcase/index.html</code> — browsers block iframe loading from <code>file://</code>.</sub></p>
 
 ---
 
@@ -30,7 +30,7 @@ Worst case is fan-out: a main agent fires prose at ten subagents and pays for pr
 
 ## The fix
 
-A March 11, 2026 paper, ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1), found that constraining LLMs to brief responses improved accuracy on certain benchmarks.
+A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks.
 
 A writing convention for any output whose primary reader is AI. Keep symbols, structure, constraints, code. Drop the rest.
 
@@ -38,7 +38,7 @@ A writing convention for any output whose primary reader is AI. Keep symbols, st
 - **Compress** — convert existing prose docs on demand (`/botspeak @file` or a folder).
 - **Subagents** — outgoing briefs and incoming reports both compress. Double savings on every fan-out.
 
-Anthropic's [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) endorses the underlying moves: XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently.
+Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves: XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently.
 
 *Token savings are the measurement, not the motive — [PHILOSOPHY.md](PHILOSOPHY.md).*
 
@@ -69,7 +69,7 @@ Rule is 14 lines. Don't see your IDE? [Add it](CONTRIBUTING.md).
 
 ## Side by side
 
-[![BOTSPEAK showcase preview: prose-built Breakout next to BOTSPEAK-built Breakout, identical](images/showcase-preview.png)](showcase/index.html)
+[![BOTSPEAK showcase preview: prose-built Breakout next to BOTSPEAK-built Breakout, identical](images/showcase-preview.png)](https://itaki.github.io/botspeak/showcase/)
 
 Four games. Left iframe built from a prose spec by a clean-room Claude Sonnet 4.6 subagent. Right iframe built from the BOTSPEAK-compressed version by a separate clean-room Sonnet 4.6 subagent. Neither subagent saw the other's prompt or output. Same model, isolated sessions — that's what these runs test. They play identically.
 
@@ -82,7 +82,7 @@ Four games. Left iframe built from a prose spec by a clean-room Claude Sonnet 4.
 
 Token counts are `o200k_base` (GPT/Claude family). Word counts are also tracked in `evals/scripts/token-counts.json` if you prefer them — words reduce more (31–44%) because prose has more articles and connectives than tokens do. Constants match is the count of physics constants (gravity, paddle speed, brick layout, etc.) that an [automated parity script](evals/scripts/parity_check.py) confirmed are present in both HTML builds.
 
-→ [**Open the showcase**](showcase/index.html) to play either column.
+→ [**Open the showcase**](https://itaki.github.io/botspeak/showcase/) to play either column.
 
 ---
 
@@ -94,15 +94,10 @@ All token counts on this page are `o200k_base` (the GPT/Claude family tokenizer)
 
 | Repository (stars)                          | Before tok | After tok | Reduction | Folder                                                                       |
 | ------------------------------------------- | ----------:| ---------:| ---------:| ---------------------------------------------------------------------------- |
-| [`obra/superpowers`][sp] (198K ★)           | 1,533      | 1,377     | **10%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)                 |
-| [`langchain-ai/langchain`][lc] (137K ★)     | 2,934      | 2,810     | **4%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
-| [`browser-use/browser-use`][bu] (94K ★)     | 2,495      | 2,179     | **13%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
-| [`BerriAI/litellm`][ll] (47K ★)             | 3,565      | 3,338     | **6%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
-
-[sp]: https://github.com/obra/superpowers
-[lc]: https://github.com/langchain-ai/langchain
-[bu]: https://github.com/browser-use/browser-use
-[ll]: https://github.com/BerriAI/litellm
+| <a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer"><code>obra/superpowers</code></a> (198K ★)         | 1,533      | 1,377     | **10%**   | [examples/04-philosophy-rule/](examples/04-philosophy-rule/)                 |
+| <a href="https://github.com/langchain-ai/langchain" target="_blank" rel="noopener noreferrer"><code>langchain-ai/langchain</code></a> (137K ★)   | 2,934      | 2,810     | **4%**    | [examples/07-langchain-claude-md/](examples/07-langchain-claude-md/)         |
+| <a href="https://github.com/browser-use/browser-use" target="_blank" rel="noopener noreferrer"><code>browser-use/browser-use</code></a> (94K ★) | 2,495      | 2,179     | **13%**   | [examples/08-browser-use-claude-md/](examples/08-browser-use-claude-md/)     |
+| <a href="https://github.com/BerriAI/litellm" target="_blank" rel="noopener noreferrer"><code>BerriAI/litellm</code></a> (47K ★)             | 3,565      | 3,338     | **6%**    | [examples/09-litellm-claude-md/](examples/09-litellm-claude-md/)             |
 
 These files were already hand-tuned by hundreds of contributors. 4–13% reduction is on top of that pre-optimization. Every constraint, every prohibition, every code block survives — verified by the [round-trip audit](evals/round-trip-results.md).
 
@@ -158,7 +153,7 @@ Full table: [SPEC.md](SPEC.md).
 
 ### XML for long docs
 
-XML tags "help Claude parse complex prompts unambiguously" ([Anthropic prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)). Markdown headings are hints; XML tags are boundaries.
+XML tags "help Claude parse complex prompts unambiguously" (<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">Anthropic prompting guide</a>). Markdown headings are hints; XML tags are boundaries.
 
 ```
 <context>
@@ -221,7 +216,7 @@ botspeak/
 ## FAQ
 
 **Won't fewer tokens make my agent worse?**
-Usually better. Anthropic's [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls Claude's latest models "less verbose" by design; XML-tagged structured input "can improve response quality by up to 30%" over loose prose.
+Usually better. Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> calls Claude's latest models "less verbose" by design; XML-tagged structured input "can improve response quality by up to 30%" over loose prose.
 
 **Doesn't the AI need prose?**
 No. LLMs are native to HTML, JSON, XML, YAML, regex, Python, Rust, SQL, Mermaid, math, and dozens of DSLs. A SQL migration that will never run can spec a data shape more precisely than three paragraphs about it. Pick the densest notation that fits.
@@ -239,7 +234,7 @@ Pass `-p` (think *p*rose). Or just say "write this in prose."
 Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) reads BOTSPEAK without preamble. Drop `SPEC.md` into the project once if you're nervous.
 
 **vs Caveman?**
-Different layer. [Caveman](https://github.com/JuliusBrussee/caveman) shapes AI → human output. BOTSPEAK shapes AI → AI files. They compose.
+Different layer. <a href="https://github.com/JuliusBrussee/caveman" target="_blank" rel="noopener noreferrer">Caveman</a> shapes AI → human output. BOTSPEAK shapes AI → AI files. They compose.
 
 **vs CRUX-Compress / llm-min.txt / Compresr?**
 Those are post-hoc compressors. BOTSPEAK is a writing convention — write it natively, no compressor required.
@@ -266,4 +261,4 @@ MIT.
 
 ---
 
-*Inspired by [Caveman](https://github.com/JuliusBrussee/caveman)'s insight that token efficiency is a design choice.*
+*Inspired by <a href="https://github.com/JuliusBrussee/caveman" target="_blank" rel="noopener noreferrer">Caveman</a>'s insight that token efficiency is a design choice.*

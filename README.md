@@ -22,25 +22,27 @@
 
 ## The problem
 
-Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts. Almost none of it is for you, but all of it is still prose.
+Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts. Almost none of it is for you, but all of it is still prose: articles, transitions, hedging, scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
 
 ### `prose -> tokens++ -> context-- -> signal--`
 
-Worst case is fan-out: a main agent fires prose at ten subagents and pays for prose coming back. Both legs are addressable.
+Worst case is fan-out. When a main agent spawns ten subagents, every brief going out is prose and every reply coming back is prose. The main agent's context fills with both sides of a conversation written for an audience that doesn't exist — and unlike a file you write once and ship, those costs repeat on every task.
 
 ## The fix
 
-A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks.
+Cutting prose isn't just about saving money. A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks. Less noise really does mean better attention.
 
-A writing convention for any output whose primary reader is AI. Keep symbols, structure, constraints, code. Drop the rest.
+BOTSPEAK is a writing convention for any output whose primary reader is AI — a file on disk or a prompt sent to another agent. It keeps symbols, structure, constraints, and code, and drops everything that was only there for human cognition. Same information, less rot.
 
-- **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default.
-- **Compress** — convert existing prose docs on demand (`/botspeak @file` or a folder).
-- **Subagents** — outgoing briefs and incoming reports both compress. Double savings on every fan-out.
+Three modes:
 
-Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves: XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently.
+- **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default. No prompting, no reformatting.
+- **Compress** — convert existing prose docs on demand: `/botspeak @file`, or point it at a whole folder.
+- **Subagents** — outgoing briefs and incoming reports both compress. Every fan-out saves tokens twice, and the workers get clearer instructions because BOTSPEAK strips ambiguity along with the prose.
 
-*Token savings are the measurement, not the motive — [PHILOSOPHY.md](PHILOSOPHY.md).*
+Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves — XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently across every doc and every subagent call.
+
+*Token savings are the measurement, not the motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
 ---
 
@@ -49,6 +51,8 @@ Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/promp
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itaki/botspeak/main/install.sh | bash
 ```
+
+That one command does three things:
 
 - **Skills** — `/botspeak` and `/botspeak-translate` installed into every detected agent (Claude Code, Cursor, Codex, Gemini CLI, `~/.agents`).
 - **Always-on rule** — idempotent managed block written into `~/.claude/CLAUDE.md`. New AI-facing docs come out in BOTSPEAK by default.
@@ -117,11 +121,11 @@ Lower numbers than you'd see on a first naive pass — that's the point. SPEC v2
 
 ## Human-to-bot understanding
 
-Five mechanisms. Each one leans on something bots parse better than you do.
+Bots and humans parse text differently. Bots track symbols, tags, and discrete tokens more reliably than they track flowing English; humans are the reverse. Five mechanisms in BOTSPEAK exploit that gap.
 
 ### Aliases (`@defs`)
 
-Repeat `establishment_id` 47 times. Repeat `E` 47 times. Save ~280 tokens, every session.
+Repeated identifiers are the single largest token sink in a typical agent file. Bind them once at the top, use the short form everywhere else. A human reader has to scroll back to remember what `E` means; a bot binds the symbol once and tracks it without slipping.
 
 ```
 @defs
@@ -134,13 +138,25 @@ Repeat `establishment_id` 47 times. Repeat `E` 47 times. Save ~280 tokens, every
 !! never hardcode E
 ```
 
+In a 2,000-token file, the aliases block alone saves ~280 tokens. Every session.
+
 ### Phase tags
 
-`[NEW-CHAT]` · `[ALWAYS]` · `[ON-TRIGGER]` · `[REFERENCE]` · `[HANDOFF]`. The agent knows what to load when, no English required. A 1,500-token file may load ~600 mid-session.
+A human would write *"please load this at session start, but you can skip it once context is established."* A bot reads `[NEW-CHAT]` once and knows the lifecycle.
+
+```
+[NEW-CHAT]    load at session start; agent may skip once context is established
+[ALWAYS]      every turn
+[ON-TRIGGER]  condition-gated; read only when the pattern fires
+[REFERENCE]   look-up only; skip during normal session load
+[HANDOFF]     cross-session context; new agent reads first turn only
+```
+
+A correctly tagged 1,500-token file may load ~600 tokens mid-session. The rest is deferred lookups and first-turn orientation the agent doesn't need again.
 
 ### Symbol contracts
 
-ASCII operators — one token each on every modern BPE tokenizer.
+ASCII operators are one token each on every modern BPE tokenizer. They look like noise without a legend, but the model treats each one as a logical primitive without a decoding step.
 
 ```
 ->   leads to       !!   never
@@ -153,7 +169,7 @@ Full table: [SPEC.md](SPEC.md).
 
 ### XML for long docs
 
-XML tags "help Claude parse complex prompts unambiguously" (<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">Anthropic prompting guide</a>). Markdown headings are hints; XML tags are boundaries.
+Markdown headings (`## context`) are hints; XML tags (`<context>…</context>`) are boundaries. Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> is explicit: XML tags "help Claude parse complex prompts unambiguously," and for long inputs you should "structure document content and metadata with XML tags." Humans find the angle brackets noisy. Bots treat them as schema.
 
 ```
 <context>
@@ -170,6 +186,8 @@ Regex, Mermaid, JSON, SQL — already dense, already native to LLMs. BOTSPEAK ne
 ---
 
 ## First 60 seconds after install
+
+Three quick checks to confirm everything's wired up:
 
 ```
 /botspeak -bu @CLAUDE.md          # compress your most-read file (-bu = backup first)
@@ -225,13 +243,13 @@ No. LLMs are native to HTML, JSON, XML, YAML, regex, Python, Rust, SQL, Mermaid,
 Run `/botspeak` on the file. With the always-on rule installed, new docs come out in BOTSPEAK from then on.
 
 **Should I rewrite everything now?**
-No. Start with whatever your agent reads most — usually `CLAUDE.md`.
+No. Start with whatever your agent reads most — usually `CLAUDE.md` or your largest always-on rule. Compress one file, measure the difference, then expand from there.
 
 **Skip BOTSPEAK for one doc?**
-Pass `-p` (think *p*rose). Or just say "write this in prose."
+Pass `-p` (think *p*rose), or just say "write this in prose." The flag used to be `-bs`, which read ambiguously — `-p` is unambiguous: dash-p, prose.
 
 **New agent can't read it?**
-Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) reads BOTSPEAK without preamble. Drop `SPEC.md` into the project once if you're nervous.
+Every modern LLM (Claude, GPT, Gemini, Llama, Mistral) reads BOTSPEAK without preamble. If you're worried about a model you don't recognize, drop `SPEC.md` into the project once and the agent reads it on first load.
 
 **vs Caveman?**
 Different layer. <a href="https://github.com/JuliusBrussee/caveman" target="_blank" rel="noopener noreferrer">Caveman</a> shapes AI → human output. BOTSPEAK shapes AI → AI files. They compose.

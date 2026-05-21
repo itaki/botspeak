@@ -22,9 +22,14 @@
 
 ## The problem
 
-Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts. Almost none of it is for you, but all of it is still prose: articles, transitions, hedging, scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
+Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts, memory stores. Almost none of it is for you, but all of it is still prose: articles, transitions, hedging, scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
 
-### `prose -> tokens++ -> context-- -> signal--`
+The rule of thumb in two lines:
+
+```
+reader = human -> prose = clarity++
+reader = bot   -> BOTSPEAK = tokens-- && context++
+```
 
 Worst case is fan-out. When a main agent spawns ten subagents, every brief going out is prose and every reply coming back is prose. The main agent's context fills with both sides of a conversation written for an audience that doesn't exist — and unlike a file you write once and ship, those costs repeat on every task.
 
@@ -32,13 +37,15 @@ Worst case is fan-out. When a main agent spawns ten subagents, every brief going
 
 Cutting prose isn't just about saving money. A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks. Less noise really does mean better attention.
 
-BOTSPEAK is a writing convention for any output whose primary reader is AI — a file on disk or a prompt sent to another agent. It keeps symbols, structure, constraints, and code, and drops everything that was only there for human cognition. Same information, less rot.
+And the scale just shifted. Anthropic launched <a href="https://platform.claude.com/docs/en/managed-agents/memory" target="_blank" rel="noopener noreferrer">Memory for Managed Agents</a> in public beta (April 23, 2026) and <a href="https://platform.claude.com/docs/en/managed-agents/dreams" target="_blank" rel="noopener noreferrer">Dreaming</a> in research preview (May 6, 2026) — primitives explicitly designed for fleets of hundreds-to-thousands of concurrent agents sharing a file-system memory store across days-long sessions. Every memory entry gets read by many agents many times. Rakuten reported a **97% error reduction with 27% lower cost and 34% lower latency** once they deployed it. The per-file percentages in the tables below understate what a 10% reduction means at that volume.
+
+BOTSPEAK is a writing convention for any output whose primary reader is AI — a file on disk, a prompt sent to another agent, or a memory entry the next session will read. It keeps symbols, structure, constraints, and code, and drops everything that was only there for human cognition. Same information, less rot.
 
 Three modes:
 
 - **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default. No prompting, no reformatting.
 - **Compress** — convert existing prose docs on demand: `/botspeak @file`, or point it at a whole folder.
-- **Subagents** — outgoing briefs and incoming reports both compress. Every fan-out saves tokens twice, and the workers get clearer instructions because BOTSPEAK strips ambiguity along with the prose.
+- **Subagents and memory stores** — outgoing briefs, incoming reports, and the memory entries the next agent will read all compress. Every fan-out saves tokens twice; every memory entry saves tokens for every agent that ever reads it.
 
 Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves — XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently across every doc and every subagent call.
 

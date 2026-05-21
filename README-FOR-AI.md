@@ -32,21 +32,26 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 ## The problem
 
-agent now writes for other agents: `CLAUDE.md` · `AGENTS.md` · plans · handoffs · subagent prompts. almost none of it is for you · all still prose.
+agent now writes for other agents: `CLAUDE.md` · `AGENTS.md` · plans · handoffs · subagent prompts · memory stores. almost none of it is for you · all still prose.
 
-### `prose -> tokens++ -> context-- -> signal--`
+```
+reader = human -> prose = clarity++
+reader = bot   -> BOTSPEAK = tokens-- && context++
+```
 
 worst case = fan-out · main agent fires prose at 10 subagents · pays for prose coming back. both legs addressable.
 
 ## The fix
 
-A March 11, 2026 paper, ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1), found constraining LLMs to brief responses improved accuracy on certain benchmarks.
+cutting prose ≠ just saving $. March 11 2026 paper ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1) -> constraining LLMs to brief responses improved accuracy on certain benchmarks. less noise -> better attention.
 
-writing convention for any output whose primary reader = AI. keep symbols · structure · constraints · code. drop the rest.
+scale shifted. Anthropic [Memory for Managed Agents](https://platform.claude.com/docs/en/managed-agents/memory) (public beta · Apr 23 2026) + [Dreaming](https://platform.claude.com/docs/en/managed-agents/dreams) (research preview · May 6 2026) -> fleets of hundreds-to-thousands of concurrent agents · shared file-system memory · days-long sessions. every memory entry read many times by many agents. Rakuten -> **97% error reduction · 27% lower cost · 34% lower latency** after deploy. 10% per-doc × millions of reads = real return. per-file %s below understate it.
+
+BT = writing convention for any output whose primary reader = AI · file on disk · prompt to another agent · memory entry next session will read. keep symbols · structure · constraints · code. drop the rest.
 
 - **files** — agent writes new rules · skills · memory pages · handoffs in BT by default
 - **compress** — convert existing prose docs on demand (`/botspeak @file` || folder)
-- **subagents** — outbound briefs + inbound reports both compress · double savings on fan-out
+- **subagents + memory stores** — outbound briefs · inbound reports · memory entries all compress · fan-out saves tokens twice · memory saves tokens for every reader
 
 Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) endorses the moves: XML structure for unambiguous parsing · long input above query (up to 30% quality gain) · terse over verbose. BT applies them consistently.
 

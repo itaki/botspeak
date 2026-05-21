@@ -35,19 +35,17 @@ Fan-out used to be the worst case — a main agent firing prose at ten subagents
 
 ## The fix
 
-Cutting prose isn't just about saving money. A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks. Less noise really does mean better attention.
+Cutting prose isn't just cheaper — it's often better. A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks. Less noise, sharper attention.
 
-And the scale just shifted. Anthropic launched <a href="https://platform.claude.com/docs/en/managed-agents/memory" target="_blank" rel="noopener noreferrer">Memory for Managed Agents</a> in public beta (April 23, 2026) and <a href="https://platform.claude.com/docs/en/managed-agents/dreams" target="_blank" rel="noopener noreferrer">Dreaming</a> in research preview (May 6, 2026) — primitives explicitly designed for fleets of hundreds-to-thousands of concurrent agents sharing a file-system memory store across days-long sessions. Every memory entry gets read by many agents many times. Rakuten reported a **97% error reduction with 27% lower cost and 34% lower latency** once they deployed it. The per-file percentages in the tables below understate what a 10% reduction means at that volume.
-
-BOTSPEAK is a writing convention for any output whose primary reader is AI — a file on disk, a prompt sent to another agent, or a memory entry the next session will read. It keeps symbols, structure, constraints, and code, and drops everything that was only there for human cognition. Same information, less rot.
+The scale just shifted, too. Anthropic launched <a href="https://platform.claude.com/docs/en/managed-agents/memory" target="_blank" rel="noopener noreferrer">Memory for Managed Agents</a> (public beta, April 23, 2026) and <a href="https://platform.claude.com/docs/en/managed-agents/dreams" target="_blank" rel="noopener noreferrer">Dreaming</a> (research preview, May 6, 2026) — primitives built for fleets of hundreds-to-thousands of concurrent agents sharing a file-system memory store across days-long sessions. Rakuten reported a **97% error reduction with 27% lower cost and 34% lower latency** after deployment. At that volume, the per-file percentages in the tables below understate the impact.
 
 Three modes:
 
-- **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default. No prompting, no reformatting.
-- **Compress** — convert existing prose docs on demand: `/botspeak @file`, or point it at a whole folder.
-- **Bot-to-bot traffic** — subagent briefs, subagent reports, memory entries, agent-curated wikis, dreaming output, anything one agent writes for another to read. A fan-out saves tokens twice; a memory entry or wiki page saves tokens for every agent that ever reads it. The volume is asymmetric in your favor.
+- **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default.
+- **Compress** — convert existing prose on demand: `/botspeak @file`, or point it at a folder.
+- **Bot-to-bot traffic** — subagent briefs, dreaming output, agent-curated wikis. A fan-out saves tokens twice; a memory entry saves tokens for every agent that ever reads it.
 
-Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves — XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently across every doc and every subagent call.
+Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves — XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently.
 
 *Token savings are the measurement, not the motive — see [PHILOSOPHY.md](PHILOSOPHY.md).*
 
@@ -241,7 +239,7 @@ botspeak/
 ## FAQ
 
 **Won't fewer tokens make my agent worse?**
-Usually better. Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> calls Claude's latest models "less verbose" by design; XML-tagged structured input "can improve response quality by up to 30%" over loose prose.
+Usually better. A March 11, 2026 paper, <a href="https://arxiv.org/abs/2604.00025v1" target="_blank" rel="noopener noreferrer">"Brevity Constraints Reverse Performance Hierarchies in Language Models"</a>, found that constraining LLMs to brief responses improved accuracy on certain benchmarks. Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> calls Claude's latest models "less verbose" by design, and XML-tagged structured input "can improve response quality by up to 30%" over loose prose.
 
 **Doesn't the AI need prose?**
 No. LLMs are native to HTML, JSON, XML, YAML, regex, Python, Rust, SQL, Mermaid, math, and dozens of DSLs. A SQL migration that will never run can spec a data shape more precisely than three paragraphs about it. Pick the densest notation that fits.

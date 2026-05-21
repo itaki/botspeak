@@ -43,15 +43,15 @@ fan-out used to be worst case (main agent fires prose at 10 subagents · pays fo
 
 ## The fix
 
-cutting prose ≠ just saving $. March 11 2026 paper ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1) -> constraining LLMs to brief responses improved accuracy on certain benchmarks. less noise -> better attention.
+cutting prose ≠ just cheaper · often better. March 11 2026 paper ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1) -> constraining LLMs to brief responses improved accuracy on certain benchmarks. less noise · sharper attention.
 
-scale shifted. Anthropic [Memory for Managed Agents](https://platform.claude.com/docs/en/managed-agents/memory) (public beta · Apr 23 2026) + [Dreaming](https://platform.claude.com/docs/en/managed-agents/dreams) (research preview · May 6 2026) -> fleets of hundreds-to-thousands of concurrent agents · shared file-system memory · days-long sessions. every memory entry read many times by many agents. Rakuten -> **97% error reduction · 27% lower cost · 34% lower latency** after deploy. 10% per-doc × millions of reads = real return. per-file %s below understate it.
+scale shifted. Anthropic [Memory for Managed Agents](https://platform.claude.com/docs/en/managed-agents/memory) (public beta · Apr 23 2026) + [Dreaming](https://platform.claude.com/docs/en/managed-agents/dreams) (research preview · May 6 2026) -> primitives built for fleets of hundreds-to-thousands of concurrent agents · shared file-system memory · days-long sessions. Rakuten -> **97% error reduction · 27% lower cost · 34% lower latency** after deploy. at that volume · per-file %s below understate the impact.
 
-BT = writing convention for any output whose primary reader = AI · file on disk · prompt to another agent · memory entry next session will read. keep symbols · structure · constraints · code. drop the rest.
+3 modes:
 
 - **files** — agent writes new rules · skills · memory pages · handoffs in BT by default
-- **compress** — convert existing prose docs on demand (`/botspeak @file` || folder)
-- **bot-to-bot traffic** — subagent briefs · subagent reports · memory entries · agent-curated wikis · dreaming output · anything one agent writes for another. fan-out saves tokens twice · persistent entries save tokens for every reader every time. volume asymmetric in your favor.
+- **compress** — convert existing prose on demand (`/botspeak @file` || folder)
+- **bot-to-bot traffic** — subagent briefs · dreaming output · agent-curated wikis · fan-out saves tokens twice · memory entry saves tokens for every reader every time
 
 Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) endorses the moves: XML structure for unambiguous parsing · long input above query (up to 30% quality gain) · terse over verbose. BT applies them consistently.
 
@@ -237,7 +237,7 @@ botspeak/
 ## FAQ
 
 **Won't fewer tokens make my agent worse?**
-Usually better · Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls Claude's latest models "less verbose" by design · XML-tagged structured input "can improve response quality by up to 30%" over loose prose
+Usually better · March 11 2026 paper ["Brevity Constraints Reverse Performance Hierarchies in Language Models"](https://arxiv.org/abs/2604.00025v1) -> constraining LLMs to brief responses improved accuracy on certain benchmarks · Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) calls Claude's latest models "less verbose" by design · XML-tagged structured input "can improve response quality by up to 30%" over loose prose
 
 **Doesn't the AI need prose?**
 No · LLMs native to HTML · JSON · XML · YAML · regex · Python · Rust · SQL · Mermaid · math · dozens of DSLs · SQL migration that will never run can spec a data shape more precisely than 3 paragraphs about it · pick densest notation that fits

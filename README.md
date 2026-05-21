@@ -22,7 +22,7 @@
 
 ## The problem
 
-Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts, memory stores. Almost none of it is for you, but all of it is still prose: articles, transitions, hedging, scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
+Your agent now writes for other agents — `CLAUDE.md`, `AGENTS.md`, plans, handoffs, subagent prompts, memory stores, Karpathy-style LLM wikis the agent maintains for itself, dreaming output that rewrites memory across sessions, research dumps one subagent compiles for the next. The list grows every month and almost none of it is for you. All of it is still prose: articles, transitions, hedging, scaffolding for human cognition that the next AI reader doesn't need and pays for anyway.
 
 The rule of thumb in two lines:
 
@@ -31,7 +31,7 @@ reader = human -> prose = clarity++
 reader = bot   -> BOTSPEAK = tokens-- && context++
 ```
 
-Worst case is fan-out. When a main agent spawns ten subagents, every brief going out is prose and every reply coming back is prose. The main agent's context fills with both sides of a conversation written for an audience that doesn't exist — and unlike a file you write once and ship, those costs repeat on every task.
+Fan-out used to be the worst case — a main agent firing prose at ten subagents and paying for prose coming back. That's the floor now. Persistent memory stores get read every turn by fleets of agents, dreaming jobs re-summarize transcripts back into memory, knowledge bases the agents curate themselves grow indefinitely. Bot-to-bot text volume is climbing fast, and every doc in that pile gets read by many agents many times.
 
 ## The fix
 
@@ -45,7 +45,7 @@ Three modes:
 
 - **Files** — your agent writes new rules, skills, memory pages, and handoffs in BOTSPEAK by default. No prompting, no reformatting.
 - **Compress** — convert existing prose docs on demand: `/botspeak @file`, or point it at a whole folder.
-- **Subagents and memory stores** — outgoing briefs, incoming reports, and the memory entries the next agent will read all compress. Every fan-out saves tokens twice; every memory entry saves tokens for every agent that ever reads it.
+- **Bot-to-bot traffic** — subagent briefs, subagent reports, memory entries, agent-curated wikis, dreaming output, anything one agent writes for another to read. A fan-out saves tokens twice; a memory entry or wiki page saves tokens for every agent that ever reads it. The volume is asymmetric in your favor.
 
 Anthropic's <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener noreferrer">prompting guide</a> endorses the underlying moves — XML structure for unambiguous parsing, long input above the query (up to 30% quality gain), terse over verbose. BOTSPEAK applies them consistently across every doc and every subagent call.
 

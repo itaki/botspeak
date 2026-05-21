@@ -32,14 +32,14 @@ bot-to-bot notation · strip human scaffolding · keep signal
 
 ## The problem
 
-agent now writes for other agents: `CLAUDE.md` · `AGENTS.md` · plans · handoffs · subagent prompts · memory stores. almost none of it is for you · all still prose.
+agent now writes for other agents: `CLAUDE.md` · `AGENTS.md` · plans · handoffs · subagent prompts · memory stores · Karpathy-style LLM wikis (agent-maintained) · dreaming output · agent-summarized research dumps. list grows monthly · almost none of it is for you · all still prose.
 
 ```
 reader = human -> prose = clarity++
 reader = bot   -> BOTSPEAK = tokens-- && context++
 ```
 
-worst case = fan-out · main agent fires prose at 10 subagents · pays for prose coming back. both legs addressable.
+fan-out used to be worst case (main agent fires prose at 10 subagents · pays for prose coming back) -> now the floor. persistent memory stores read every turn by fleets · dreaming jobs re-summarize transcripts back into memory · self-curated knowledge bases grow indefinitely. bot-to-bot text volume climbing fast · every doc read by many agents many times.
 
 ## The fix
 
@@ -51,7 +51,7 @@ BT = writing convention for any output whose primary reader = AI · file on disk
 
 - **files** — agent writes new rules · skills · memory pages · handoffs in BT by default
 - **compress** — convert existing prose docs on demand (`/botspeak @file` || folder)
-- **subagents + memory stores** — outbound briefs · inbound reports · memory entries all compress · fan-out saves tokens twice · memory saves tokens for every reader
+- **bot-to-bot traffic** — subagent briefs · subagent reports · memory entries · agent-curated wikis · dreaming output · anything one agent writes for another. fan-out saves tokens twice · persistent entries save tokens for every reader every time. volume asymmetric in your favor.
 
 Anthropic [prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) endorses the moves: XML structure for unambiguous parsing · long input above query (up to 30% quality gain) · terse over verbose. BT applies them consistently.
 
